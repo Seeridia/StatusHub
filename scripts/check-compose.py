@@ -4,8 +4,13 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import tempfile
+import re
 
 root = Path(__file__).resolve().parents[1]
+source = (root / "compose.yaml").read_text()
+assert not re.search(r"^\s*<<\s*:|[&*][A-Za-z_][\w-]*", source, re.M), "Keep production service fields explicit; no YAML aliases or merge keys"
+assert "traefik." not in source and "dokploy-network" not in source, "Platform routing must stay outside the generic Compose"
 env = os.environ.copy()
 env.update(
     STATUSMON_IMAGE="ghcr.io/seeridia/statusmon:sha-test",
@@ -40,4 +45,16 @@ subprocess.run(
     ["docker", "compose", "--env-file", "/dev/null", "-f", "deploy/compose.dev.yaml", "config", "--quiet"],
     cwd=root, env=env, check=True,
 )
-print("Production and development Compose checks passed.")
+# Model a deployment platform appending a proxy network to api only.
+with tempfile.TemporaryDirectory() as directory:
+    override = Path(directory) / "proxy.yaml"
+    override.write_text("services:\n  api:\n    networks: [backend, proxy]\nnetworks:\n  proxy:\n    external: true\n    name: statusmon-test-proxy\n")
+    patched = subprocess.run(
+        ["docker", "compose", "--env-file", "/dev/null", "-f", "compose.yaml", "-f", str(override), "config", "--format", "json"],
+        cwd=root, env=env, capture_output=True, text=True, check=True,
+    )
+    patched_services = json.loads(patched.stdout)["services"]
+    assert set(patched_services["api"]["networks"]) == {"backend", "proxy"}
+    for name in ("postgres", "nats", "worker", "migrate"):
+        assert set(patched_services[name]["networks"]) == {"backend"}, name
+print("Compose checks passed, including API-only proxy network attachment.")

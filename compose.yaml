@@ -1,25 +1,6 @@
-# Production deployment: all application services use the same published image.
-x-app: &app
-  image: ${STATUSMON_IMAGE:?Set a published GHCR image tag or digest}
-  restart: unless-stopped
-  init: true
-  read_only: true
-  tmpfs:
-    - /tmp:size=32m,mode=1777
-  security_opt:
-    - no-new-privileges:true
-  cap_drop:
-    - ALL
-  networks:
-    - backend
-
-x-env: &env
-  DATABASE_URL: postgres://statusmon:${POSTGRES_PASSWORD:?Set a URL-safe database password}@postgres:5432/statusmon?sslmode=disable
-  NATS_URL: nats://nats:4222
-  STATUSMON_CONFIG_KEY: ${STATUSMON_CONFIG_KEY:?Set a base64 32-byte key}
-  STATUSMON_CONFIG_KEY_ID: ${STATUSMON_CONFIG_KEY_ID:-production-v1}
-  STATUSMON_REGION: ${STATUSMON_REGION:-production}
-
+# Production Compose: explicit service fields support deployment-platform rewrites.
+# Domain rules and proxy networks are managed by the deployment platform.
+---
 services:
   postgres:
     image: postgres:17-alpine
@@ -27,81 +8,146 @@ services:
     environment:
       POSTGRES_USER: statusmon
       POSTGRES_DB: statusmon
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set a URL-safe database password}
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set a URL-safe database password}"
     volumes:
-      - postgres-data:/var/lib/postgresql/data
-    networks: [backend]
+    - postgres-data:/var/lib/postgresql/data
+    networks:
+    - backend
     healthcheck:
-      test: [CMD-SHELL, 'pg_isready -U statusmon -d statusmon']
+      test:
+      - CMD-SHELL
+      - pg_isready -U statusmon -d statusmon
       interval: 5s
       timeout: 5s
       retries: 20
-
   nats:
     image: nats:2.11-alpine
     restart: unless-stopped
-    command: [--jetstream, --store_dir=/data, --http_port=8222]
+    command:
+    - "--jetstream"
+    - "--store_dir=/data"
+    - "--http_port=8222"
     volumes:
-      - nats-data:/data
-    networks: [backend]
+    - nats-data:/data
+    networks:
+    - backend
     healthcheck:
-      test: [CMD, wget, -q, -O, /dev/null, 'http://127.0.0.1:8222/healthz']
+      test:
+      - CMD
+      - wget
+      - "-q"
+      - "-O"
+      - "/dev/null"
+      - http://127.0.0.1:8222/healthz
       interval: 5s
       timeout: 5s
       retries: 20
-
   migrate:
-    <<: *app
+    image: "${STATUSMON_IMAGE:?Set a published GHCR image tag or digest}"
     restart: 'no'
-    command: [statusmon-migrate]
+    init: true
+    read_only: true
+    tmpfs:
+    - "/tmp:size=32m,mode=1777"
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    networks:
+    - backend
+    command:
+    - statusmon-migrate
     environment:
-      DATABASE_URL: postgres://statusmon:${POSTGRES_PASSWORD:?Set a URL-safe database password}@postgres:5432/statusmon?sslmode=disable
+      DATABASE_URL: postgres://statusmon:${POSTGRES_PASSWORD:?Set a URL-safe database
+        password}@postgres:5432/statusmon?sslmode=disable
     depends_on:
       postgres:
         condition: service_healthy
-
   api:
-    <<: *app
-    command: [statusmon-api]
+    image: "${STATUSMON_IMAGE:?Set a published GHCR image tag or digest}"
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+    - "/tmp:size=32m,mode=1777"
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    networks:
+    - backend
+    command:
+    - statusmon-api
     environment:
-      <<: *env
+      DATABASE_URL: postgres://statusmon:${POSTGRES_PASSWORD:?Set a URL-safe database
+        password}@postgres:5432/statusmon?sslmode=disable
+      NATS_URL: nats://nats:4222
+      STATUSMON_CONFIG_KEY: "${STATUSMON_CONFIG_KEY:?Set a base64 32-byte key}"
+      STATUSMON_CONFIG_KEY_ID: "${STATUSMON_CONFIG_KEY_ID:-production-v1}"
+      STATUSMON_REGION: "${STATUSMON_REGION:-production}"
       STATUSMON_API_ADDRESS: 0.0.0.0:8080
-      STATUSMON_API_KEY: ${STATUSMON_API_KEY:?Set a separate base64 32-byte key}
-      STATUSMON_PUBLIC_URL: ${STATUSMON_PUBLIC_URL:?Set the public HTTPS URL}
-      STATUSMON_SMTP_ADDRESS: ${STATUSMON_SMTP_ADDRESS:?Set SMTP host and STARTTLS port}
-      STATUSMON_SMTP_FROM: ${STATUSMON_SMTP_FROM:?Set sender email}
-      STATUSMON_SMTP_USERNAME: ${STATUSMON_SMTP_USERNAME:-}
-      STATUSMON_SMTP_PASSWORD: ${STATUSMON_SMTP_PASSWORD:-}
+      STATUSMON_API_KEY: "${STATUSMON_API_KEY:?Set a separate base64 32-byte key}"
+      STATUSMON_PUBLIC_URL: "${STATUSMON_PUBLIC_URL:?Set the public HTTPS URL}"
+      STATUSMON_SMTP_ADDRESS: "${STATUSMON_SMTP_ADDRESS:?Set SMTP host and STARTTLS
+        port}"
+      STATUSMON_SMTP_FROM: "${STATUSMON_SMTP_FROM:?Set sender email}"
+      STATUSMON_SMTP_USERNAME: "${STATUSMON_SMTP_USERNAME:-}"
+      STATUSMON_SMTP_PASSWORD: "${STATUSMON_SMTP_PASSWORD:-}"
       STATUSMON_SMTP_ALLOW_LOCAL_PLAINTEXT: 'false'
-    expose: ['8080']
+    expose:
+    - '8080'
     ports:
-      - "${STATUSMON_BIND_ADDRESS:-127.0.0.1}:${STATUSMON_HTTP_PORT:-8080}:8080"
+    - "${STATUSMON_BIND_ADDRESS:-127.0.0.1}:${STATUSMON_HTTP_PORT:-8080}:8080"
     depends_on:
       migrate:
         condition: service_completed_successfully
       nats:
         condition: service_healthy
     healthcheck:
-      test: [CMD, curl, -fsS, --max-time, '4', 'http://127.0.0.1:8080/readyz']
+      test:
+      - CMD
+      - curl
+      - "-fsS"
+      - "--max-time"
+      - '4'
+      - http://127.0.0.1:8080/readyz
       interval: 15s
       timeout: 5s
       start_period: 30s
       retries: 5
-
   worker:
-    <<: *app
-    command: [statusmond, -worker-id, production-worker, -metrics-address, '0.0.0.0:9464']
+    image: "${STATUSMON_IMAGE:?Set a published GHCR image tag or digest}"
+    restart: unless-stopped
+    init: true
+    read_only: true
+    tmpfs:
+    - "/tmp:size=32m,mode=1777"
+    security_opt:
+    - no-new-privileges:true
+    cap_drop:
+    - ALL
+    networks:
+    - backend
+    command:
+    - statusmond
+    - "-worker-id"
+    - production-worker
+    - "-metrics-address"
+    - 0.0.0.0:9464
     environment:
-      <<: *env
+      DATABASE_URL: postgres://statusmon:${POSTGRES_PASSWORD:?Set a URL-safe database
+        password}@postgres:5432/statusmon?sslmode=disable
+      NATS_URL: nats://nats:4222
+      STATUSMON_CONFIG_KEY: "${STATUSMON_CONFIG_KEY:?Set a base64 32-byte key}"
+      STATUSMON_CONFIG_KEY_ID: "${STATUSMON_CONFIG_KEY_ID:-production-v1}"
+      STATUSMON_REGION: "${STATUSMON_REGION:-production}"
     depends_on:
       migrate:
         condition: service_completed_successfully
       nats:
         condition: service_healthy
-
 networks:
   backend:
-
 volumes:
   postgres-data:
   nats-data:

@@ -10,23 +10,17 @@ Dokploy uses the same root `compose.yaml` as a normal Docker server. There is no
 2. 在 Dokploy 新建 **Compose 服务**，关联本仓库，文件路径填写根目录 `compose.yaml`。
 3. 在环境变量编辑器中按根目录 `.env.example` 填写 `STATUSMON_IMAGE`、数据库密码、两把独立密钥、公开 HTTPS 域名和 SMTP。镜像优先填写上一步的 digest，不要填写一个尚未发布的版本。
 4. 在域名配置中选择 **api** 服务、容器端口 **8080**，启用 HTTPS，并设置 DNS。`STATUSMON_PUBLIC_URL` 使用同一 HTTPS 域名，不带 `/ui`。
-5. 确认 Dokploy 的反向代理可以通过其代理网络连接 **api**。部分版本会自动接入；未自动接入时，使用平台的 Compose override 功能或部署目录中的本地覆盖文件追加下面的网络配置。不要把数据库和 NATS 加入代理网络。
+5. 确认 Dokploy 的反向代理可以通过其代理网络连接 **api**。部分版本会自动接入；未自动接入时，检查平台生成的最终 Compose 和本页的排查步骤。不要把数据库和 NATS 加入代理网络。
 6. 部署，检查 PostgreSQL/NATS 健康、迁移任务退出码为 0、API/worker 持续运行。迁移容器成功退出是正常行为。
 7. 在 API 容器终端创建工作区并邀请首位 Owner，详见[初始化步骤](deployment.md#initialize-the-workspace)。通过真实邮件验证后登录，添加状态页、渠道和通知规则。
 
-代理网络覆盖示例（仅当你的安装使用 `dokploy-network` 时）：
+## Git Compose 与 Dokploy 域名配置
 
-```yaml
-services:
-  api:
-    networks:
-      - backend
-      - proxy
-networks:
-  proxy:
-    external: true
-    name: dokploy-network
-```
+仓库将各服务的网络和环境变量显式展开，不使用 YAML `<<` 继承。这样平台解析后追加 API 的代理网络时，可以看到并保留原有 `backend` 网络。仓库不包含固定域名、Traefik 标签或 Dokploy 专属网络。
+
+域名应由 Dokploy 的 Domains 页面管理，服务名选择 `api`，域名规则需启用；保存后执行 Deploy，不能只 Restart。更新此 Compose 不需要发布新镜像，也不需要更换 `STATUSMON_IMAGE`、工作区或数据卷。
+
+如果 API 直连健康，但公网仍然 404，检查最后一次部署是否成功、是否使用了最新 Git 提交、Domains 记录是否启用且绑定 `api`，以及最终生成的 Compose 中是否包含平台注入的标签和代理网络。显式展开配置并不能替代这些平台配置。不要通过删除数据库卷处理域名问题。
 
 通用 Compose 默认还将 API 映射到宿主机 `127.0.0.1:8080`，此端口不向公网开放。如果已有应用占用该端口，在 Dokploy 环境变量中设置一个空闲的 `STATUSMON_HTTP_PORT`；域名配置的**容器端口仍是 8080**。宿主机 loopback 不能直接被其他容器当作服务地址，容器代理应走共享网络。
 
