@@ -22,6 +22,8 @@ import {
   ArrowRightIcon,
   CheckCircleIcon,
   NotificationIcon,
+  SearchIcon,
+  RefreshIcon,
 } from "tdesign-icons-react";
 import {
   EmptyState,
@@ -480,6 +482,12 @@ export default function Rules() {
   const permission = usePermissions();
   const [params] = useSearchParams();
   const query = useList<Subscription>("/subscriptions");
+  const [search, setSearch] = useState("");
+  const [current, setCurrent] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const rows = query.rows.filter((row) =>
+    row.name.toLowerCase().includes(search.trim().toLowerCase()),
+  );
   const editing =
     location.pathname !== "/rules" && location.pathname !== "/rules/";
   if (editing)
@@ -495,19 +503,6 @@ export default function Rules() {
     );
   return (
     <>
-      <PageHeading
-        title={tr("\u901A\u77E5\u89C4\u5219")}
-        description={tr(
-          "\u5C06\u5382\u5546\u3001\u4E8B\u4EF6\u6761\u4EF6\u548C\u63A5\u6536\u6E20\u9053\u7EC4\u5408\u6210\u6E05\u6670\u7684\u901A\u77E5\u89C4\u5219\u3002",
-        )}
-        actions={
-          permission.write && (
-            <Button icon={<AddIcon />} onClick={() => navigate("/rules/new")}>
-              {tr("\u521B\u5EFA\u89C4\u5219")}
-            </Button>
-          )
-        }
-      />
       {params.has("saved") && (
         <Alert
           className="query-error"
@@ -515,29 +510,86 @@ export default function Rules() {
           message={tr("\u901A\u77E5\u89C4\u5219\u5DF2\u4FDD\u5B58\u3002")}
         />
       )}
-      <Panel className="panel">
+      <Panel className="panel starter-list-panel">
+        <div className="starter-list-toolbar">
+          <div className="heading-actions">
+            {permission.write && (
+              <Button icon={<AddIcon />} onClick={() => navigate("/rules/new")}>
+                {tr("创建规则")}
+              </Button>
+            )}
+            <Button
+              theme="default"
+              variant="outline"
+              icon={<RefreshIcon />}
+              loading={query.isFetching}
+              onClick={() => void query.refetch()}
+            >
+              {tr("刷新")}
+            </Button>
+          </div>
+          <Input
+            className="starter-list-search"
+            aria-label={tr("搜索已加载的规则")}
+            placeholder={tr("搜索已加载的规则")}
+            suffixIcon={<SearchIcon />}
+            clearable
+            value={search}
+            onChange={(value) => {
+              setSearch(value);
+              setCurrent(1);
+            }}
+          />
+        </div>
+        {query.hasNextPage && (
+          <p className="field-hint">
+            {tr("当前仅显示已加载的规则，可在下方继续加载。")}
+          </p>
+        )}
+
         <QueryState query={query}>
           <Table
             tableLayout="fixed"
             rowKey="id"
-            data={query.rows}
+            data={rows}
             hover
+            pagination={{
+              current: Math.min(
+                current,
+                Math.max(1, Math.ceil(rows.length / pageSize)),
+              ),
+              pageSize,
+              total: rows.length,
+              showJumper: true,
+              onCurrentChange: setCurrent,
+              onPageSizeChange: (size) => {
+                setPageSize(size);
+                setCurrent(1);
+              },
+            }}
             empty={
-              <EmptyState
-                title={tr(
-                  "\u521B\u5EFA\u4F60\u7684\u7B2C\u4E00\u6761\u901A\u77E5\u89C4\u5219",
-                )}
-                description={tr(
-                  "\u9009\u62E9\u5382\u5546\u4E0E\u6E20\u9053\uFF0C\u8BA9\u91CD\u8981\u7684\u72B6\u6001\u53D8\u5316\u53CA\u65F6\u5230\u8FBE\u3002",
-                )}
-                action={
-                  permission.write && (
-                    <Button onClick={() => navigate("/rules/new")}>
-                      {tr("\u521B\u5EFA\u901A\u77E5\u89C4\u5219")}
-                    </Button>
-                  )
-                }
-              />
+              search ? (
+                <EmptyState
+                  title={tr("没有匹配的规则")}
+                  description={tr("尝试其他名称，或清空搜索条件。")}
+                />
+              ) : (
+                <EmptyState
+                  title={tr(
+                    "\u521B\u5EFA\u4F60\u7684\u7B2C\u4E00\u6761\u901A\u77E5\u89C4\u5219",
+                  )}
+                  description={tr(
+                    "\u9009\u62E9\u5382\u5546\u4E0E\u6E20\u9053\uFF0C\u8BA9\u91CD\u8981\u7684\u72B6\u6001\u53D8\u5316\u53CA\u65F6\u5230\u8FBE\u3002",
+                  )}
+                  action={
+                    permission.write && (
+                      <Button onClick={() => navigate("/rules/new")}>
+                        {tr("\u521B\u5EFA\u901A\u77E5\u89C4\u5219")}
+                      </Button>
+                    )
+                  }
+                />
+              )
             }
             columns={[
               {
@@ -585,13 +637,13 @@ export default function Rules() {
               {
                 colKey: "updated_at",
                 title: tr("\u66F4\u65B0\u65F6\u95F4"),
-                width: 165,
+                width: 200,
                 cell: ({ row }) => fmt(row.updated_at),
               },
               {
                 colKey: "actions",
                 title: tr("操作"),
-                width: 145,
+                width: 180,
                 fixed: "right",
                 cell: ({ row }) => (
                   <div className="table-actions">

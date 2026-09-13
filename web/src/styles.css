@@ -2088,3 +2088,24 @@ a {
 .topbar-right > .t-tag {
   height: var(--td-comp-size-m);
 }
+
+.starter-list-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--td-comp-margin-l);
+  margin-bottom: var(--td-comp-margin-l);
+}
+.starter-list-search {
+  width: 280px;
+  max-width: 100%;
+}
+.starter-list-panel {
+  min-width: 0;
+}
+@media (max-width: 760px) {
+  .starter-list-search {
+    width: 100%;
+  }
+}

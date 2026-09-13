@@ -4,6 +4,11 @@ import { initReactI18next } from "react-i18next";
 export type AppLanguage = "en" | "zh";
 
 const english: Record<string, string> = {
+  搜索已加载的规则: "Search loaded rules",
+  "当前仅显示已加载的规则，可在下方继续加载。":
+    "Showing loaded rules. Load more below to include additional rules.",
+  没有匹配的规则: "No matching rules",
+  "尝试其他名称，或清空搜索条件。": "Try another name or clear the search.",
   采集频率说明: "Collection frequency",
   删除: "Delete",
   删除配置: "Delete configuration",
