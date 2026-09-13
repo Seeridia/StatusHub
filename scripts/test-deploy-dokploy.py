@@ -18,6 +18,12 @@ class DeploymentTests(unittest.TestCase):
         self.assertIsNone(deploy.deployment_state(rows, 'missing'))
         with self.assertRaises(ValueError): deploy.deployment_state(rows + [rows[1]], 'current')
 
+    def test_dokploy_commit_title_rewrite(self):
+        rows = [{'deploymentId': 'old', 'description': 'Commit: abc', 'status': 'done'},
+                {'deploymentId': 'new', 'title': 'Git commit title', 'description': 'Commit: abc', 'status': 'running'}]
+        self.assertEqual(deploy.deployment_state(rows, 'workflow title', 'abc', {'old'}), 'running')
+        self.assertIsNone(deploy.deployment_state(rows, 'workflow title', 'other', {'old'}))
+
     def test_credentials_not_redirected(self):
         self.assertIsNone(deploy.NoRedirect().redirect_request(None, None, 302, '', {}, 'https://other.example'))
 

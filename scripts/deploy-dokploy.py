@@ -21,10 +21,13 @@ def https_origin(value):
     return value.rstrip('/')
 
 
-def deployment_state(rows, title):
+def deployment_state(rows, title, expected_sha=None, known_ids=()):
     if not isinstance(rows, list):
         raise ValueError('Unexpected deployment response')
-    matches = [r for r in rows if r.get('title') == title]
+    matches = [r for r in rows if r.get('title') == title or (
+        expected_sha and r.get('deploymentId') not in known_ids
+        and r.get('description') == 'Commit: ' + expected_sha
+    )]
     if len(matches) > 1:
         raise ValueError('Ambiguous deployment result')
     return matches[0].get('status') if matches else None
@@ -52,6 +55,11 @@ def main():
             raise
 
     title = 'GitHub publish ' + os.environ['GITHUB_RUN_ID'] + '/' + os.environ['GITHUB_RUN_ATTEMPT']
+    list_url = base + '/api/deployment.allByCompose?' + urllib.parse.urlencode({'composeId': compose})
+    previous = request(list_url)
+    if not isinstance(previous, list) or any(r.get('status') == 'running' for r in previous):
+        raise ValueError('Another deployment is running or deployment history is unavailable')
+    known_ids = {r.get('deploymentId') for r in previous}
     # Do not retry POST: a lost response can still mean a deployment was queued.
     request(base + '/api/compose.deploy', {
         'composeId': compose, 'title': title,
@@ -60,8 +68,8 @@ def main():
     print('Deployment queued; waiting for this run to finish.', flush=True)
     deadline = time.monotonic() + 900
     while time.monotonic() < deadline:
-        rows = request(base + '/api/deployment.allByCompose?' + urllib.parse.urlencode({'composeId': compose}))
-        state = deployment_state(rows, title)
+        rows = request(list_url)
+        state = deployment_state(rows, title, os.environ['GITHUB_SHA'], known_ids)
         if state == 'done':
             break
         if state in ('error', 'cancelled'):
