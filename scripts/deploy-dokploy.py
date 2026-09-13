@@ -40,12 +40,16 @@ def main():
     opener = urllib.request.build_opener(NoRedirect)
 
     def request(url, payload=None, authenticated=True):
-        headers = {'Content-Type': 'application/json'}
+        headers = {'Content-Type': 'application/json', 'User-Agent': 'StatusMon-Deployment/1.0'}
         if authenticated:
             headers['x-api-key'] = key
         req = urllib.request.Request(url, data=json.dumps(payload).encode() if payload is not None else None, headers=headers)
-        with opener.open(req, timeout=30) as response:
-            return json.load(response)
+        try:
+            with opener.open(req, timeout=30) as response:
+                return json.load(response)
+        except urllib.error.HTTPError as error:
+            print('HTTP ' + str(error.code) + ' from ' + urllib.parse.urlsplit(url).path, flush=True)
+            raise
 
     title = 'GitHub publish ' + os.environ['GITHUB_RUN_ID'] + '/' + os.environ['GITHUB_RUN_ATTEMPT']
     # Do not retry POST: a lost response can still mean a deployment was queued.
