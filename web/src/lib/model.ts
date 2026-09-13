@@ -43,6 +43,7 @@ export const labels: Record<string, string> = {
   "source.degraded": tr("\u91C7\u96C6\u964D\u7EA7"),
   "source.recovered": tr("\u91C7\u96C6\u6062\u590D"),
   slack: "Slack",
+  lark: tr("飞书"),
   generic_webhook: "Webhook",
   viewer: tr("\u53EA\u8BFB\u6210\u5458"),
   operator: tr("\u64CD\u4F5C\u5458"),

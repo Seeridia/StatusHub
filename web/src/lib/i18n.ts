@@ -4,6 +4,10 @@ import { initReactI18next } from "react-i18next";
 export type AppLanguage = "en" | "zh";
 
 const english: Record<string, string> = {
+  飞书: "Feishu / Lark",
+  "请填写飞书机器人的签名密钥。": "Enter the bot signing secret.",
+  "使用飞书群自定义机器人的 Webhook 地址，并开启签名校验。签名密钥填写机器人安全设置中的密钥。保存后可发送测试通知。":
+    "Use a Feishu group custom bot webhook with signature verification enabled. Enter the secret from the bot security settings. You can send a test notification after saving.",
   服务名称: "Service name",
   搜索或输入服务名称: "Search or enter a service name",
   "选择服务可自动填写状态页；未收录的服务请自行填写地址。接入前仍会检测是否支持。":

@@ -644,8 +644,10 @@ func validateEndpointInput(ctx context.Context, endpointID string, channel notif
 		driver = notify.NewGenericWebhook(nil)
 	case notify.ChannelSlack:
 		driver = notify.NewSlack(nil)
+	case notify.ChannelLark:
+		driver = notify.NewLark(nil)
 	default:
-		return fmt.Errorf("%w: M5 endpoint management supports generic_webhook and slack", store.ErrInvalidArgument)
+		return fmt.Errorf("%w: endpoint management supports generic_webhook, slack and lark", store.ErrInvalidArgument)
 	}
 	if err := driver.Validate(ctx, endpoint); err != nil {
 		return fmt.Errorf("%w: endpoint configuration is invalid: %v", store.ErrInvalidArgument, err)

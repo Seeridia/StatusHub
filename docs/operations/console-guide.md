@@ -145,3 +145,11 @@ Generic Webhook 的签名密钥用于接收端校验通知，与服务端 `.env`
 admin/owner 可查看审计记录，并对符合条件的租户私有来源查看适配器发布：先启动 shadow，观察样本、错误率、不一致率和延迟，达到服务端门禁后才能晋级；需要时回滚。平台公开来源和区域切换由平台运维管理，见 [高级运维](../advanced-operations.md)。
 
 不要把“检测状态页”与“发布新适配器”混淆：普通接入选择已经可用的解析能力；发布会改变来源的解析行为，需要独立验证。
+
+## 飞书群机器人通知 / Feishu notifications
+
+在飞书群中添加自定义机器人，开启签名校验，复制 Webhook 地址和签名密钥。在 StatusMon 的“通知渠道 → 添加渠道”选择“飞书”，填写名称、HTTPS Webhook 地址和签名密钥。地址通常为 `https://open.feishu.cn/open-apis/bot/v2/hook/...`。飞书不需要通用 Webhook 的“签名密钥标识”。
+
+保存后在渠道列表发送测试通知，确认飞书群收到消息，再在通知规则中选择该渠道。保存操作本身不发送消息。签名密钥加密存储，不会在普通响应中回显。若还配置了关键词或 IP 白名单，测试和正式消息都必须满足对应规则；签名校验失败时检查密钥和服务器时钟。
+
+Choose **Feishu / Lark** under Notification channels, enter the custom bot webhook URL and its signing secret, then save and send a test notification. Enable signature verification in the bot security settings. Attach the channel to a notification rule to receive event notifications. The signing-key ID used by Generic Webhook is not required for Feishu.

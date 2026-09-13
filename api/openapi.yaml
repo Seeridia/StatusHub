@@ -629,7 +629,7 @@ components:
       required: [name, channel, config]
       properties:
         name: {type: string, maxLength: 200}
-        channel: {type: string, enum: [generic_webhook, slack]}
+        channel: {type: string, enum: [generic_webhook, slack, lark]}
         enabled: {type: boolean, default: true}
         expected_secret_version: {type: integer, minimum: 1}
         config:

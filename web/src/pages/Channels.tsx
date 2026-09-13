@@ -74,6 +74,10 @@ export function ChannelEditor({
       );
       return;
     }
+    if (channel === "lark" && !secret.trim()) {
+      setError(tr("请填写飞书机器人的签名密钥。"));
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -84,7 +88,9 @@ export function ChannelEditor({
           url: url.trim(),
           ...(channel === "generic_webhook"
             ? { signing_key_id: key.trim(), secret }
-            : {}),
+            : channel === "lark"
+              ? { secret: secret.trim() }
+              : {}),
         },
       });
       await client.invalidateQueries({
@@ -133,6 +139,7 @@ export function ChannelEditor({
               onChange={(v) => setChannel(String(v))}
               options={[
                 { value: "slack", label: "Slack Incoming Webhook" },
+                { value: "lark", label: tr("飞书") },
                 { value: "generic_webhook", label: tr("\u901A\u7528 Webhook") },
               ]}
             />
@@ -149,18 +156,20 @@ export function ChannelEditor({
               onChange={setURL}
             />
           </FormField>
-          {channel === "generic_webhook" && (
+          {(channel === "generic_webhook" || channel === "lark") && (
             <>
-              <FormField
-                label={tr("\u7B7E\u540D\u5BC6\u94A5\u6807\u8BC6")}
-                name="key"
-              >
-                <Input
-                  aria-label={tr("\u7B7E\u540D\u5BC6\u94A5\u6807\u8BC6")}
-                  value={key}
-                  onChange={setKey}
-                />
-              </FormField>
+              {channel === "generic_webhook" && (
+                <FormField
+                  label={tr("\u7B7E\u540D\u5BC6\u94A5\u6807\u8BC6")}
+                  name="key"
+                >
+                  <Input
+                    aria-label={tr("\u7B7E\u540D\u5BC6\u94A5\u6807\u8BC6")}
+                    value={key}
+                    onChange={setKey}
+                  />
+                </FormField>
+              )}
               <FormField label={tr("\u7B7E\u540D\u5BC6\u94A5")} name="secret">
                 <Input
                   aria-label={tr("\u7B7E\u540D\u5BC6\u94A5")}
@@ -171,6 +180,14 @@ export function ChannelEditor({
                 />
               </FormField>
             </>
+          )}
+          {channel === "lark" && (
+            <Alert
+              theme="info"
+              message={tr(
+                "使用飞书群自定义机器人的 Webhook 地址，并开启签名校验。签名密钥填写机器人安全设置中的密钥。保存后可发送测试通知。",
+              )}
+            />
           )}
           {error && <Alert theme="error" message={error} />}
           <Alert

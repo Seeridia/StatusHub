@@ -316,3 +316,30 @@ func TestAdapterRolloutAPIUsesTenantScopeDefaultsAndDecisions(t *testing.T) {
 		t.Fatalf("promote status=%d decision=%#v promoted=%v body=%s", response.Code, repository.decision, repository.promoted, response.Body.String())
 	}
 }
+
+func TestLarkEndpointCreation(t *testing.T) {
+	for _, tc := range []struct {
+		name, secret string
+		status       int
+	}{
+		{"signed", "test-lark-secret", http.StatusCreated},
+		{"missing signing secret", "", http.StatusBadRequest},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			repository := &repositoryStub{}
+			server := newTestServer(t, repository, verifierStub{tenantID: testTenantID}, nil)
+			body := `{"name":"Feishu","channel":"lark","config":{"url":"https://open.feishu.cn/open-apis/bot/v2/hook/test","secret":"` + tc.secret + `"}}`
+			request := httptest.NewRequest(http.MethodPost, "/v1/tenants/acme/endpoints", strings.NewReader(body))
+			request.Header.Set("Authorization", "Bearer valid")
+			request.Header.Set("Idempotency-Key", "create-lark")
+			recorder := httptest.NewRecorder()
+			server.Handler().ServeHTTP(recorder, request)
+			if recorder.Code != tc.status {
+				t.Fatalf("status=%d body=%s", recorder.Code, recorder.Body.String())
+			}
+			if tc.secret != "" && (bytes.Contains(repository.created.EncryptedConfig, []byte(tc.secret)) || strings.Contains(recorder.Body.String(), tc.secret)) {
+				t.Fatal("Lark signing secret leaked")
+			}
+		})
+	}
+}
