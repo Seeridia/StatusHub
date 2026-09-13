@@ -4,6 +4,12 @@ import { initReactI18next } from "react-i18next";
 export type AppLanguage = "en" | "zh";
 
 const english: Record<string, string> = {
+  服务名称: "Service name",
+  搜索或输入服务名称: "Search or enter a service name",
+  "选择服务可自动填写状态页；未收录的服务请自行填写地址。接入前仍会检测是否支持。":
+    "Choose a service to fill its status page. For an unlisted service, enter the URL yourself. Compatibility is checked before connecting.",
+  "未找到服务，请在下方填写状态页地址。":
+    "No matching service. Enter its status page URL below.",
   保存: "Save",
   确认: "Confirm",
   关闭: "Close",

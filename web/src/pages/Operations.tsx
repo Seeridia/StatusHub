@@ -1,3 +1,4 @@
+import { ServiceNameInput } from "../components/ServiceNameInput";
 import { formatList, tr } from "../lib/i18n";
 import { Team, PersonalAccount } from "./Team";
 import { FormField } from "../components";
@@ -502,6 +503,7 @@ function Sources() {
   const [scheduleID, setScheduleID] = useState<string | null>(null);
   const schedule = query.rows.find((row) => row.id === scheduleID);
   const [url, setURL] = useState("");
+  const [serviceName, setServiceName] = useState("");
   const [detected, setDetected] = useState<{
     vendor: {
       name: string;
@@ -526,7 +528,10 @@ function Sources() {
       setDetected(
         await api("/sources:probe", {
           method: "POST",
-          body: JSON.stringify({ url: url.trim() }),
+          body: JSON.stringify({
+            url: url.trim(),
+            display_name: serviceName.trim(),
+          }),
         }),
       );
     } catch (err) {
@@ -554,9 +559,11 @@ function Sources() {
     try {
       await write("/sources", {
         url: url.trim(),
+        display_name: serviceName.trim(),
       });
       setAdding(false);
       setURL("");
+      setServiceName("");
       setDetected(null);
       await query.refetch();
     } catch (err) {
@@ -776,6 +783,23 @@ function Sources() {
             layout="vertical"
             onSubmit={() => void (detected ? save() : detect())}
           >
+            <FormField label={tr("服务名称")} name="serviceName">
+              <ServiceNameInput
+                value={serviceName}
+                disabled={busy}
+                onChange={(name, suggestedURL) => {
+                  setServiceName(name);
+                  setURL(suggestedURL ?? "");
+                  setDetected(null);
+                  setError("");
+                }}
+              />
+            </FormField>
+            <p className="muted">
+              {tr(
+                "选择服务可自动填写状态页；未收录的服务请自行填写地址。接入前仍会检测是否支持。",
+              )}
+            </p>
             <FormField label={tr("\u72B6\u6001\u9875\u5730\u5740")} name="url">
               <Input
                 aria-label={tr("\u72B6\u6001\u9875\u5730\u5740")}
@@ -789,11 +813,6 @@ function Sources() {
                 placeholder="https://status.openai.com/"
               />
             </FormField>
-            <p className="muted">
-              {tr(
-                "\u7C98\u8D34\u5382\u5546\u72B6\u6001\u9875\u5730\u5740\uFF0C\u6211\u4EEC\u4F1A\u81EA\u52A8\u68C0\u67E5\u662F\u5426\u652F\u6301\u63A5\u5165\u3002",
-              )}
-            </p>
             {error && <Alert theme="error" message={error} />}
             {detected && (
               <>
@@ -952,9 +971,15 @@ export default function Operations({
       <section className="panel settings-panel">
         <Tabs value={tab} onChange={(v) => setTab(String(v))}>
           <Tabs.TabPanel value="account" label={tr("个人账号")} />
-          {permission.admin && <Tabs.TabPanel value="members" label={tr("成员")} />}
-          {permission.admin && <Tabs.TabPanel value="invitations" label={tr("邀请")} />}
-          {permission.admin && <Tabs.TabPanel value="service-accounts" label={tr("服务账号")} />}
+          {permission.admin && (
+            <Tabs.TabPanel value="members" label={tr("成员")} />
+          )}
+          {permission.admin && (
+            <Tabs.TabPanel value="invitations" label={tr("邀请")} />
+          )}
+          {permission.admin && (
+            <Tabs.TabPanel value="service-accounts" label={tr("服务账号")} />
+          )}
           <Tabs.TabPanel value="sources" label={tr("\u6570\u636E\u6E90")} />
           {permission.admin && (
             <Tabs.TabPanel

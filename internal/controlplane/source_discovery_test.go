@@ -82,3 +82,31 @@ func TestSourceIdentityKeepsSharedHostingPathsSeparate(t *testing.T) {
 		t.Fatal("official alias not normalized")
 	}
 }
+
+func TestSourceDisplayName(t *testing.T) {
+	for _, tc := range []struct {
+		name, display, url, want string
+		status                   int
+	}{
+		{"custom", "  My Service  ", "https://status.example.com", "My Service", http.StatusCreated},
+		{"existing vendor", "Wrong Name", "https://status.openai.com", "", http.StatusCreated},
+		{"too long", strings.Repeat("x", 121), "https://status.example.com", "", http.StatusBadRequest},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			r := &discoveryRepository{repositoryStub: repositoryStub{vendors: []store.VendorStatus{{ID: "10000000-0000-0000-0000-000000000013", Slug: "openai", Name: "OpenAI"}}}}
+			s := newTestServer(t, r, verifierStub{tenantID: testTenantID}, nil)
+			s.prober = discoveryProber{}
+			req := httptest.NewRequest(http.MethodPost, "/v1/tenants/acme/sources", strings.NewReader(`{"url":"`+tc.url+`","display_name":"`+tc.display+`"}`))
+			req.Header.Set("Authorization", "Bearer valid")
+			req.Header.Set("Idempotency-Key", "display-test")
+			response := httptest.NewRecorder()
+			s.Handler().ServeHTTP(response, req)
+			if response.Code != tc.status {
+				t.Fatalf("status %d: %s", response.Code, response.Body.String())
+			}
+			if r.createdSource.AutoVendorName != tc.want {
+				t.Fatalf("name %q, want %q", r.createdSource.AutoVendorName, tc.want)
+			}
+		})
+	}
+}

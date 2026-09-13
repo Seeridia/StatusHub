@@ -517,6 +517,7 @@ components:
       required: [url]
       properties:
         url: {type: string, format: uri}
+        display_name: {type: string, maxLength: 120, description: "Display name for a newly discovered vendor; never renames an existing vendor."}
         vendor_id: {type: string, format: uuid}
         provider: {type: string}
         page_id: {type: string}

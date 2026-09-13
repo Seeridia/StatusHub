@@ -1582,7 +1582,46 @@ a {
 }
 
 @media (max-width: 600px) {
-  .topbar { height: auto; min-height: 58px; padding-block: 8px; align-items: flex-start; }
-  .topbar-left { flex-shrink: 0; }
-  .topbar-right { min-width: 0; flex-wrap: wrap; justify-content: flex-end; gap: 4px; }
+  .topbar {
+    height: auto;
+    min-height: 58px;
+    padding-block: 8px;
+    align-items: flex-start;
+  }
+  .topbar-left {
+    flex-shrink: 0;
+  }
+  .topbar-right {
+    min-width: 0;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px;
+  }
+}
+.service-suggestions {
+  max-height: 288px;
+  overflow-y: auto;
+  padding: var(--td-comp-paddingTB-xs);
+}
+.service-suggestion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--td-comp-margin-xxs);
+  padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-s);
+  border-radius: var(--td-radius-default);
+  cursor: pointer;
+  overflow-wrap: anywhere;
+  color: var(--td-text-color-primary);
+}
+.service-suggestion:hover,
+.service-suggestion.is-active {
+  background: var(--td-bg-color-container-hover);
+}
+.service-suggestion small,
+.service-suggestions-empty {
+  color: var(--td-text-color-secondary);
+  font: var(--td-font-body-small);
+}
+.service-suggestions-empty {
+  padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-s);
 }

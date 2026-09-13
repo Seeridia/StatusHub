@@ -129,11 +129,12 @@ func (s *Server) handleSource(response http.ResponseWriter, request *http.Reques
 }
 
 type sourceRequest struct {
-	URL        string `json:"url"`
-	VendorID   string `json:"vendor_id,omitempty"`
-	Provider   string `json:"provider,omitempty"`
-	PageID     string `json:"page_id,omitempty"`
-	SourceType string `json:"source_type,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	URL         string `json:"url"`
+	VendorID    string `json:"vendor_id,omitempty"`
+	Provider    string `json:"provider,omitempty"`
+	PageID      string `json:"page_id,omitempty"`
+	SourceType  string `json:"source_type,omitempty"`
 }
 
 type probeResponse struct {
@@ -208,6 +209,10 @@ func (s *Server) handleCreateSource(response http.ResponseWriter, request *http.
 }
 
 func (s *Server) probe(parent context.Context, input sourceRequest, sourceID string) (probeResponse, error) {
+	input.DisplayName = strings.TrimSpace(input.DisplayName)
+	if len([]rune(input.DisplayName)) > 120 || strings.ContainsAny(input.DisplayName, "\r\n\t") {
+		return probeResponse{}, fmt.Errorf("%w: display_name must be at most 120 characters without tabs or line breaks", store.ErrInvalidArgument)
+	}
 	parsed, err := url.Parse(strings.TrimSpace(input.URL))
 	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || parsed.Fragment != "" {
 		return probeResponse{}, fmt.Errorf("%w: source URL must be an absolute HTTPS URL without credentials or fragment", store.ErrInvalidArgument)
@@ -228,6 +233,9 @@ func (s *Server) probe(parent context.Context, input sourceRequest, sourceID str
 	result := probeResponse{RequestedURL: parsed.String(), CanonicalURL: canonical.String(), Capabilities: capabilities}
 	if err := s.identifySource(parent, &result); err != nil {
 		return probeResponse{}, err
+	}
+	if result.Vendor.New && input.DisplayName != "" {
+		result.Vendor.Name = input.DisplayName
 	}
 	return result, nil
 }
