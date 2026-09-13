@@ -49,6 +49,8 @@ cd vendor-status-monitoring
 
 ## 开发与部署
 
+使用随仓库提供的 Compose 编排部署到 Dokploy，详见 [Dokploy 部署指南](docs/dokploy.md#中文部署步骤)。
+
 ```bash
 make ui-install
 make ui-dev

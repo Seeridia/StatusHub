@@ -6,6 +6,7 @@
 
 | 任务 | 文档 |
 | --- | --- |
+| 在 Dokploy 自托管部署 | [Dokploy 部署指南](../dokploy.md#中文部署步骤) |
 | 第一次安装、已有环境重启、创建登录账号 | [安装与启动](getting-started.md) |
 | 查看状态、添加状态页、设置渠道和通知规则 | [网页操作手册](console-guide.md) |
 | 配置项、角色权限、OIDC、API 使用约定 | [配置与账号](configuration.md) |

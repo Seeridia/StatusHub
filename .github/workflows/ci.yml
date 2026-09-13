@@ -34,6 +34,8 @@ jobs:
         run: go test -race -count=1 ./...
       - name: Start integration dependencies
         run: docker compose -f deploy/compose.yaml up -d --wait
+      - name: Verify deployment migration lifecycle
+        run: TEST_DATABASE_URL=postgres://statusmon:statusmon_local_only@127.0.0.1:55432/statusmon?sslmode=disable go test -race ./cmd/statusmon-migrate
       - name: Verify migrations and crash/redelivery invariants
         run: make migrate-check test-integration
       - name: Stop integration dependencies

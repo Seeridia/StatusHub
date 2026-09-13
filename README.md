@@ -80,6 +80,8 @@ Use a disposable development database for integration tests. The frontend build 
 
 ## Deployment and security
 
+Deploy with [Dokploy](docs/dokploy.md) using the included production Compose stack.
+
 Configure a public HTTPS URL, independent SMTP credentials, persistent storage, and protected encryption keys before deployment. The bundled Compose file is a local development setup. Key management currently uses a static AES backend; managed KMS/Vault and online multi-key rotation are not provided. Review [operations](docs/operations/maintenance.md) and [security reporting](SECURITY.md).
 
 ## License and trademarks

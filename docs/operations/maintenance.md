@@ -57,7 +57,7 @@ docker compose -f deploy/compose.yaml stop
 5. 如前端变化，重新安装锁定依赖并构建网页，再编译 Go 程序。
 6. 启动服务，检查 readiness、来源采集、事件详情、登录和投递，再恢复正常流量。
 
-当前没有自动迁移历史表。维护人员需要保存已执行文件名、版本、时间和结果。不要根据“程序能启动”推断所有迁移都已完成。查找迁移文件：
+使用旧版 `make migrate-up` 初始化的数据库没有自动迁移历史表；本节适用于这类安装。Dokploy 新部署使用带版本与校验记录的 `statusmon-migrate`，请按 [Dokploy 升级说明](../dokploy.md#schema-upgrades) 操作。维护人员需要保存已执行文件名、版本、时间和结果。不要根据“程序能启动”推断所有迁移都已完成。查找迁移文件：
 
 ```bash
 ls migrations/*.up.sql
