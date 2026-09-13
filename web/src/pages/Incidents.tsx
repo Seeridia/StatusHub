@@ -1,3 +1,4 @@
+import { ListToolbar } from "../components";
 import { Panel } from "../components";
 import { tr } from "../lib/i18n";
 import { Drawer } from "../overlays";
@@ -33,23 +34,23 @@ export default function Incidents() {
   };
   return (
     <>
-      <PageHeading
-        title={tr("\u4E8B\u4EF6\u4E2D\u5FC3")}
-        description={tr(
-          "\u8FFD\u8E2A\u5382\u5546\u4E8B\u4EF6\u7684\u5B8C\u6574\u8FDB\u5C55\uFF0C\u4FDD\u7559\u6BCF\u4E00\u6B21\u5B98\u65B9\u66F4\u65B0\u3002",
-        )}
-        actions={
-          <Button
-            variant="outline"
-            icon={<RefreshIcon />}
-            loading={query.isFetching}
-            onClick={() => void query.refetch()}
-          >
-            {tr("\u5237\u65B0")}
-          </Button>
-        }
-      />
-      <Panel className="panel">
+      <Panel className="panel starter-list-panel">
+        <ListToolbar
+          title={tr("\u4E8B\u4EF6\u4E2D\u5FC3")}
+          description={tr(
+            "\u8FFD\u8E2A\u5382\u5546\u4E8B\u4EF6\u7684\u5B8C\u6574\u8FDB\u5C55\uFF0C\u4FDD\u7559\u6BCF\u4E00\u6B21\u5B98\u65B9\u66F4\u65B0\u3002",
+          )}
+          actions={
+            <Button
+              variant="outline"
+              icon={<RefreshIcon />}
+              loading={query.isFetching}
+              onClick={() => void query.refetch()}
+            >
+              {tr("\u5237\u65B0")}
+            </Button>
+          }
+        />
         <div className="filter-row">
           <Select
             aria-label={tr("\u7B5B\u9009\u5382\u5546")}

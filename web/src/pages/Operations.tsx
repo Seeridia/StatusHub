@@ -1,3 +1,4 @@
+import { ListToolbar } from "../components";
 import { Panel } from "../components";
 import { DeleteResource } from "../components/DeleteResource";
 import { ServiceNameInput } from "../components/ServiceNameInput";
@@ -62,25 +63,25 @@ function Deliveries() {
   }
   return (
     <>
-      <PageHeading
-        title={tr("\u6295\u9012\u8BB0\u5F55")}
-        description={tr(
-          "\u68C0\u67E5\u901A\u77E5\u662F\u5426\u6210\u529F\uFF0C\u4E86\u89E3\u6BCF\u4E00\u6B21\u5C1D\u8BD5\u548C\u5931\u8D25\u539F\u56E0\u3002",
-        )}
-        actions={
-          <Button
-            variant="outline"
-            icon={<RefreshIcon />}
-            onClick={() => void query.refetch()}
-          >
-            {tr("\u5237\u65B0")}
-          </Button>
-        }
-      />
       {notice && (
         <Alert className="query-error" theme="success" message={notice} />
       )}
-      <Panel className="panel">
+      <Panel className="panel starter-list-panel">
+        <ListToolbar
+          title={tr("\u6295\u9012\u8BB0\u5F55")}
+          description={tr(
+            "\u68C0\u67E5\u901A\u77E5\u662F\u5426\u6210\u529F\uFF0C\u4E86\u89E3\u6BCF\u4E00\u6B21\u5C1D\u8BD5\u548C\u5931\u8D25\u539F\u56E0\u3002",
+          )}
+          actions={
+            <Button
+              variant="outline"
+              icon={<RefreshIcon />}
+              onClick={() => void query.refetch()}
+            >
+              {tr("\u5237\u65B0")}
+            </Button>
+          }
+        />
         <div className="filter-row">
           <Select
             aria-label={tr("\u6295\u9012\u72B6\u6001\u7B5B\u9009")}
@@ -721,12 +722,6 @@ export default function Operations({
   if (view === "deliveries") return <Deliveries />;
   return (
     <>
-      <PageHeading
-        title={tr("\u8BBE\u7F6E")}
-        description={tr(
-          "\u7BA1\u7406\u6570\u636E\u63A5\u5165\u548C\u9AD8\u7EA7\u8FD0\u884C\u914D\u7F6E\uFF0C\u67E5\u770B\u5DE5\u4F5C\u533A\u5BA1\u8BA1\u8BB0\u5F55\u3002",
-        )}
-      />
       <Panel className="panel settings-panel">
         <Tabs value={tab} onChange={(v) => setTab(String(v))}>
           <Tabs.TabPanel value="account" label={tr("个人账号")} />

@@ -1,9 +1,9 @@
+import { Dialog, Drawer } from "../overlays";
+import { Form } from "tdesign-react";
 import { useState } from "react";
 import {
   Alert,
   Button,
-  Dialog,
-  Drawer,
   Input,
   Select,
   Switch,
@@ -252,37 +252,37 @@ export function Team({
         footer={null}
         size="480px"
       >
-        <div className="team-form">
+        <Form className="team-form" labelAlign="top">
           {kind !== "members" && (
-            <label>
-              {kind === "invitations" ? tr("邮箱") : tr("名称")}
+            <Form.FormItem
+              label={kind === "invitations" ? tr("邮箱") : tr("名称")}
+            >
               <Input
                 aria-label={kind === "invitations" ? tr("邮箱") : tr("名称")}
                 value={name}
                 onChange={setName}
                 disabled={!!editing?.id}
               />
-            </label>
+            </Form.FormItem>
           )}
-          <label>
-            {tr("角色")}
+          <Form.FormItem label={tr("角色")}>
             <Select
               aria-label={tr("角色")}
               value={role}
               onChange={(v) => setRole(String(v))}
               options={roles}
             />
-          </label>
+          </Form.FormItem>
           {!!editing?.id && (
-            <label>
-              {tr("已启用")}{" "}
+            <Form.FormItem label={tr("已启用")}>
+              {" "}
               <Switch value={enabled} onChange={(v) => setEnabled(!!v)} />
-            </label>
+            </Form.FormItem>
           )}
           <Button theme="primary" loading={busy} onClick={save}>
             {tr("保存")}
           </Button>
-        </div>
+        </Form>
       </Drawer>
       <Dialog
         visible={!!confirm}
@@ -339,7 +339,7 @@ export function PersonalAccount() {
     }
   }
   return (
-    <div className="team-form">
+    <Form className="team-form" labelAlign="top">
       <p>{identity.email || identity.actor_id}</p>
       {error && <Alert theme="error" message={error} />}
       {identity.actor_type !== "user" ? (
@@ -348,8 +348,7 @@ export function PersonalAccount() {
         <>
           {identity.issuer === "local" && (
             <>
-              <label>
-                {tr("原密码")}
+              <Form.FormItem label={tr("原密码")}>
                 <Input
                   type="password"
                   autocomplete="current-password"
@@ -357,9 +356,8 @@ export function PersonalAccount() {
                   value={old}
                   onChange={setOld}
                 />
-              </label>
-              <label>
-                {tr("新密码（12–128 个字符）")}
+              </Form.FormItem>
+              <Form.FormItem label={tr("新密码（12–128 个字符）")}>
                 <Input
                   type="password"
                   autocomplete="new-password"
@@ -367,7 +365,7 @@ export function PersonalAccount() {
                   value={password}
                   onChange={setPassword}
                 />
-              </label>
+              </Form.FormItem>
               <Button onClick={() => setAction("password")}>
                 {tr("修改密码")}
               </Button>
@@ -391,6 +389,6 @@ export function PersonalAccount() {
           />
         </>
       )}
-    </div>
+    </Form>
   );
 }

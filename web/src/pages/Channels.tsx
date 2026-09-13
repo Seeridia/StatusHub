@@ -1,3 +1,4 @@
+import { ListToolbar } from "../components";
 import { Panel } from "../components";
 import { DeleteResource } from "../components/DeleteResource";
 import { tr } from "../lib/i18n";
@@ -248,28 +249,6 @@ export default function Channels() {
   const outcome = result.data || job;
   return (
     <>
-      <PageHeading
-        title={tr("\u901A\u77E5\u6E20\u9053")}
-        description={tr(
-          "\u8FDE\u63A5\u56E2\u961F\u5E38\u7528\u5DE5\u5177\uFF0C\u786E\u4FDD\u91CD\u8981\u4E8B\u4EF6\u6709\u660E\u786E\u7684\u63A5\u6536\u76EE\u7684\u5730\u3002",
-        )}
-        actions={
-          <>
-            <Button
-              variant="outline"
-              icon={<RefreshIcon />}
-              onClick={() => void query.refetch()}
-            >
-              {tr("\u5237\u65B0")}
-            </Button>
-            {permission.write && (
-              <Button icon={<AddIcon />} onClick={() => setAdding(true)}>
-                {tr("\u6DFB\u52A0\u6E20\u9053")}
-              </Button>
-            )}
-          </>
-        }
-      />
       {error && <Alert className="query-error" theme="error" message={error} />}
       {notice && (
         <Alert className="query-error" theme="success" message={notice} />
@@ -314,7 +293,29 @@ export default function Channels() {
           }
         />
       )}
-      <Panel className="panel">
+      <Panel className="panel starter-list-panel">
+        <ListToolbar
+          title={tr("\u901A\u77E5\u6E20\u9053")}
+          description={tr(
+            "\u8FDE\u63A5\u56E2\u961F\u5E38\u7528\u5DE5\u5177\uFF0C\u786E\u4FDD\u91CD\u8981\u4E8B\u4EF6\u6709\u660E\u786E\u7684\u63A5\u6536\u76EE\u7684\u5730\u3002",
+          )}
+          actions={
+            <>
+              <Button
+                variant="outline"
+                icon={<RefreshIcon />}
+                onClick={() => void query.refetch()}
+              >
+                {tr("\u5237\u65B0")}
+              </Button>
+              {permission.write && (
+                <Button icon={<AddIcon />} onClick={() => setAdding(true)}>
+                  {tr("\u6DFB\u52A0\u6E20\u9053")}
+                </Button>
+              )}
+            </>
+          }
+        />
         <QueryState query={query}>
           <Table
             tableLayout="fixed"

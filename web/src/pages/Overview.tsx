@@ -116,42 +116,44 @@ export default function Overview({
   ];
   return (
     <>
-      <PageHeading
-        title={
-          vendorsOnly
-            ? tr("\u5382\u5546\u72B6\u6001")
-            : tr("\u76D1\u63A7\u603B\u89C8")
-        }
-        description={
-          vendorsOnly
-            ? tr(
-                "\u96C6\u4E2D\u67E5\u770B\u5916\u90E8\u4F9D\u8D56\uFF0C\u533A\u5206\u670D\u52A1\u72B6\u6001\u4E0E\u91C7\u96C6\u5065\u5EB7\u3002",
-              )
-            : tr(
-                "\u638C\u63E1\u5916\u90E8\u4F9D\u8D56\u7684\u6700\u65B0\u72B6\u6001\uFF0C\u8BA9\u91CD\u8981\u53D8\u5316\u4E00\u76EE\u4E86\u7136\u3002",
-              )
-        }
-        actions={
-          <>
-            <Button
-              variant="outline"
-              icon={<RefreshIcon />}
-              loading={query.isFetching}
-              onClick={() => {
-                void query.refetch();
-                void incidents.refetch();
-              }}
-            >
-              {tr("\u5237\u65B0")}
-            </Button>
-            {permission.write && (
-              <Button onClick={() => navigate("/rules/new")}>
-                {tr("\u521B\u5EFA\u901A\u77E5\u89C4\u5219")}
+      {!vendorsOnly && (
+        <PageHeading
+          title={
+            vendorsOnly
+              ? tr("\u5382\u5546\u72B6\u6001")
+              : tr("\u76D1\u63A7\u603B\u89C8")
+          }
+          description={
+            vendorsOnly
+              ? tr(
+                  "\u96C6\u4E2D\u67E5\u770B\u5916\u90E8\u4F9D\u8D56\uFF0C\u533A\u5206\u670D\u52A1\u72B6\u6001\u4E0E\u91C7\u96C6\u5065\u5EB7\u3002",
+                )
+              : tr(
+                  "\u638C\u63E1\u5916\u90E8\u4F9D\u8D56\u7684\u6700\u65B0\u72B6\u6001\uFF0C\u8BA9\u91CD\u8981\u53D8\u5316\u4E00\u76EE\u4E86\u7136\u3002",
+                )
+          }
+          actions={
+            <>
+              <Button
+                variant="outline"
+                icon={<RefreshIcon />}
+                loading={query.isFetching}
+                onClick={() => {
+                  void query.refetch();
+                  void incidents.refetch();
+                }}
+              >
+                {tr("\u5237\u65B0")}
               </Button>
-            )}
-          </>
-        }
-      />
+              {permission.write && (
+                <Button onClick={() => navigate("/rules/new")}>
+                  {tr("\u521B\u5EFA\u901A\u77E5\u89C4\u5219")}
+                </Button>
+              )}
+            </>
+          }
+        />
+      )}
       <QueryState query={query}>
         {!vendorsOnly && (
           <div className="stats-grid">
@@ -247,16 +249,35 @@ export default function Overview({
                   )}
                 </p>
               </div>
-              <Radio.Group
-                theme="button"
-                variant="outline"
-                value={mode}
-                onChange={(value) => setMode(String(value))}
-                options={[
-                  { value: "cards", label: tr("\u5361\u7247") },
-                  { value: "list", label: tr("\u5217\u8868") },
-                ]}
-              />
+              <div className="view-actions">
+                {vendorsOnly && (
+                  <div className="heading-actions">
+                    <Button
+                      variant="outline"
+                      icon={<RefreshIcon />}
+                      loading={query.isFetching}
+                      onClick={() => void query.refetch()}
+                    >
+                      {tr("刷新")}
+                    </Button>
+                    {permission.write && (
+                      <Button onClick={() => navigate("/rules/new")}>
+                        {tr("创建通知规则")}
+                      </Button>
+                    )}
+                  </div>
+                )}
+                <Radio.Group
+                  theme="button"
+                  variant="outline"
+                  value={mode}
+                  onChange={(value) => setMode(String(value))}
+                  options={[
+                    { value: "cards", label: tr("\u5361\u7247") },
+                    { value: "list", label: tr("\u5217\u8868") },
+                  ]}
+                />
+              </div>
             </div>
             <div className="filter-row">
               <Input

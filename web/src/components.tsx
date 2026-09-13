@@ -255,3 +255,19 @@ export function Panel({
     </Card>
   );
 }
+
+export function ListToolbar({
+  title,
+  actions,
+}: {
+  title: string;
+  description?: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <div className="starter-list-toolbar">
+      <h1 className="sr-only">{title}</h1>
+      <div className="heading-actions">{actions}</div>
+    </div>
+  );
+}

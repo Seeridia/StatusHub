@@ -1,3 +1,4 @@
+import { Form } from "tdesign-react";
 import { useState } from "react";
 import { Alert, Button, Card, Input, Select } from "tdesign-react";
 import { currentLanguage, setLanguage, tr } from "../lib/i18n";
@@ -73,14 +74,13 @@ export default function AccountFlow() {
           ]}
           onChange={(v) => setLanguage(String(v) as "en" | "zh")}
         />
-        <div className="team-form">
+        <Form className="team-form" labelAlign="top">
           {error && <Alert theme="error" message={error} />}{" "}
           {message && <Alert theme="success" message={message} />}
           {!done && (
             <>
               {(mode === "invite" || mode === "forgot") && (
-                <label>
-                  {tr("邮箱")}
+                <Form.FormItem label={tr("邮箱")}>
                   <Input
                     aria-label={tr("邮箱")}
                     type="text"
@@ -88,7 +88,7 @@ export default function AccountFlow() {
                     value={email}
                     onChange={setEmail}
                   />
-                </label>
+                </Form.FormItem>
               )}
               {mode === "invite" && (
                 <>
@@ -97,15 +97,14 @@ export default function AccountFlow() {
                       "新成员先验证邮箱；已有邮箱密码账号可输入密码接受邀请。",
                     )}
                   />
-                  <label>
-                    {tr("密码")}
+                  <Form.FormItem label={tr("密码")}>
                     <Input
                       aria-label={tr("密码")}
                       type="password"
                       value={password}
                       onChange={setPassword}
                     />
-                  </label>
+                  </Form.FormItem>
                   <Button
                     loading={busy}
                     onClick={() => submit("verify-request")}
@@ -115,14 +114,13 @@ export default function AccountFlow() {
                   <Button loading={busy} onClick={() => submit("accept")}>
                     {tr("登录并接受邀请")}
                   </Button>
-                  <label>
-                    {tr("工作区标识")}
+                  <Form.FormItem label={tr("工作区标识")}>
                     <Input
                       aria-label={tr("工作区标识")}
                       value={workspace}
                       onChange={setWorkspace}
                     />
-                  </label>
+                  </Form.FormItem>
                   <Button
                     onClick={() => {
                       location.href = `/auth/${encodeURIComponent(workspace)}/login?invitation=${encodeURIComponent(token)}`;
@@ -134,8 +132,7 @@ export default function AccountFlow() {
               )}
               {(mode === "verify" || mode === "reset") && (
                 <>
-                  <label>
-                    {tr("新密码（12–128 个字符）")}
+                  <Form.FormItem label={tr("新密码（12–128 个字符）")}>
                     <Input
                       aria-label={tr("新密码（12–128 个字符）")}
                       type="password"
@@ -143,7 +140,7 @@ export default function AccountFlow() {
                       value={password}
                       onChange={setPassword}
                     />
-                  </label>
+                  </Form.FormItem>
                   <Button loading={busy} onClick={() => submit(mode)}>
                     {tr("设置密码")}
                   </Button>
@@ -165,7 +162,7 @@ export default function AccountFlow() {
           >
             {tr("返回登录")}
           </Button>
-        </div>
+        </Form>
       </Card>
     </main>
   );
