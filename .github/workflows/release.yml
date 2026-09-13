@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: publish-${{ github.ref }}
+  group: publish-container
   cancel-in-progress: false
 
 jobs:
@@ -46,6 +46,7 @@ jobs:
           tags: |
             type=sha,format=long,prefix=sha-
             type=ref,event=tag
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
       - uses: docker/build-push-action@v6
         id: build
         with:
@@ -61,3 +62,20 @@ jobs:
           IMAGE: ${{ steps.image.outputs.name }}
           DIGEST: ${{ steps.build.outputs.digest }}
         run: echo "Deploy with STATUSMON_IMAGE=$IMAGE@$DIGEST" >> "$GITHUB_STEP_SUMMARY"
+
+  deploy:
+    needs: publish
+    if: github.ref == 'refs/heads/main' && vars.DOKPLOY_DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy published image and verify health
+        env:
+          DOKPLOY_URL: ${{ vars.DOKPLOY_URL }}
+          DOKPLOY_COMPOSE_ID: ${{ vars.DOKPLOY_COMPOSE_ID }}
+          DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
+          STATUSMON_PUBLIC_URL: ${{ vars.STATUSMON_PUBLIC_URL }}
+        run: python3 scripts/deploy-dokploy.py

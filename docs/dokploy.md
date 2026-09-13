@@ -39,3 +39,14 @@ Dokploy uses the same root `compose.yaml` as a normal Docker server. There is no
 - 查看来源最近成功采集、失败分类与下一次采集时间。
 - 确保代理支持 SSE 长连接，不缓存认证接口。
 - 安排 PostgreSQL、NATS 和密钥的异地备份，监控磁盘空间。
+
+## Deploy automatically after a manual publish
+
+Publishing from `main` also updates `ghcr.io/<owner>/statusmon:latest`. Ordinary code pushes still do not publish images. Version tags and other branches publish immutable tags but do not trigger production deployment. Container publishing is serialized to prevent overlapping updates to `latest`.
+
+1. In Dokploy, set `STATUSMON_IMAGE=ghcr.io/<owner>/statusmon:latest`. The root Compose applies `pull_policy: always` to api, worker and migrate. Keep Git push auto-deployment disabled; the workflow triggers deployment only after the image is available.
+2. Create a Dokploy API key for an identity with access to this Compose service and deployment creation/read permissions. Store it as the GitHub Actions secret `DOKPLOY_API_KEY`; never commit or paste it into issue discussions.
+3. Set GitHub Actions repository variables `DOKPLOY_URL` (HTTPS origin), `DOKPLOY_COMPOSE_ID`, and `STATUSMON_PUBLIC_URL` (HTTPS origin). Set `DOKPLOY_DEPLOY_ENABLED=true` only after configuring the key and image tag.
+4. Run **Publish container** manually on `main`. Its deploy job calls `/api/compose.deploy`, waits for the deployment identified by this workflow run, and checks `/healthz` and `/readyz`. API acceptance alone is not reported as deployment success. Check Dokploy logs if the job fails; an ambiguous trigger response is not automatically retried.
+
+手动在 main 运行 Publish，镜像发布成功后才触发部署；不启用普通代码 push 的自动发布。完成密钥、变量和 Dokploy 镜像标签配置后，再将 `DOKPLOY_DEPLOY_ENABLED` 设为 `true`。部署任务失败不会自动回滚数据库。要暂停自动部署，将该变量改为 `false`；回滚应用时使用已验证的 SHA/digest，并先确认数据库兼容性。
