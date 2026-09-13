@@ -74,8 +74,8 @@ func TestMigrationLifecycle(t *testing.T) {
 	if err = conn.QueryRow(ctx, "SELECT count(*) FROM public.statushub_schema_migrations").Scan(&count); err != nil {
 		t.Fatal(err)
 	}
-	if count != 13 {
-		t.Fatalf("want 13 migrations, got %d", count)
+	if count != 14 {
+		t.Fatalf("want 14 migrations, got %d", count)
 	}
 	data := fstest.MapFS{}
 	names, _ := fs.Glob(migrations.Files, "*.up.sql")
