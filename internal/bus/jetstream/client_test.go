@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/bus"
+	"github.com/Seeridia/StatusHub/internal/bus"
 )
 
 func TestConfigValidation(t *testing.T) {
@@ -25,18 +25,18 @@ func TestConfigValidation(t *testing.T) {
 }
 
 func TestJetStreamRedeliveryAndPublishDeduplication(t *testing.T) {
-	natsURL := os.Getenv("STATUSMON_TEST_NATS_URL")
+	natsURL := os.Getenv("STATUSHUB_TEST_NATS_URL")
 	if natsURL == "" {
-		t.Skip("set STATUSMON_TEST_NATS_URL to run JetStream integration test")
+		t.Skip("set STATUSHUB_TEST_NATS_URL to run JetStream integration test")
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
-	subject := "statusmon.test." + suffix + ".normal"
+	subject := "statushub.test." + suffix + ".normal"
 	config := DefaultConfig()
-	config.StreamName = "STATUSMON_TEST_" + suffix
-	config.Subjects = []string{"statusmon.test." + suffix + ".>"}
+	config.StreamName = "STATUSHUB_TEST_" + suffix
+	config.Subjects = []string{"statushub.test." + suffix + ".>"}
 	config.MaxAge = time.Minute
 	config.MaxBytes = 1 << 20
 	config.DuplicateWindow = time.Minute

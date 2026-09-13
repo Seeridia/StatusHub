@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Seeridia/StatusHub/internal/bus"
 	"github.com/nats-io/nats.go"
 	natsjs "github.com/nats-io/nats.go/jetstream"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/bus"
 )
 
 const messageIDHeader = "Statusmon-Message-Id"
@@ -29,8 +29,8 @@ type Config struct {
 
 func DefaultConfig() Config {
 	return Config{
-		StreamName:      "STATUSMON_EVENTS",
-		Subjects:        []string{"statusmon.events.>"},
+		StreamName:      "STATUSHUB_EVENTS",
+		Subjects:        []string{"statushub.events.>"},
 		MaxAge:          7 * 24 * time.Hour,
 		MaxBytes:        1 << 30,
 		MaxMessageSize:  64 << 10,

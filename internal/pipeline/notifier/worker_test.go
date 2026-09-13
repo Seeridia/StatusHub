@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/notify"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/secret"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/notify"
+	"github.com/Seeridia/StatusHub/internal/secret"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 type fakeDeliveryStore struct {

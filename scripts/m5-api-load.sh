@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-: "${STATUSMON_API_BASE_URL:?set STATUSMON_API_BASE_URL, for example http://127.0.0.1:8080}"
-: "${STATUSMON_TENANT:?set STATUSMON_TENANT to a tenant UUID or slug}"
-: "${STATUSMON_SERVICE_ACCOUNT_TOKEN:?set STATUSMON_SERVICE_ACCOUNT_TOKEN}"
+: "${STATUSHUB_API_BASE_URL:?set STATUSHUB_API_BASE_URL, for example http://127.0.0.1:8080}"
+: "${STATUSHUB_TENANT:?set STATUSHUB_TENANT to a tenant UUID or slug}"
+: "${STATUSHUB_SERVICE_ACCOUNT_TOKEN:?set STATUSHUB_SERVICE_ACCOUNT_TOKEN}"
 
-requests="${STATUSMON_M5_LOAD_REQUESTS:-600}"
-concurrency="${STATUSMON_M5_LOAD_CONCURRENCY:-24}"
-p95_budget_seconds="${STATUSMON_M5_P95_BUDGET_SECONDS:-0.100}"
+requests="${STATUSHUB_M5_LOAD_REQUESTS:-600}"
+concurrency="${STATUSHUB_M5_LOAD_CONCURRENCY:-24}"
+p95_budget_seconds="${STATUSHUB_M5_P95_BUDGET_SECONDS:-0.100}"
 
 case "$requests:$concurrency:$p95_budget_seconds" in
   *[!0-9.:]*) echo "load settings must be numeric" >&2; exit 2 ;;
@@ -17,14 +17,14 @@ if (( requests < 30 || concurrency < 1 || concurrency > requests )); then
   exit 2
 fi
 
-base_url="${STATUSMON_API_BASE_URL%/}/v1/tenants/${STATUSMON_TENANT}"
-result_file="$(mktemp "${TMPDIR:-/tmp}/statusmon-m5-results.XXXXXX")"
-curl_config="$(mktemp "${TMPDIR:-/tmp}/statusmon-m5-curl.XXXXXX")"
+base_url="${STATUSHUB_API_BASE_URL%/}/v1/tenants/${STATUSHUB_TENANT}"
+result_file="$(mktemp "${TMPDIR:-/tmp}/statushub-m5-results.XXXXXX")"
+curl_config="$(mktemp "${TMPDIR:-/tmp}/statushub-m5-curl.XXXXXX")"
 cleanup() { rm -f -- "$result_file" "$curl_config"; }
 trap cleanup EXIT
 chmod 600 "$curl_config"
 printf 'header = "Authorization: Bearer %s"\nheader = "Accept: application/json"\nsilent\nshow-error\nfail\n' \
-  "$STATUSMON_SERVICE_ACCOUNT_TOKEN" >"$curl_config"
+  "$STATUSHUB_SERVICE_ACCOUNT_TOKEN" >"$curl_config"
 
 run_one() {
   local sequence="$1" path

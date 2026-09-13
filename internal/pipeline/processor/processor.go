@@ -8,13 +8,13 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Seeridia/StatusHub/internal/bus"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 	"github.com/google/uuid"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/bus"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
 )
 
-const DefaultSubject = "statusmon.events.normal"
+const DefaultSubject = "statushub.events.normal"
 
 type Ledger interface {
 	InsertEventWithOutbox(context.Context, domain.CanonicalEvent, store.OutboxMessage) (bool, error)

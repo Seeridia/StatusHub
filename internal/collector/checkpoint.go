@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/reconcile"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/scheduler"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/reconcile"
+	"github.com/Seeridia/StatusHub/internal/scheduler"
 )
 
 const checkpointVersion = 1

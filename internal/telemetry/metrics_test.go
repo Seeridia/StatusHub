@@ -41,17 +41,17 @@ func TestPrometheusMetricsAreExposedWithBoundedLabels(t *testing.T) {
 	}
 	text := string(body)
 	for _, want := range []string{
-		"statusmon_source_polls_total",
-		"statusmon_reconcile_events_total",
-		"statusmon_outbox_age_seconds",
-		"statusmon_bus_redeliveries_total",
-		"statusmon_notification_sends_total",
-		"statusmon_fanout_deliveries_total",
-		"statusmon_delivery_eligible_first_attempt_seconds",
-		"statusmon_delivery_lane_concurrency",
-		"statusmon_delivery_lane_claimed",
-		"statusmon_source_freshness_seconds",
-		"statusmon_source_schema_drift_total",
+		"statushub_source_polls_total",
+		"statushub_reconcile_events_total",
+		"statushub_outbox_age_seconds",
+		"statushub_bus_redeliveries_total",
+		"statushub_notification_sends_total",
+		"statushub_fanout_deliveries_total",
+		"statushub_delivery_eligible_first_attempt_seconds",
+		"statushub_delivery_lane_concurrency",
+		"statushub_delivery_lane_claimed",
+		"statushub_source_freshness_seconds",
+		"statushub_source_schema_drift_total",
 		`channel="other"`,
 	} {
 		if !strings.Contains(text, want) {

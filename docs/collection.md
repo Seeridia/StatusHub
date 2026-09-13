@@ -31,7 +31,7 @@ make canary
 持续低频检查（示例运行 24 小时，每 5 分钟一次）：
 
 ```bash
-go run ./cmd/statusmon \
+go run ./cmd/statushub \
   -url https://www.githubstatus.com \
   -operation canary \
   -iterations 0 \

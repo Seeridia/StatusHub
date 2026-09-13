@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
 const (
@@ -159,9 +159,9 @@ func Decode(message []byte, config Config, observedAt time.Time) (domain.Canonic
 	if err != nil {
 		return domain.CanonicalEvent{}, "", err
 	}
-	subject := "statusmon.events.normal"
+	subject := "statushub.events.normal"
 	if impact == domain.ImpactCritical {
-		subject = "statusmon.events.critical"
+		subject = "statushub.events.critical"
 	}
 	return domain.CanonicalEvent{SourceID: config.SourceID, Provider: Provider, Kind: kind,
 		EntityKind: entityKind, EntityID: detail.EventARN, SourceEventKey: key,

@@ -12,8 +12,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/bus"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/bus"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 type Store interface {

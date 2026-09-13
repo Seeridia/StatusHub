@@ -1,6 +1,6 @@
 # 团队账号、成员权限与服务账号
 
-StatusMon 支持仅邀请加入的邮箱密码账号和 SSO 成员。没有公开注册或自助创建工作区入口。Viewer/Operator 使用业务页面；Admin 管理 Viewer/Operator；Owner 管理全部工作区角色。不能修改自己的角色或停用自己，必须保留一位有效人员 Owner。服务账号不计入人员 Owner。
+StatusHub 支持仅邀请加入的邮箱密码账号和 SSO 成员。没有公开注册或自助创建工作区入口。Viewer/Operator 使用业务页面；Admin 管理 Viewer/Operator；Owner 管理全部工作区角色。不能修改自己的角色或停用自己，必须保留一位有效人员 Owner。服务账号不计入人员 Owner。
 
 ## 升级与初始化
 
@@ -12,7 +12,7 @@ StatusMon 支持仅邀请加入的邮箱密码账号和 SSO 成员。没有公�
 # DATABASE_URL 已配置；TENANT_ID 为工作区 UUID。
 umask 077
 mkdir -p tmp/local
-go run ./cmd/statusmon-admin owner-invite \
+go run ./cmd/statushub-admin owner-invite \
   -tenant-id "$TENANT_ID" -email 'owner@example.com' > tmp/local/owner-invite.json
 ```
 
@@ -24,12 +24,12 @@ go run ./cmd/statusmon-admin owner-invite \
 
 | 环境变量 | 用途 |
 | --- | --- |
-| `STATUSMON_SMTP_ADDRESS` | SMTP 主机与端口，例如 `smtp.example.com:587` |
-| `STATUSMON_SMTP_FROM` | 发件邮箱 |
-| `STATUSMON_SMTP_USERNAME` | SMTP 用户名，可选 |
-| `STATUSMON_SMTP_PASSWORD` | SMTP 密码，可选，保存至 secret manager |
-| `STATUSMON_SMTP_ALLOW_LOCAL_PLAINTEXT` | 仅允许 loopback 邮件沙箱明文，生产不启用 |
-| `STATUSMON_PUBLIC_URL` | 邮件链接与 SSO 使用的公开 HTTPS 地址 |
+| `STATUSHUB_SMTP_ADDRESS` | SMTP 主机与端口，例如 `smtp.example.com:587` |
+| `STATUSHUB_SMTP_FROM` | 发件邮箱 |
+| `STATUSHUB_SMTP_USERNAME` | SMTP 用户名，可选 |
+| `STATUSHUB_SMTP_PASSWORD` | SMTP 密码，可选，保存至 secret manager |
+| `STATUSHUB_SMTP_ALLOW_LOCAL_PLAINTEXT` | 仅允许 loopback 邮件沙箱明文，生产不启用 |
+| `STATUSHUB_PUBLIC_URL` | 邮件链接与 SSO 使用的公开 HTTPS 地址 |
 
 SMTP 使用 STARTTLS（TLS 1.2 以上）。不支持隐式 TLS 465 端口。若 SMTP 未配置，身份邮件无法发送，账号仍保持未验证；不能通过邀请链接跳过验证。
 
@@ -37,9 +37,9 @@ SMTP 使用 STARTTLS（TLS 1.2 以上）。不支持隐式 TLS 465 端口。若 
 
 ```bash
 docker compose -f deploy/compose.dev.yaml up -d mailpit
-export STATUSMON_SMTP_ADDRESS=127.0.0.1:51025
-export STATUSMON_SMTP_FROM=statusmon@localhost
-export STATUSMON_SMTP_ALLOW_LOCAL_PLAINTEXT=true
+export STATUSHUB_SMTP_ADDRESS=127.0.0.1:51025
+export STATUSHUB_SMTP_FROM=statushub@localhost
+export STATUSHUB_SMTP_ALLOW_LOCAL_PLAINTEXT=true
 ```
 
 重启 API 后，打开 `http://127.0.0.1:58025` 查看邮件。验证本地流程时使用 `.test` 收件人，邮件仅保留在沙箱。真实 SMTP、DNS、HTTPS 和投递到真实邮箱需要单独验收。

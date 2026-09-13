@@ -53,7 +53,7 @@ class ErrorBoundary extends React.Component<
 }
 const language = currentLanguage();
 document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
-document.title = `StatusMon · ${tr("厂商状态工作台")}`;
+document.title = `StatusHub · ${tr("厂商状态工作台")}`;
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

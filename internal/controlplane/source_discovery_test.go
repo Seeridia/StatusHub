@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 type discoveryRepository struct {

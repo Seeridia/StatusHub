@@ -33,7 +33,7 @@ func TestIntegrationResourceSoftDelete(t *testing.T) {
 	}
 	db.insertSource(t, integrationSourceID, time.Now())
 	event := integrationEvent("soft-delete-event", "soft-delete-incident")
-	if _, err := db.store.InsertEventWithOutbox(ctx, event, OutboxMessage{ID: integrationUUID(9804), Subject: "statusmon.events.critical", Payload: []byte(`{}`)}); err != nil {
+	if _, err := db.store.InsertEventWithOutbox(ctx, event, OutboxMessage{ID: integrationUUID(9804), Subject: "statushub.events.critical", Payload: []byte(`{}`)}); err != nil {
 		t.Fatal(err)
 	}
 	var eventID string

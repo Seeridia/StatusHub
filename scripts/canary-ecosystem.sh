@@ -2,13 +2,13 @@
 set -euo pipefail
 
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-statusmon_binary="${STATUSMON_BINARY:-$(mktemp "${TMPDIR:-/tmp}/statusmon-m3.XXXXXX")}"
-if [[ -z "${STATUSMON_BINARY:-}" ]]; then
-  trap 'rm -f -- "$statusmon_binary"' EXIT
+statushub_binary="${STATUSHUB_BINARY:-$(mktemp "${TMPDIR:-/tmp}/statushub-m3.XXXXXX")}"
+if [[ -z "${STATUSHUB_BINARY:-}" ]]; then
+  trap 'rm -f -- "$statushub_binary"' EXIT
 fi
 
 cd "$project_dir"
-go build -o "$statusmon_binary" ./cmd/statusmon
+go build -o "$statushub_binary" ./cmd/statushub
 
 canary() {
   local name="$1"
@@ -16,8 +16,8 @@ canary() {
   local provider="$3"
   shift 3
   echo "[$name]"
-  "$statusmon_binary" -url "$target_url" -provider "$provider" -operation canary -timeout 30s "$@" |
-    tee "/tmp/statusmon-${name}-canary.json" |
+  "$statushub_binary" -url "$target_url" -provider "$provider" -operation canary -timeout 30s "$@" |
+    tee "/tmp/statushub-${name}-canary.json" |
     jq -e '.healthy == true and (.endpoints | length > 0)'
 }
 

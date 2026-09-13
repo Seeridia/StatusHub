@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/bus"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/bus"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 type fakeStore struct {
@@ -45,8 +45,8 @@ func (zeroRandom) Int63n(int64) int64 { return 0 }
 func TestRunOncePublishesAndReschedulesFailures(t *testing.T) {
 	now := time.Date(2026, 9, 10, 1, 2, 3, 0, time.UTC)
 	repository := &fakeStore{leases: []store.OutboxLease{
-		{ID: "ok", Subject: "statusmon.events.normal", Payload: []byte(`{}`), LeaseToken: "token-1", CreatedAt: now.Add(-time.Second), Attempts: 1},
-		{ID: "bad", Subject: "statusmon.events.critical", Payload: []byte(`{}`), LeaseToken: "token-2", CreatedAt: now.Add(-time.Second), Attempts: 2},
+		{ID: "ok", Subject: "statushub.events.normal", Payload: []byte(`{}`), LeaseToken: "token-1", CreatedAt: now.Add(-time.Second), Attempts: 1},
+		{ID: "bad", Subject: "statushub.events.critical", Payload: []byte(`{}`), LeaseToken: "token-2", CreatedAt: now.Add(-time.Second), Attempts: 2},
 	}}
 	eventBus := &fakeBus{
 		results: map[string]bus.PublishResult{"ok": {Duplicate: true}},
@@ -81,7 +81,7 @@ func TestRunOncePublishesAndReschedulesFailures(t *testing.T) {
 
 func TestPublishAcceptedButMarkFailedKeepsLease(t *testing.T) {
 	repository := &fakeStore{
-		leases:    []store.OutboxLease{{ID: "outbox-1", Subject: "statusmon.events.normal", Payload: []byte(`{}`), LeaseToken: "token", CreatedAt: time.Now(), Attempts: 1}},
+		leases:    []store.OutboxLease{{ID: "outbox-1", Subject: "statushub.events.normal", Payload: []byte(`{}`), LeaseToken: "token", CreatedAt: time.Now(), Attempts: 1}},
 		markError: errors.New("simulated database crash"),
 	}
 	publisher, err := New(repository, &fakeBus{results: map[string]bus.PublishResult{}, errors: map[string]error{}}, nil, DefaultConfig("publisher-a"))

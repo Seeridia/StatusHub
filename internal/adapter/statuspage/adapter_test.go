@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/transport"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/transport"
 )
 
 func TestNewRequiresInjectedTransport(t *testing.T) {

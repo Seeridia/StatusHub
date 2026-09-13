@@ -16,9 +16,9 @@ import (
 	"strings"
 	"time"
 
-	adaptercontract "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/adapter"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/transport"
+	adaptercontract "github.com/Seeridia/StatusHub/internal/adapter"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/transport"
 )
 
 const defaultCapabilityTTL = 6 * time.Hour

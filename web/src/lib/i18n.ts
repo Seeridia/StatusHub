@@ -4,6 +4,9 @@ import { initReactI18next } from "react-i18next";
 export type AppLanguage = "en" | "zh";
 
 const english: Record<string, string> = {
+  "登录 StatusHub": "Sign in to StatusHub",
+  "登录工作区，掌握服务状态与重要通知。":
+    "Monitor service status and important updates in your workspace.",
   搜索已加载的规则: "Search loaded rules",
   "当前仅显示已加载的规则，可在下方继续加载。":
     "Showing loaded rules. Load more below to include additional rules.",
@@ -141,8 +144,8 @@ const english: Record<string, string> = {
     "Resource times reflect the last successful checkpoint. During failure backoff, retries will not start before the source's next collection time.",
   "Acme 工作区": "Acme workspace",
   "HTTPS 地址": "HTTPS URL",
-  "StatusMon · 厂商公开状态与采集健康分开呈现":
-    "StatusMon · Vendor status and collection health, clearly separated",
+  "StatusHub · 厂商公开状态与采集健康分开呈现":
+    "StatusHub · Vendor status and collection health, clearly separated",
   "Webhook 需要签名标识与签名密钥。":
     "A webhook requires a signing key ID and secret.",
   不一致率: "Mismatch rate",
@@ -618,7 +621,7 @@ const chinese: Record<string, string> = {
 
 const isBrowser = typeof window !== "undefined";
 const storedLanguage = isBrowser
-  ? window.localStorage.getItem("statusmon-language")
+  ? window.localStorage.getItem("statushub-language")
   : null;
 export const initialLanguage: AppLanguage =
   storedLanguage === "zh" || !isBrowser ? "zh" : "en";
@@ -656,7 +659,7 @@ export function formatList(values: string[]): string {
 export function setLanguage(language: AppLanguage) {
   if (!isBrowser) return;
   if (language === currentLanguage()) return;
-  window.localStorage.setItem("statusmon-language", language);
+  window.localStorage.setItem("statushub-language", language);
   void i18n.changeLanguage(language).then(() => window.location.reload());
 }
 

@@ -10,10 +10,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/adapter/shadow"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/audit"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/auth"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/adapter/shadow"
+	"github.com/Seeridia/StatusHub/internal/audit"
+	"github.com/Seeridia/StatusHub/internal/auth"
+	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
 func TestIntegrationDeliveryLanesAreDisjoint(t *testing.T) {
@@ -22,7 +22,7 @@ func TestIntegrationDeliveryLanesAreDisjoint(t *testing.T) {
 	database.insertSource(t, integrationSourceID, time.Now().Add(time.Hour))
 	event := integrationEvent("m4-lanes-event", "m4-lanes-incident")
 	if inserted, err := database.store.InsertEventWithOutbox(ctx, event, OutboxMessage{
-		ID: integrationUUID(1200), Subject: "statusmon.events.critical", Payload: []byte(`{}`),
+		ID: integrationUUID(1200), Subject: "statushub.events.critical", Payload: []byte(`{}`),
 	}); err != nil || !inserted {
 		t.Fatalf("insert event: inserted=%v err=%v", inserted, err)
 	}
@@ -89,7 +89,7 @@ func TestIntegrationAWSConnectorCommitIsIdempotentAndOrdered(t *testing.T) {
 	}
 	connector, err := database.store.CreateAWSAccountConnector(ctx, CreateAWSAccountConnectorParams{
 		ID: integrationUUID(1302), SourceID: integrationUUID(1303), TenantID: tenantID,
-		ExternalAccountID: "123456789012", SNSTopicARN: "arn:aws:sns:us-east-1:123456789012:statusmon-health",
+		ExternalAccountID: "123456789012", SNSTopicARN: "arn:aws:sns:us-east-1:123456789012:statushub-health",
 		AllowedRegions: []string{"us-east-1"}, AllowedServices: []string{"ec2"},
 	})
 	if err != nil || !connector.Enabled || len(connector.AllowedServices) != 1 {
@@ -104,7 +104,7 @@ func TestIntegrationAWSConnectorCommitIsIdempotentAndOrdered(t *testing.T) {
 			SchemaVersion: "aws-health-eventbridge/v1", Payload: []byte(`{"current":{"name":"` + name + `"}}`),
 			SourceUpdatedAt: &at, ObservedAt: at.Add(time.Second)}
 	}
-	first := CommitConnectorEventParams{Event: makeEvent("upstream-1", "first", updatedAt), Subject: "statusmon.events.normal", SemanticHash: "hash-1"}
+	first := CommitConnectorEventParams{Event: makeEvent("upstream-1", "first", updatedAt), Subject: "statushub.events.normal", SemanticHash: "hash-1"}
 	result, err := database.store.CommitConnectorEvent(ctx, first)
 	if err != nil || !result.Inserted || result.Revision != 1 {
 		t.Fatalf("first commit=%#v err=%v", result, err)
@@ -114,13 +114,13 @@ func TestIntegrationAWSConnectorCommitIsIdempotentAndOrdered(t *testing.T) {
 		t.Fatalf("duplicate commit=%#v err=%v", duplicate, err)
 	}
 	secondAt := updatedAt.Add(time.Minute)
-	second := CommitConnectorEventParams{Event: makeEvent("upstream-2", "second", secondAt), Subject: "statusmon.events.normal", SemanticHash: "hash-2"}
+	second := CommitConnectorEventParams{Event: makeEvent("upstream-2", "second", secondAt), Subject: "statushub.events.normal", SemanticHash: "hash-2"}
 	result, err = database.store.CommitConnectorEvent(ctx, second)
 	if err != nil || !result.Inserted || result.Revision != 2 {
 		t.Fatalf("second commit=%#v err=%v", result, err)
 	}
 	staleAt := updatedAt.Add(-time.Minute)
-	stale := CommitConnectorEventParams{Event: makeEvent("upstream-3", "stale", staleAt), Subject: "statusmon.events.normal", SemanticHash: "hash-stale"}
+	stale := CommitConnectorEventParams{Event: makeEvent("upstream-3", "stale", staleAt), Subject: "statushub.events.normal", SemanticHash: "hash-stale"}
 	result, err = database.store.CommitConnectorEvent(ctx, stale)
 	if err != nil || !result.Inserted || result.Revision != 3 {
 		t.Fatalf("stale commit=%#v err=%v", result, err)
@@ -152,7 +152,7 @@ func TestIntegrationPrivateAgentOwnsItsDeliveryLease(t *testing.T) {
 	database.insertSource(t, integrationSourceID, time.Now().Add(time.Hour))
 	event := integrationEvent("m4-private-event", "m4-private-incident")
 	if inserted, err := database.store.InsertEventWithOutbox(ctx, event, OutboxMessage{
-		ID: integrationUUID(1400), Subject: "statusmon.events.critical", Payload: []byte(`{}`),
+		ID: integrationUUID(1400), Subject: "statushub.events.critical", Payload: []byte(`{}`),
 	}); err != nil || !inserted {
 		t.Fatalf("insert event: inserted=%v err=%v", inserted, err)
 	}
@@ -223,7 +223,7 @@ func TestIntegrationIdentityServiceAccountAndImmutableAuditChain(t *testing.T) {
 	}
 	provider, err := database.store.UpsertOIDCProvider(ctx, UpsertOIDCProviderParams{
 		ID: integrationUUID(1501), TenantID: tenantID, Issuer: "https://identity.example.test",
-		ClientID: "statusmon", JWKSURI: "https://identity.example.test/jwks.json",
+		ClientID: "statushub", JWKSURI: "https://identity.example.test/jwks.json",
 		AllowedDomains: []string{"Example.Test", "example.test"}, Enabled: true,
 		Actor: AuditActor{Type: "user", ID: "bootstrap-owner"},
 	})

@@ -9,9 +9,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/callback"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/callback"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 const maximumBodyBytes = 1 << 20

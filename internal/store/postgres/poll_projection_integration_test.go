@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/reconcile"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/reconcile"
 )
 
 func TestIntegrationPollProjectsBaselineAndFencesReadModels(t *testing.T) {

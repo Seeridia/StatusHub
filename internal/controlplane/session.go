@@ -18,13 +18,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/auth"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/auth"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 const (
-	sessionCookieName = "statusmon_session"
-	loginCookieName   = "statusmon_oidc_login"
+	sessionCookieName = "statushub_session"
+	loginCookieName   = "statushub_oidc_login"
 	maximumCookieSize = 16 << 10
 )
 
@@ -61,7 +61,7 @@ func newCookieCodec(masterKey []byte) (*cookieCodec, error) {
 		return nil, errors.New("controlplane: session master key must be 32 bytes")
 	}
 	mac := hmac.New(sha256.New, masterKey)
-	_, _ = mac.Write([]byte("statusmon.browser-session.v1"))
+	_, _ = mac.Write([]byte("statushub.browser-session.v1"))
 	block, err := aes.NewCipher(mac.Sum(nil))
 	if err != nil {
 		return nil, err

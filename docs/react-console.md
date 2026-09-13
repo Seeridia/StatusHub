@@ -71,7 +71,7 @@ make verify
 可选生产页面浏览器夹具，使用真实 Go HTTP handler 与内存记录，不连接数据库或 notifier：
 
 ```bash
-STATUSMON_UI_BROWSER_FIXTURE=1 go test ./internal/controlplane \
+STATUSHUB_UI_BROWSER_FIXTURE=1 go test ./internal/controlplane \
   -run '^TestConsoleBrowserFixture$' -v -timeout=16m
 # http://127.0.0.1:5174/ui/，工作区 acme，测试令牌 valid
 ```
@@ -105,7 +105,7 @@ STATUSMON_UI_BROWSER_FIXTURE=1 go test ./internal/controlplane \
 
 ## 国际化维护
 
-控制台使用 `i18next` 和 `react-i18next`，TDesign 的全局组件语言与当前界面语言同步。浏览器首次打开时使用英文；用户选择保存在 `localStorage` 的 `statusmon-language` 中，后续访问保持该语言。页面的 `<html lang>`、标题、日期格式以及 TDesign 分页、选择器和空状态文案会一并切换。
+控制台使用 `i18next` 和 `react-i18next`，TDesign 的全局组件语言与当前界面语言同步。浏览器首次打开时使用英文；用户选择保存在 `localStorage` 的 `statushub-language` 中，后续访问保持该语言。页面的 `<html lang>`、标题、日期格式以及 TDesign 分页、选择器和空状态文案会一并切换。
 
 源代码以中文原文作为稳定翻译键，界面文案使用 `tr("中文原文")`，带变量的文案使用 i18next 插值，例如 `tr("查看 {{value0}}", { value0: name })`。英文资源集中在 `web/src/lib/i18n.ts`。新增或修改界面文案时必须补上英文翻译，不要拼接需要调序的句子。
 

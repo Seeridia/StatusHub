@@ -1,4 +1,4 @@
-# Contributing to StatusMon
+# Contributing to StatusHub
 
 Start with the [installation guide](docs/getting-started.md). Use an isolated development workspace and database; never run fixtures, reset migrations, or load tests against a live installation.
 

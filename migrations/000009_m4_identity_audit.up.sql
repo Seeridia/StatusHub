@@ -74,7 +74,7 @@ CREATE TABLE audit_events (
 CREATE INDEX audit_events_export_idx
     ON audit_events (tenant_id, occurred_at, sequence);
 
-CREATE FUNCTION statusmon_forbid_audit_mutation() RETURNS trigger
+CREATE FUNCTION statushub_forbid_audit_mutation() RETURNS trigger
 LANGUAGE plpgsql AS $$
 BEGIN
     RAISE EXCEPTION 'audit_events are append-only';
@@ -83,6 +83,6 @@ $$;
 
 CREATE TRIGGER audit_events_no_update
 BEFORE UPDATE OR DELETE ON audit_events
-FOR EACH ROW EXECUTE FUNCTION statusmon_forbid_audit_mutation();
+FOR EACH ROW EXECUTE FUNCTION statushub_forbid_audit_mutation();
 
 COMMIT;

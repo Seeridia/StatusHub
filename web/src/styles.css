@@ -4,6 +4,7 @@
   background: var(--td-bg-color-page);
   font-synthesis: none;
   --console-sidebar: 232px;
+  --statushub-accent: #20c897;
 }
 * {
   box-sizing: border-box;
@@ -96,17 +97,28 @@ p {
   font-weight: 400;
   margin-top: 1px;
 }
-.brand-icon {
-  background: var(--td-brand-color);
-  width: 32px;
-  height: 32px;
-  border-radius: var(--td-radius-medium);
+.brand-mark {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  color: var(--td-text-color-anti);
-  font-size: var(--td-font-size-headline-small);
+  gap: var(--td-comp-margin-s);
   flex-shrink: 0;
+}
+.brand-mark__logo {
+  display: block;
+  width: var(--td-comp-size-m);
+  height: var(--td-comp-size-m);
+  object-fit: contain;
+}
+.brand-mark__name {
+  display: inline-flex;
+  align-items: baseline;
+  letter-spacing: -0.02em;
+}
+.brand-mark__status {
+  color: var(--td-text-color-primary);
+}
+.brand-mark__hub {
+  color: var(--statushub-accent);
 }
 .workspace-chip {
   display: flex;
@@ -2056,10 +2068,9 @@ a {
   font: var(--td-font-title-extraLarge);
   font-weight: 600;
 }
-.sidebar .brand-icon {
-  background: transparent;
-  color: var(--td-brand-color);
-  border-radius: 0;
+.sidebar .brand-mark__logo {
+  width: var(--td-comp-size-m);
+  height: var(--td-comp-size-m);
 }
 .sidebar .workspace-chip {
   margin: var(--td-comp-margin-s) var(--td-comp-margin-s);
@@ -2171,4 +2182,117 @@ a {
   justify-content: space-between;
   gap: var(--td-comp-margin-s);
   margin-bottom: var(--td-comp-margin-l);
+}
+
+/* Starter login: left-aligned form over the supplied full-screen illustration. */
+.signin-page {
+  min-height: 100dvh;
+  position: relative;
+  isolation: isolate;
+}
+.signin-art {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: right center;
+  z-index: -1;
+  pointer-events: none;
+}
+.signin-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--td-comp-paddingTB-xl) 5%;
+}
+.signin-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--td-comp-margin-s);
+  font: var(--td-font-title-extraLarge);
+  font-weight: 600;
+}
+.signin-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--td-comp-margin-l);
+}
+.signin-caption {
+  color: var(--td-text-color-secondary);
+  font: var(--td-font-body-medium);
+}
+.signin-main {
+  padding: clamp(32px, 8vh, 100px) 5% var(--td-comp-paddingTB-xl);
+}
+.signin-hero {
+  width: 400px;
+  max-width: 100%;
+}
+.signin-hero h1 {
+  font: var(--td-font-headline-large);
+  margin-bottom: var(--td-comp-margin-m);
+}
+.signin-intro {
+  font: var(--td-font-body-medium);
+  color: var(--td-text-color-secondary);
+  margin-bottom: var(--td-comp-margin-xxl);
+}
+.signin-form .t-form__item {
+  margin-bottom: var(--td-comp-margin-l);
+}
+.signin-submit.t-button {
+  width: 100%;
+  margin-top: var(--td-comp-margin-s);
+}
+.signin-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--td-comp-margin-xs);
+  margin-top: var(--td-comp-margin-l);
+}
+.signin-error {
+  margin-top: var(--td-comp-margin-m);
+}
+.signin-account-note {
+  margin-top: var(--td-comp-margin-m);
+  color: var(--td-text-color-secondary);
+  font: var(--td-font-body-small);
+}
+:root[theme-mode="dark"] .signin-hero {
+  padding: var(--td-comp-paddingTB-xl) var(--td-comp-paddingLR-xl);
+  background: var(--td-bg-color-container);
+  border-radius: var(--td-radius-large);
+}
+:root[theme-mode="dark"] .signin-header {
+  background: var(--td-bg-color-container);
+}
+@media (max-width: 900px) {
+  .signin-art {
+    opacity: 0.35;
+  }
+  .signin-page {
+    background: var(--td-bg-color-container);
+  }
+  .signin-hero {
+    padding: var(--td-comp-paddingTB-l) var(--td-comp-paddingLR-l);
+    background: var(--td-bg-color-container);
+    border-radius: var(--td-radius-medium);
+  }
+}
+@media (max-width: 520px) {
+  .signin-caption {
+    display: none;
+  }
+  .signin-main {
+    padding-top: var(--td-comp-paddingTB-xl);
+  }
+  .signin-hero {
+    padding: 0;
+    background: transparent;
+  }
+  .signin-hero h1 {
+    font: var(--td-font-headline-medium);
+  }
 }

@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
 func TestGenericWebhookRendersCloudEvents10(t *testing.T) {
@@ -226,7 +226,7 @@ func TestGenericWebhookRejectsUnsafeEndpointAndMismatchedEvent(t *testing.T) {
 func testCanonicalEvent() CanonicalEvent {
 	return CanonicalEvent{
 		ID:            domain.CanonicalEventID("01993ce8-4d00-7000-8000-000000000001"),
-		Source:        "urn:vendor-status-monitoring:source:github-status",
+		Source:        "urn:statushub:source:github-status",
 		Kind:          domain.EventKindIncidentUpdated,
 		Subject:       "incident/api-degradation",
 		Time:          time.Date(2026, 9, 10, 8, 29, 0, 123, time.UTC),

@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Seeridia/StatusHub/internal/audit"
+	"github.com/Seeridia/StatusHub/internal/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/audit"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
 )
 
 var tenantSlugPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
@@ -805,7 +805,7 @@ func auditActorID(actor AuditActor) string {
 	if strings.TrimSpace(actor.ID) != "" {
 		return actor.ID
 	}
-	return "statusmon-api"
+	return "statushub-api"
 }
 
 func appendControlPlaneAudit(ctx context.Context, s *Store, tenantID string, actor AuditActor, action, resourceType, resourceID string, metadata json.RawMessage) error {

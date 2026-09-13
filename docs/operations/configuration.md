@@ -16,13 +16,13 @@ set +a
 | --- | --- |
 | `DATABASE_URL` | PostgreSQL 连接串；API、worker 和 admin CLI 使用 |
 | `NATS_URL` | NATS 连接串；本地通常为 `nats://127.0.0.1:54222` |
-| `STATUSMON_CONFIG_KEY` | base64 编码的 32 字节 AES 配置加密密钥，API/worker 必须一致 |
-| `STATUSMON_CONFIG_KEY_ID` | 配置密钥版本标识，本地建议显式设为 `local-v1` |
-| `STATUSMON_API_KEY` | 独立的 base64 32 字节密钥，用于会话及游标；不是服务账号登录令牌 |
-| `STATUSMON_API_ADDRESS` | API 监听地址，默认 `127.0.0.1:8080` |
-| `STATUSMON_PUBLIC_URL` | 外部访问基址及 OIDC 回调基础地址，本地 `http://127.0.0.1:8080` |
-| `STATUSMON_REGION` | 区域身份，默认 `local`，影响来源 ownership |
-| `STATUSMON_HTML_RECIPES_FILE` | 可选受控 HTML recipe JSON 文件；API 和 worker 需要相容配置 |
+| `STATUSHUB_CONFIG_KEY` | base64 编码的 32 字节 AES 配置加密密钥，API/worker 必须一致 |
+| `STATUSHUB_CONFIG_KEY_ID` | 配置密钥版本标识，本地建议显式设为 `local-v1` |
+| `STATUSHUB_API_KEY` | 独立的 base64 32 字节密钥，用于会话及游标；不是服务账号登录令牌 |
+| `STATUSHUB_API_ADDRESS` | API 监听地址，默认 `127.0.0.1:8080` |
+| `STATUSHUB_PUBLIC_URL` | 外部访问基址及 OIDC 回调基础地址，本地 `http://127.0.0.1:8080` |
+| `STATUSHUB_REGION` | 区域身份，默认 `local`，影响来源 ownership |
+| `STATUSHUB_HTML_RECIPES_FILE` | 可选受控 HTML recipe JSON 文件；API 和 worker 需要相容配置 |
 | `AWS_REGION` | AWS SDK 使用的区域，本地示例 `us-east-1` |
 | `POSTGRES_PORT/DB/USER/PASSWORD` | Compose 数据库初始化和端口配置 |
 | `NATS_CLIENT_PORT` / `NATS_MONITOR_PORT` | Compose 映射端口，默认 54222 / 58222 |
@@ -61,15 +61,15 @@ worker 的 `-metrics-address` 默认 `127.0.0.1:9464`。`-collector-interval` �
 
 创建账号的参数为 `service-account-create -tenant-id ... -name ... -role ...`，网页操作和令牌管理见[团队账号](team-accounts.md)。日常操作通常使用 operator，纯查看使用 viewer；无需为了编辑通知规则发放 owner。
 
-创建结果中的 `token` 才是服务账号登录凭据，格式以 `sa.` 开头。租户 slug、服务账号显示名称、`STATUSMON_API_KEY` 都不是密码。现在支持仅邀请加入的邮箱密码成员、邮件验证/密码找回，以及网页服务账号停用和轮换，详见 [团队账号管理](team-accounts.md)。没有开放自助注册；丢失服务令牌应轮换，不应重置配置加密密钥。
+创建结果中的 `token` 才是服务账号登录凭据，格式以 `sa.` 开头。租户 slug、服务账号显示名称、`STATUSHUB_API_KEY` 都不是密码。现在支持仅邀请加入的邮箱密码成员、邮件验证/密码找回，以及网页服务账号停用和轮换，详见 [团队账号管理](team-accounts.md)。没有开放自助注册；丢失服务令牌应轮换，不应重置配置加密密钥。
 
 ## OIDC 团队登录
 
 前提：IdP 支持此流程使用的 public client、Authorization Code 与 PKCE，能够提供 discovery/JWKS。
 
 1. IdP 注册客户端，回调地址精确填写 `https://你的域名/auth/callback`。
-2. 设置对应 `STATUSMON_PUBLIC_URL`，配置 TLS 入口。
-3. 使用 `statusmon-admin oidc-provider-upsert` 登记 issuer、client ID、允许的邮箱域。
+2. 设置对应 `STATUSHUB_PUBLIC_URL`，配置 TLS 入口。
+3. 使用 `statushub-admin oidc-provider-upsert` 登记 issuer、client ID、允许的邮箱域。
 4. 使用 `tenant-member-set` 将不可变 issuer/subject 显式绑定至租户和角色。
 5. 从网页“通过 SSO 登录”进入，核对回到的工作区及角色。
 

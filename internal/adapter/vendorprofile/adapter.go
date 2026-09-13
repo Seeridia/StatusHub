@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	adaptercontract "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/adapter"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	adaptercontract "github.com/Seeridia/StatusHub/internal/adapter"
+	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
 type Profile struct {

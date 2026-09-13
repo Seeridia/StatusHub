@@ -16,7 +16,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/transport"
+	"github.com/Seeridia/StatusHub/internal/transport"
 )
 
 type certificateTransport struct {

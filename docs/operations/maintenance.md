@@ -28,7 +28,7 @@ docker compose -f deploy/compose.dev.yaml logs --tail=100 postgres nats
 
 ```bash
 docker compose -f deploy/compose.dev.yaml exec -T postgres \
-  psql -U "${POSTGRES_USER:-statusmon}" -d "${POSTGRES_DB:-statusmon}" \
+  psql -U "${POSTGRES_USER:-statushub}" -d "${POSTGRES_DB:-statushub}" \
   -c 'SELECT canonical_url, enabled, health_state, last_attempt_at, last_success_at, failure_streak, next_poll_at FROM sources ORDER BY last_attempt_at DESC NULLS LAST;'
 ```
 
@@ -57,7 +57,7 @@ docker compose -f deploy/compose.dev.yaml stop
 5. 如前端变化，重新安装锁定依赖并构建网页，再编译 Go 程序。
 6. 启动服务，检查 readiness、来源采集、事件详情、登录和投递，再恢复正常流量。
 
-使用旧版 `make migrate-up` 初始化的数据库没有自动迁移历史表；本节适用于这类安装。Dokploy 新部署使用带版本与校验记录的 `statusmon-migrate`，请按 [Dokploy 升级说明](../deployment.md#schema-upgrades) 操作。维护人员需要保存已执行文件名、版本、时间和结果。不要根据“程序能启动”推断所有迁移都已完成。查找迁移文件：
+使用旧版 `make migrate-up` 初始化的数据库没有自动迁移历史表；本节适用于这类安装。Dokploy 新部署使用带版本与校验记录的 `statushub-migrate`，请按 [Dokploy 升级说明](../deployment.md#schema-upgrades) 操作。维护人员需要保存已执行文件名、版本、时间和结果。不要根据“程序能启动”推断所有迁移都已完成。查找迁移文件：
 
 ```bash
 ls migrations/*.up.sql
@@ -67,7 +67,7 @@ ls migrations/*.up.sql
 
 ```bash
 docker compose -f deploy/compose.dev.yaml exec -T postgres \
-  psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-statusmon}" -d "${POSTGRES_DB:-statusmon}" \
+  psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-statushub}" -d "${POSTGRES_DB:-statushub}" \
   < migrations/000011_m5_control_plane.up.sql
 ```
 
@@ -79,9 +79,9 @@ docker compose -f deploy/compose.dev.yaml exec -T postgres \
 make ui-install
 make ui-build
 mkdir -p bin
-go build -o bin/statusmon-api ./cmd/statusmon-api
-go build -o bin/statusmond ./cmd/statusmond
-go build -o bin/statusmon-admin ./cmd/statusmon-admin
+go build -o bin/statushub-api ./cmd/statushub-api
+go build -o bin/statushubd ./cmd/statushubd
+go build -o bin/statushub-admin ./cmd/statushub-admin
 ```
 
 API 的网页由编译时 embed 决定，正确顺序是“网页构建 → Go 构建 → 替换并重启”。服务启动参数与 `go run` 方式一致。数据库回退必须评估 down migration 的数据影响；仅回滚二进制不一定兼容新 schema。
@@ -93,9 +93,9 @@ API 的网页由编译时 embed 决定，正确顺序是“网页构建 → Go �
 ```bash
 umask 077
 mkdir -p tmp/backups
-BACKUP_FILE="tmp/backups/statusmon-$(date +%Y%m%d-%H%M%S).dump"
+BACKUP_FILE="tmp/backups/statushub-$(date +%Y%m%d-%H%M%S).dump"
 docker compose -f deploy/compose.dev.yaml exec -T postgres \
-  pg_dump -U "${POSTGRES_USER:-statusmon}" -d "${POSTGRES_DB:-statusmon}" -Fc \
+  pg_dump -U "${POSTGRES_USER:-statushub}" -d "${POSTGRES_DB:-statushub}" -Fc \
   > "$BACKUP_FILE"
 test -s "$BACKUP_FILE"
 ```
@@ -106,19 +106,19 @@ test -s "$BACKUP_FILE"
 
 ## 在独立数据库恢复演练
 
-确认 `statusmon_restore_check` 不存在，且不是正在使用的业务数据库。将 `BACKUP_FILE` 设为上一步实际路径：
+确认 `statushub_restore_check` 不存在，且不是正在使用的业务数据库。将 `BACKUP_FILE` 设为上一步实际路径：
 
 ```bash
 docker compose -f deploy/compose.dev.yaml exec -T postgres \
-  createdb -U "${POSTGRES_USER:-statusmon}" statusmon_restore_check
+  createdb -U "${POSTGRES_USER:-statushub}" statushub_restore_check
 
 docker compose -f deploy/compose.dev.yaml exec -T postgres \
   pg_restore --exit-on-error --no-owner --no-privileges \
-  -U "${POSTGRES_USER:-statusmon}" -d statusmon_restore_check \
+  -U "${POSTGRES_USER:-statushub}" -d statushub_restore_check \
   < "$BACKUP_FILE"
 
 docker compose -f deploy/compose.dev.yaml exec -T postgres \
-  psql -U "${POSTGRES_USER:-statusmon}" -d statusmon_restore_check \
+  psql -U "${POSTGRES_USER:-statushub}" -d statushub_restore_check \
   -c 'SELECT count(*) FROM sources; SELECT count(*) FROM incidents; SELECT count(*) FROM endpoints;'
 ```
 

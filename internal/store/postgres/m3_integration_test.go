@@ -12,7 +12,7 @@ func TestIntegrationDeadLetterListAndGuardedReplay(t *testing.T) {
 	ctx := context.Background()
 	database.insertSource(t, integrationSourceID, time.Now().Add(time.Hour))
 	event := integrationEvent("m3-dlq-event", "m3-dlq-incident")
-	if inserted, err := database.store.InsertEventWithOutbox(ctx, event, OutboxMessage{ID: integrationUUID(1100), Subject: "statusmon.events.normal", Payload: []byte(`{}`)}); err != nil || !inserted {
+	if inserted, err := database.store.InsertEventWithOutbox(ctx, event, OutboxMessage{ID: integrationUUID(1100), Subject: "statushub.events.normal", Payload: []byte(`{}`)}); err != nil || !inserted {
 		t.Fatalf("insert event: inserted=%v err=%v", inserted, err)
 	}
 	var eventID string

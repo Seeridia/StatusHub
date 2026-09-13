@@ -147,13 +147,13 @@ func Require(verifier Verifier, resolveTenant TenantResolver, permission Permiss
 		}
 		token, ok := bearerToken(request.Header.Get("Authorization"))
 		if !ok {
-			response.Header().Set("WWW-Authenticate", `Bearer realm="statusmon"`)
+			response.Header().Set("WWW-Authenticate", `Bearer realm="statushub"`)
 			http.Error(response, "unauthorized", http.StatusUnauthorized)
 			return
 		}
 		identity, err := verifier.Authenticate(request.Context(), tenantID, token)
 		if err != nil {
-			response.Header().Set("WWW-Authenticate", `Bearer realm="statusmon", error="invalid_token"`)
+			response.Header().Set("WWW-Authenticate", `Bearer realm="statushub", error="invalid_token"`)
 			http.Error(response, "unauthorized", http.StatusUnauthorized)
 			return
 		}

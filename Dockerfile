@@ -20,12 +20,12 @@ ARG TARGETOS
 ARG TARGETARCH
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build \
     -trimpath -ldflags='-s -w' -o /out/ \
-    ./cmd/statusmon-api ./cmd/statusmond ./cmd/statusmon-admin ./cmd/statusmon-migrate
+    ./cmd/statushub-api ./cmd/statushubd ./cmd/statushub-admin ./cmd/statushub-migrate
 
 FROM debian:bookworm-slim AS runtime
-LABEL org.opencontainers.image.source="https://github.com/Seeridia/StatusMon"
+LABEL org.opencontainers.image.source="https://github.com/Seeridia/StatusHub"
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata curl && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out/ /usr/local/bin/
 USER 65532:65532
 EXPOSE 8080
-CMD ["statusmon-api"]
+CMD ["statushub-api"]

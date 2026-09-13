@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/notify"
-	notifierpipeline "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/pipeline/notifier"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/notify"
+	notifierpipeline "github.com/Seeridia/StatusHub/internal/pipeline/notifier"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 type EndpointTestRepository interface {
@@ -62,11 +62,11 @@ func (w *EndpointTestWorker) process(parent context.Context, lease store.Endpoin
 	ctx, cancel := context.WithTimeout(parent, w.timeout)
 	defer cancel()
 	eventID := domain.CanonicalEventID("endpoint-test-" + lease.ID)
-	event := notify.CanonicalEvent{ID: eventID, Source: "statusmon://endpoint-test",
-		Kind: domain.EventKindIncidentCreated, Subject: "StatusMon endpoint test",
+	event := notify.CanonicalEvent{ID: eventID, Source: "statushub://endpoint-test",
+		Kind: domain.EventKindIncidentCreated, Subject: "StatusHub endpoint test",
 		EntityID: "endpoint-test", Time: time.Now().UTC(), Revision: 1, SchemaVersion: "v1",
 		Summary: "This is a test notification from Vendor Status Monitoring.",
-		Data:    json.RawMessage(`{"current":{"name":"StatusMon endpoint test","impact":"minor"}}`)}
+		Data:    json.RawMessage(`{"current":{"name":"StatusHub endpoint test","impact":"minor"}}`)}
 	payload, err := driver.Render(ctx, event, endpoint)
 	if err != nil {
 		return w.completeFailure(parent, lease, driver, err)

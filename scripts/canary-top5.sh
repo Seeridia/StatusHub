@@ -2,10 +2,10 @@
 set -euo pipefail
 
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-binary="$(mktemp "${TMPDIR:-/tmp}/statusmon-canary.XXXXXX")"
+binary="$(mktemp "${TMPDIR:-/tmp}/statushub-canary.XXXXXX")"
 trap 'rm -f "$binary"' EXIT
 
-go build -o "$binary" "$project_dir/cmd/statusmon"
+go build -o "$binary" "$project_dir/cmd/statushub"
 
 for target in \
   https://www.githubstatus.com \

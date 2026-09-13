@@ -14,10 +14,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Seeridia/StatusHub/internal/audit"
+	"github.com/Seeridia/StatusHub/internal/auth"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/audit"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/auth"
 )
 
 type AuditActor struct {
@@ -440,7 +440,7 @@ func auditInput(actor AuditActor, action, resourceType, resourceID string, metad
 		actor.Type = "system"
 	}
 	if strings.TrimSpace(actor.ID) == "" {
-		actor.ID = "statusmon-admin"
+		actor.ID = "statushub-admin"
 	}
 	return audit.AppendInput{OccurredAt: time.Now().UTC(), ActorType: actor.Type, ActorID: actor.ID,
 		Action: action, ResourceType: resourceType, ResourceID: resourceID, Outcome: "success",

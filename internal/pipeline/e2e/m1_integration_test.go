@@ -12,16 +12,16 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Seeridia/StatusHub/internal/bus"
+	busjs "github.com/Seeridia/StatusHub/internal/bus/jetstream"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	outboxpipeline "github.com/Seeridia/StatusHub/internal/pipeline/outbox"
+	eventprocessor "github.com/Seeridia/StatusHub/internal/pipeline/processor"
+	"github.com/Seeridia/StatusHub/internal/reconcile"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/bus"
-	busjs "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/bus/jetstream"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	outboxpipeline "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/pipeline/outbox"
-	eventprocessor "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/pipeline/processor"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/reconcile"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
 )
 
 const (
@@ -59,9 +59,9 @@ func (s *crashOnceStore) FailOutbox(ctx context.Context, params store.FailOutbox
 
 func TestM1CrashAndRedeliveryRemainLogicallyIdempotent(t *testing.T) {
 	databaseURL := os.Getenv("TEST_DATABASE_URL")
-	natsURL := os.Getenv("STATUSMON_TEST_NATS_URL")
+	natsURL := os.Getenv("STATUSHUB_TEST_NATS_URL")
 	if databaseURL == "" || natsURL == "" {
-		t.Skip("set TEST_DATABASE_URL and STATUSMON_TEST_NATS_URL to run M1 integration")
+		t.Skip("set TEST_DATABASE_URL and STATUSHUB_TEST_NATS_URL to run M1 integration")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -85,7 +85,7 @@ func TestM1CrashAndRedeliveryRemainLogicallyIdempotent(t *testing.T) {
 	}
 
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
-	subject := "statusmon.e2e." + suffix + ".normal"
+	subject := "statushub.e2e." + suffix + ".normal"
 	processor, err := eventprocessor.New(repository, subject)
 	if err != nil {
 		t.Fatalf("create event processor: %v", err)
@@ -102,8 +102,8 @@ func TestM1CrashAndRedeliveryRemainLogicallyIdempotent(t *testing.T) {
 	assertCount(t, ctx, pool, "outbox", 1)
 
 	busConfig := busjs.DefaultConfig()
-	busConfig.StreamName = "STATUSMON_E2E_" + suffix
-	busConfig.Subjects = []string{"statusmon.e2e." + suffix + ".>"}
+	busConfig.StreamName = "STATUSHUB_E2E_" + suffix
+	busConfig.Subjects = []string{"statushub.e2e." + suffix + ".>"}
 	busConfig.MaxAge = time.Minute
 	busConfig.MaxBytes = 1 << 20
 	busConfig.DuplicateWindow = time.Minute
@@ -199,7 +199,7 @@ func openDatabase(t *testing.T, ctx context.Context, databaseURL string) (*store
 		t.Fatalf("open admin database: %v", err)
 	}
 	t.Cleanup(admin.Close)
-	schema := fmt.Sprintf("statusmon_e2e_%d", time.Now().UnixNano())
+	schema := fmt.Sprintf("statushub_e2e_%d", time.Now().UnixNano())
 	quotedSchema := pgx.Identifier{schema}.Sanitize()
 	if _, err := admin.Exec(ctx, "CREATE SCHEMA "+quotedSchema); err != nil {
 		t.Fatalf("create schema: %v", err)

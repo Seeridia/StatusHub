@@ -8,8 +8,8 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/Seeridia/StatusHub/internal/domain"
 	"github.com/andybalholm/cascadia"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
 	"golang.org/x/net/html"
 )
 

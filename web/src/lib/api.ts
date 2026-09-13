@@ -5,9 +5,9 @@ export const demo =
   new URLSearchParams(location.search).get("demo") === "1";
 let tenant =
   new URLSearchParams(location.search).get("tenant") ||
-  sessionStorage.getItem("statusmon-tenant") ||
+  sessionStorage.getItem("statushub-tenant") ||
   "";
-let token = sessionStorage.getItem("statusmon-token") || "";
+let token = sessionStorage.getItem("statushub-token") || "";
 let csrf = "";
 export class APIError extends Error {
   constructor(
@@ -33,15 +33,15 @@ export function authHeaders(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 export function persistSession() {
-  sessionStorage.setItem("statusmon-tenant", tenant);
-  if (token) sessionStorage.setItem("statusmon-token", token);
-  else sessionStorage.removeItem("statusmon-token");
+  sessionStorage.setItem("statushub-tenant", tenant);
+  if (token) sessionStorage.setItem("statushub-token", token);
+  else sessionStorage.removeItem("statushub-token");
 }
 export function clearSession() {
   token = "";
   csrf = "";
-  sessionStorage.removeItem("statusmon-token");
-  sessionStorage.removeItem("statusmon-tenant");
+  sessionStorage.removeItem("statushub-token");
+  sessionStorage.removeItem("statushub-tenant");
 }
 export async function request<T>(
   path: string,

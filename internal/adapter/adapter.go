@@ -4,7 +4,7 @@ package adapter
 import (
 	"context"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
 type Adapter interface {

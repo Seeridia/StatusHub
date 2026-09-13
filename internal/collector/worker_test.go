@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/scheduler"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/scheduler"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 type fixedRandom struct{}
@@ -91,7 +91,7 @@ func (fakePreparer) PrepareAll(events []domain.CanonicalEvent) ([]store.EventWri
 		writes = append(writes, store.EventWrite{
 			Event: event,
 			Outbox: store.OutboxMessage{
-				ID: "00000000-0000-0000-0000-000000000002", Subject: "statusmon.events.normal", Payload: []byte(`{}`),
+				ID: "00000000-0000-0000-0000-000000000002", Subject: "statushub.events.normal", Payload: []byte(`{}`),
 			},
 		})
 		_ = index

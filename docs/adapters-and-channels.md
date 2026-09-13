@@ -32,8 +32,8 @@ capability probe → 条件轮询 → engine decoder → canonical reconciliatio
 参考 `scripts/html-recipes.example.json`。`scripts/html-recipes.canary.json` 是绑定 GitHub Status 的只读公开 canary recipe，用于持续验证真实网络、HTML 解析和显式 provider 路由；生产 recipe 仍必须由运营方审核。daemon 使用：
 
 ```bash
-STATUSMON_HTML_RECIPES_FILE=/etc/statusmon/html-recipes.json \
-go run ./cmd/statusmond -database-url "$DATABASE_URL"
+STATUSHUB_HTML_RECIPES_FILE=/etc/statushub/html-recipes.json \
+go run ./cmd/statushubd -database-url "$DATABASE_URL"
 ```
 
 recipe 是受控配置，不接受用户脚本。上线前必须为目标页面保存 HTML fixture；模板变更导致 selector 失配时，采集失败并进入 source backoff，而不是制造“全部恢复”。
@@ -81,11 +81,11 @@ Shoutrrr 不接管队列、重试或多目标 fanout。Slack、Discord、Telegra
 retryable 错误达到 `MaxAttempts` 后，delivery 进入 `dead_letter`，保存有界错误摘要、时间和 replay count：
 
 ```bash
-go run ./cmd/statusmon-admin dlq-list \
+go run ./cmd/statushub-admin dlq-list \
   -database-url "$DATABASE_URL" \
   -limit 100
 
-go run ./cmd/statusmon-admin dlq-replay \
+go run ./cmd/statushub-admin dlq-replay \
   -database-url "$DATABASE_URL" \
   -delivery-id 00000000-0000-0000-0000-000000000000
 ```

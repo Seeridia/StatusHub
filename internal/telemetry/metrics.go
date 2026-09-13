@@ -18,7 +18,7 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 )
 
-const meterName = "github.com/vendor-status-monitoring/vendor-status-monitoring"
+const meterName = "github.com/Seeridia/StatusHub"
 
 type Metrics struct {
 	provider *sdkmetric.MeterProvider
@@ -58,64 +58,64 @@ func NewPrometheus(registry *prometheus.Registry) (*Metrics, error) {
 	meter := provider.Meter(meterName)
 
 	metrics := &Metrics{provider: provider, handler: promhttp.HandlerFor(registry, promhttp.HandlerOpts{})}
-	if metrics.polls, err = meter.Int64Counter("statusmon.source.polls", otelmetric.WithDescription("Source poll attempts")); err != nil {
+	if metrics.polls, err = meter.Int64Counter("statushub.source.polls", otelmetric.WithDescription("Source poll attempts")); err != nil {
 		return nil, err
 	}
-	if metrics.pollDuration, err = meter.Float64Histogram("statusmon.source.poll.duration", otelmetric.WithUnit("s")); err != nil {
+	if metrics.pollDuration, err = meter.Float64Histogram("statushub.source.poll.duration", otelmetric.WithUnit("s")); err != nil {
 		return nil, err
 	}
-	if metrics.pollBytes, err = meter.Int64Histogram("statusmon.source.poll.bytes", otelmetric.WithUnit("By")); err != nil {
+	if metrics.pollBytes, err = meter.Int64Histogram("statushub.source.poll.bytes", otelmetric.WithUnit("By")); err != nil {
 		return nil, err
 	}
-	if metrics.reconcileRuns, err = meter.Int64Counter("statusmon.reconcile.runs"); err != nil {
+	if metrics.reconcileRuns, err = meter.Int64Counter("statushub.reconcile.runs"); err != nil {
 		return nil, err
 	}
-	if metrics.reconcileEvents, err = meter.Int64Counter("statusmon.reconcile.events"); err != nil {
+	if metrics.reconcileEvents, err = meter.Int64Counter("statushub.reconcile.events"); err != nil {
 		return nil, err
 	}
-	if metrics.outboxPublishes, err = meter.Int64Counter("statusmon.outbox.publishes"); err != nil {
+	if metrics.outboxPublishes, err = meter.Int64Counter("statushub.outbox.publishes"); err != nil {
 		return nil, err
 	}
-	if metrics.outboxAge, err = meter.Float64Histogram("statusmon.outbox.age", otelmetric.WithUnit("s")); err != nil {
+	if metrics.outboxAge, err = meter.Float64Histogram("statushub.outbox.age", otelmetric.WithUnit("s")); err != nil {
 		return nil, err
 	}
-	if metrics.busDeliveries, err = meter.Int64Counter("statusmon.bus.deliveries"); err != nil {
+	if metrics.busDeliveries, err = meter.Int64Counter("statushub.bus.deliveries"); err != nil {
 		return nil, err
 	}
-	if metrics.busRedeliveries, err = meter.Int64Counter("statusmon.bus.redeliveries"); err != nil {
+	if metrics.busRedeliveries, err = meter.Int64Counter("statushub.bus.redeliveries"); err != nil {
 		return nil, err
 	}
-	if metrics.notificationSends, err = meter.Int64Counter("statusmon.notification.sends"); err != nil {
+	if metrics.notificationSends, err = meter.Int64Counter("statushub.notification.sends"); err != nil {
 		return nil, err
 	}
-	if metrics.notificationLatency, err = meter.Float64Histogram("statusmon.notification.latency", otelmetric.WithUnit("s")); err != nil {
+	if metrics.notificationLatency, err = meter.Float64Histogram("statushub.notification.latency", otelmetric.WithUnit("s")); err != nil {
 		return nil, err
 	}
-	if metrics.rateLimitWait, err = meter.Float64Histogram("statusmon.notification.rate_limit_wait", otelmetric.WithUnit("s")); err != nil {
+	if metrics.rateLimitWait, err = meter.Float64Histogram("statushub.notification.rate_limit_wait", otelmetric.WithUnit("s")); err != nil {
 		return nil, err
 	}
-	if metrics.fanoutRuns, err = meter.Int64Counter("statusmon.fanout.runs"); err != nil {
+	if metrics.fanoutRuns, err = meter.Int64Counter("statushub.fanout.runs"); err != nil {
 		return nil, err
 	}
-	if metrics.fanoutDeliveries, err = meter.Int64Counter("statusmon.fanout.deliveries"); err != nil {
+	if metrics.fanoutDeliveries, err = meter.Int64Counter("statushub.fanout.deliveries"); err != nil {
 		return nil, err
 	}
-	if metrics.fanoutDuration, err = meter.Float64Histogram("statusmon.fanout.duration", otelmetric.WithUnit("s")); err != nil {
+	if metrics.fanoutDuration, err = meter.Float64Histogram("statushub.fanout.duration", otelmetric.WithUnit("s")); err != nil {
 		return nil, err
 	}
-	if metrics.eligibleLatency, err = meter.Float64Histogram("statusmon.delivery.eligible_first_attempt", otelmetric.WithUnit("s")); err != nil {
+	if metrics.eligibleLatency, err = meter.Float64Histogram("statushub.delivery.eligible_first_attempt", otelmetric.WithUnit("s")); err != nil {
 		return nil, err
 	}
-	if metrics.deliveryLaneConcurrency, err = meter.Int64Histogram("statusmon.delivery.lane.concurrency"); err != nil {
+	if metrics.deliveryLaneConcurrency, err = meter.Int64Histogram("statushub.delivery.lane.concurrency"); err != nil {
 		return nil, err
 	}
-	if metrics.deliveryLaneClaimed, err = meter.Int64Histogram("statusmon.delivery.lane.claimed"); err != nil {
+	if metrics.deliveryLaneClaimed, err = meter.Int64Histogram("statushub.delivery.lane.claimed"); err != nil {
 		return nil, err
 	}
-	if metrics.sourceFreshness, err = meter.Float64Histogram("statusmon.source.freshness", otelmetric.WithUnit("s")); err != nil {
+	if metrics.sourceFreshness, err = meter.Float64Histogram("statushub.source.freshness", otelmetric.WithUnit("s")); err != nil {
 		return nil, err
 	}
-	if metrics.schemaDrift, err = meter.Int64Counter("statusmon.source.schema_drift"); err != nil {
+	if metrics.schemaDrift, err = meter.Int64Counter("statushub.source.schema_drift"); err != nil {
 		return nil, err
 	}
 	return metrics, nil

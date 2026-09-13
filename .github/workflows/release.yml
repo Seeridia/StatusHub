@@ -30,7 +30,7 @@ jobs:
       - name: Resolve image name
         id: image
         shell: bash
-        run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/statusmon" >> "$GITHUB_OUTPUT"
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/statushub" >> "$GITHUB_OUTPUT"
       - uses: docker/setup-qemu-action@v3
       - uses: docker/setup-buildx-action@v3
       - uses: docker/login-action@v3
@@ -61,7 +61,7 @@ jobs:
         env:
           IMAGE: ${{ steps.image.outputs.name }}
           DIGEST: ${{ steps.build.outputs.digest }}
-        run: echo "Deploy with STATUSMON_IMAGE=$IMAGE@$DIGEST" >> "$GITHUB_STEP_SUMMARY"
+        run: echo "Deploy with STATUSHUB_IMAGE=$IMAGE@$DIGEST" >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
     needs: publish
@@ -77,5 +77,5 @@ jobs:
           DOKPLOY_URL: ${{ vars.DOKPLOY_URL }}
           DOKPLOY_COMPOSE_ID: ${{ vars.DOKPLOY_COMPOSE_ID }}
           DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
-          STATUSMON_PUBLIC_URL: ${{ vars.STATUSMON_PUBLIC_URL }}
+          STATUSHUB_PUBLIC_URL: ${{ vars.STATUSHUB_PUBLIC_URL }}
         run: python3 scripts/deploy-dokploy.py

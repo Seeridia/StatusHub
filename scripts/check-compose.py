@@ -13,15 +13,15 @@ assert not re.search(r"^\s*<<\s*:|[&*][A-Za-z_][\w-]*", source, re.M), "Keep pro
 assert "traefik." not in source and "dokploy-network" not in source, "Platform routing must stay outside the generic Compose"
 env = os.environ.copy()
 env.update(
-    STATUSMON_IMAGE="ghcr.io/seeridia/statusmon:sha-test",
+    STATUSHUB_IMAGE="ghcr.io/seeridia/statushub:sha-test",
     POSTGRES_PASSWORD="a" * 64,
-    STATUSMON_CONFIG_KEY="a" * 44,
-    STATUSMON_API_KEY="b" * 44,
-    STATUSMON_PUBLIC_URL="https://status.example.test",
-    STATUSMON_SMTP_ADDRESS="smtp.example.test:587",
-    STATUSMON_SMTP_FROM="status@example.test",
-    STATUSMON_BIND_ADDRESS="127.0.0.1",
-    STATUSMON_HTTP_PORT="8080",
+    STATUSHUB_CONFIG_KEY="a" * 44,
+    STATUSHUB_API_KEY="b" * 44,
+    STATUSHUB_PUBLIC_URL="https://status.example.test",
+    STATUSHUB_SMTP_ADDRESS="smtp.example.test:587",
+    STATUSHUB_SMTP_FROM="status@example.test",
+    STATUSHUB_BIND_ADDRESS="127.0.0.1",
+    STATUSHUB_HTTP_PORT="8080",
 )
 result = subprocess.run(
     ["docker", "compose", "--env-file", "/dev/null", "-f", "compose.yaml", "config", "--format", "json"],
@@ -36,7 +36,7 @@ for name, service in services.items():
     if name != "api":
         assert not service.get("ports"), name
 for name in ("api", "worker", "migrate"):
-    assert services[name]["image"] == env["STATUSMON_IMAGE"]
+    assert services[name]["image"] == env["STATUSHUB_IMAGE"]
 for name in ("api", "worker"):
     assert services[name]["depends_on"]["migrate"]["condition"] == "service_completed_successfully"
 assert services["api"]["ports"][0]["host_ip"] == "127.0.0.1"
@@ -48,7 +48,7 @@ subprocess.run(
 # Model a deployment platform appending a proxy network to api only.
 with tempfile.TemporaryDirectory() as directory:
     override = Path(directory) / "proxy.yaml"
-    override.write_text("services:\n  api:\n    networks: [backend, proxy]\nnetworks:\n  proxy:\n    external: true\n    name: statusmon-test-proxy\n")
+    override.write_text("services:\n  api:\n    networks: [backend, proxy]\nnetworks:\n  proxy:\n    external: true\n    name: statushub-test-proxy\n")
     patched = subprocess.run(
         ["docker", "compose", "--env-file", "/dev/null", "-f", "compose.yaml", "-f", str(override), "config", "--format", "json"],
         cwd=root, env=env, capture_output=True, text=True, check=True,

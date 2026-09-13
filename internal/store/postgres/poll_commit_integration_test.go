@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
 func TestIntegrationCommitPollAtomicallyFencesCheckpointEventAndOutbox(t *testing.T) {
@@ -23,7 +23,7 @@ func TestIntegrationCommitPollAtomicallyFencesCheckpointEventAndOutbox(t *testin
 	write := EventWrite{
 		Event: event,
 		Outbox: OutboxMessage{
-			ID: integrationUUID(902), Subject: "statusmon.events.normal",
+			ID: integrationUUID(902), Subject: "statushub.events.normal",
 			Payload: []byte(`{"version":"1","event_id":"` + string(event.ID) + `"}`),
 		},
 	}
@@ -53,7 +53,7 @@ func TestIntegrationCommitPollAtomicallyFencesCheckpointEventAndOutbox(t *testin
 		NextPollAt: time.Now().Add(time.Minute), Checkpoint: `{"stale":true}`,
 		Writes: []EventWrite{{
 			Event:  staleEvent,
-			Outbox: OutboxMessage{ID: integrationUUID(904), Subject: "statusmon.events.normal", Payload: []byte(`{}`)},
+			Outbox: OutboxMessage{ID: integrationUUID(904), Subject: "statushub.events.normal", Payload: []byte(`{}`)},
 		}},
 	})
 	if !errors.Is(err, ErrLeaseLost) {

@@ -11,10 +11,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Seeridia/StatusHub/internal/bus"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/subscription"
 	"github.com/google/uuid"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/bus"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/subscription"
 )
 
 type Store interface {

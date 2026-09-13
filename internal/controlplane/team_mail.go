@@ -24,7 +24,7 @@ func (s *Server) RunIdentityMail(ctx context.Context) error {
 		return nil
 	}
 	return repo.RunIdentityMail(ctx, func(ctx context.Context, sealed string) error {
-		address := os.Getenv("STATUSMON_SMTP_ADDRESS")
+		address := os.Getenv("STATUSHUB_SMTP_ADDRESS")
 		if address == "" {
 			return errors.New("identity SMTP is not configured")
 		}
@@ -40,9 +40,9 @@ func (s *Server) RunIdentityMail(ctx context.Context) error {
 		if e = json.Unmarshal(body, &data); e != nil {
 			return e
 		}
-		from := os.Getenv("STATUSMON_SMTP_FROM")
+		from := os.Getenv("STATUSHUB_SMTP_FROM")
 		if from == "" {
-			from = "statusmon@localhost"
+			from = "statushub@localhost"
 		}
 		if _, e = mail.ParseAddress(from); e != nil || strings.ContainsAny(from, "\r\n") {
 			return errors.New("invalid mail sender")
@@ -71,12 +71,12 @@ func (s *Server) RunIdentityMail(ctx context.Context) error {
 			}
 		} else {
 			ip := net.ParseIP(host)
-			if os.Getenv("STATUSMON_SMTP_ALLOW_LOCAL_PLAINTEXT") != "true" || (host != "localhost" && (ip == nil || !ip.IsLoopback())) {
+			if os.Getenv("STATUSHUB_SMTP_ALLOW_LOCAL_PLAINTEXT") != "true" || (host != "localhost" && (ip == nil || !ip.IsLoopback())) {
 				return errors.New("identity SMTP requires TLS")
 			}
 		}
-		if username := os.Getenv("STATUSMON_SMTP_USERNAME"); username != "" {
-			if e = client.Auth(smtp.PlainAuth("", username, os.Getenv("STATUSMON_SMTP_PASSWORD"), host)); e != nil {
+		if username := os.Getenv("STATUSHUB_SMTP_USERNAME"); username != "" {
+			if e = client.Auth(smtp.PlainAuth("", username, os.Getenv("STATUSHUB_SMTP_PASSWORD"), host)); e != nil {
 				return errors.New("identity SMTP authentication failed")
 			}
 		}
@@ -90,9 +90,9 @@ func (s *Server) RunIdentityMail(ctx context.Context) error {
 		if e != nil {
 			return errors.New("identity SMTP data failed")
 		}
-		subject := "Verify your StatusMon email / 验证邮箱"
+		subject := "Verify your StatusHub email / 验证邮箱"
 		if data.Purpose == "reset" {
-			subject = "Reset your StatusMon password / 重置密码"
+			subject = "Reset your StatusHub password / 重置密码"
 		}
 		message := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\nOpen the link to continue. If you did not request this, ignore this email.\r\n请打开链接继续。如果不是您本人发起，请忽略。\r\n\r\n%s\r\n", from, data.To, mime.QEncoding.Encode("UTF-8", subject), data.URL)
 		if _, e = writer.Write([]byte(message)); e != nil {

@@ -42,7 +42,7 @@ Resources:
           - AWS Health Event
       Targets:
         - Arn: !Ref HealthTopic
-          Id: statusmon-aws-health
+          Id: statushub-aws-health
           DeadLetterConfig:
             Arn: !GetAtt HealthDeadLetterQueue.Arn
           RetryPolicy:

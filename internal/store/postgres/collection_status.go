@@ -6,8 +6,8 @@ import (
 	"sort"
 	"time"
 
+	"github.com/Seeridia/StatusHub/internal/scheduler"
 	"github.com/jackc/pgx/v5"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/scheduler"
 )
 
 // A deadline is the successful resource's scheduled next check plus a bounded

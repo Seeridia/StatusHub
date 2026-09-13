@@ -1,10 +1,10 @@
-# StatusMon
+# StatusHub
 
 **One workspace for the status of the services your team depends on.**
 
 [简体中文](README.zh-CN.md) · [Getting started](docs/getting-started.md) · [Operations (中文)](docs/operations/README.md) · [API](api/openapi.yaml) · [Contributing](CONTRIBUTING.md)
 
-StatusMon is a self-hosted vendor status monitoring and notification platform. Add a public status-page URL, inspect the detected adapter, and subscribe to the events that matter to your team. The React and TDesign console brings vendor status, incident timelines, collection health, and notification delivery into one place.
+StatusHub is a self-hosted vendor status monitoring and notification platform. Add a public status-page URL, inspect the detected adapter, and subscribe to the events that matter to your team. The React and TDesign console brings vendor status, incident timelines, collection health, and notification delivery into one place.
 
 ## What you can do
 
@@ -28,8 +28,8 @@ Collection uses adaptive polling and upstream cache constraints. Stable incident
 Requirements: Go 1.25+, Node.js 22.12+, npm, Python 3, and Docker Compose v2. Exact Go requirements are in [go.mod](go.mod).
 
 ```bash
-git clone https://github.com/Seeridia/StatusMon.git
-cd StatusMon
+git clone https://github.com/Seeridia/StatusHub.git
+cd StatusHub
 ```
 
 Follow the [local installation guide](docs/getting-started.md) to generate keys, start PostgreSQL/NATS/Mailpit, initialize an empty database, and run the API and worker. It also walks through inviting your first Owner and verifying the account in the local mail sandbox.
@@ -50,10 +50,10 @@ Shared sources are collected independently of tenant subscriptions. PostgreSQL h
 
 | Component | Purpose |
 | --- | --- |
-| `statusmon-api` | Management API, embedded web console, browser authentication, identity mail jobs |
-| `statusmond` | Collection, event processing, and notification delivery |
-| `statusmon-admin` | Trusted operator CLI for workspace initialization and advanced administration |
-| `statusmon-agent` | Optional outbound delivery agent for private networks |
+| `statushub-api` | Management API, embedded web console, browser authentication, identity mail jobs |
+| `statushubd` | Collection, event processing, and notification delivery |
+| `statushub-admin` | Trusted operator CLI for workspace initialization and advanced administration |
+| `statushub-agent` | Optional outbound delivery agent for private networks |
 
 ## Documentation
 

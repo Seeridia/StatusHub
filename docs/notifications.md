@@ -83,10 +83,10 @@ POST /v1/provider-callbacks/twilio/{endpoint_id}
 
 ## SLO 指标
 
-- `statusmon_source_freshness_seconds`：计划拉取 deadline 到成功观察的延迟（首次拉取使用请求耗时）；
-- `statusmon_delivery_eligible_first_attempt_seconds`：delivery eligible 到首次领取；
-- `statusmon_source_schema_drift_total`：同 source/resource schema hash 变化；
-- `statusmon_fanout_duration_seconds`、`statusmon_fanout_deliveries_total`：fanout 延迟与吞吐；
+- `statushub_source_freshness_seconds`：计划拉取 deadline 到成功观察的延迟（首次拉取使用请求耗时）；
+- `statushub_delivery_eligible_first_attempt_seconds`：delivery eligible 到首次领取；
+- `statushub_source_schema_drift_total`：同 source/resource schema hash 变化；
+- `statushub_fanout_duration_seconds`、`statushub_fanout_deliveries_total`：fanout 延迟与吞吐；
 - 原有 poll、outbox、bus、notification 指标继续保留。
 
 建议首个告警阈值：active source freshness p95 > 30s、eligible first-attempt p95 > 5s、任意 schema drift > 0。Prometheus histogram 的 p95 由 `histogram_quantile(0.95, sum by (le, ...)(rate(..._bucket[5m])))` 计算。

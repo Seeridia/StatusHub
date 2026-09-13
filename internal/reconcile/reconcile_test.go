@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
 var testEpoch = time.Date(2026, 9, 10, 0, 0, 0, 0, time.UTC)

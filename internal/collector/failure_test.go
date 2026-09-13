@@ -8,7 +8,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/adapter/statuspage"
+	"github.com/Seeridia/StatusHub/internal/adapter/statuspage"
 )
 
 func TestFailureClassification(t *testing.T) {

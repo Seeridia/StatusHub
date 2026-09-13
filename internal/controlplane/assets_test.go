@@ -87,7 +87,7 @@ func TestConsoleRootRedirect(t *testing.T) {
 	}{
 		{"GET", "/", "/ui/", http.StatusFound},
 		{"HEAD", "/", "/ui/", http.StatusFound},
-		{"GET", "/?tenant=statusmon", "/ui/?tenant=statusmon", http.StatusFound},
+		{"GET", "/?tenant=statushub", "/ui/?tenant=statushub", http.StatusFound},
 		{"GET", "/not-a-route", "", http.StatusNotFound},
 	} {
 		response := httptest.NewRecorder()

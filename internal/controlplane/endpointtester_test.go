@@ -6,10 +6,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/notify"
-	notifierpipeline "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/pipeline/notifier"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/secret"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/notify"
+	notifierpipeline "github.com/Seeridia/StatusHub/internal/pipeline/notifier"
+	"github.com/Seeridia/StatusHub/internal/secret"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 type endpointTestRepositoryStub struct {

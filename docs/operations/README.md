@@ -23,11 +23,11 @@
 | PostgreSQL | 状态快照、事件、配置、任务和审计 | `127.0.0.1:55432` |
 | Mailpit | 本地身份邮件沙箱 | `http://127.0.0.1:58025` |
 | NATS JetStream | 事件总线和实时唤醒 | `127.0.0.1:54222` |
-| `statusmon-api` | 登录、REST API、网页、SSE、渠道测试 worker | `http://127.0.0.1:8080/ui/` |
-| `statusmond` | 持续采集、事件处理、订阅匹配、实际通知投递 | 指标：`http://127.0.0.1:9464/metrics` |
+| `statushub-api` | 登录、REST API、网页、SSE、渠道测试 worker | `http://127.0.0.1:8080/ui/` |
+| `statushubd` | 持续采集、事件处理、订阅匹配、实际通知投递 | 指标：`http://127.0.0.1:9464/metrics` |
 | Vite（开发可选） | 前端热更新，API 代理到 8080 | `http://127.0.0.1:5173/ui/` |
 
-只启动网页 API 不会持续采集或执行正常通知投递；渠道测试由 API 内的独立 worker 执行，因此“测试成功”也不能代替对 `statusmond` 的检查。
+只启动网页 API 不会持续采集或执行正常通知投递；渠道测试由 API 内的独立 worker 执行，因此“测试成功”也不能代替对 `statushubd` 的检查。
 
 ## 深入资料
 

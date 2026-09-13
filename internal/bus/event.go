@@ -5,7 +5,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
 const EventEnvelopeVersion = "1"

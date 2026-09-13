@@ -1,8 +1,8 @@
 groups:
-  - name: vendor-status-monitoring-m2
+  - name: statushub-m2
     rules:
       - alert: VendorStatusSourceFreshnessSLOBreach
-        expr: histogram_quantile(0.95, sum by (le, engine) (rate(statusmon_source_freshness_seconds_bucket[10m]))) > 30
+        expr: histogram_quantile(0.95, sum by (le, engine) (rate(statushub_source_freshness_seconds_bucket[10m]))) > 30
         for: 5m
         labels:
           severity: warning
@@ -10,7 +10,7 @@ groups:
           summary: Vendor status source freshness p95 exceeds 30 seconds
 
       - alert: VendorStatusDeliveryFirstAttemptSLOBreach
-        expr: histogram_quantile(0.95, sum by (le, channel) (rate(statusmon_delivery_eligible_first_attempt_seconds_bucket[10m]))) > 5
+        expr: histogram_quantile(0.95, sum by (le, channel) (rate(statushub_delivery_eligible_first_attempt_seconds_bucket[10m]))) > 5
         for: 5m
         labels:
           severity: critical
@@ -18,7 +18,7 @@ groups:
           summary: Eligible notification first-attempt p95 exceeds 5 seconds
 
       - alert: VendorStatusSchemaDriftDetected
-        expr: increase(statusmon_source_schema_drift_total[10m]) > 0
+        expr: increase(statushub_source_schema_drift_total[10m]) > 0
         labels:
           severity: warning
         annotations:

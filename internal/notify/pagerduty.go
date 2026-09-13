@@ -95,7 +95,7 @@ func pagerDutyDedupKey(event CanonicalEvent) string {
 		return value
 	}
 	hash := sha256.Sum256([]byte(value))
-	return "statusmon:" + hex.EncodeToString(hash[:])
+	return "statushub:" + hex.EncodeToString(hash[:])
 }
 
 func (d *PagerDuty) Send(ctx context.Context, delivery Delivery, payload Payload) (Receipt, error) {

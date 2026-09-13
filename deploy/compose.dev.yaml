@@ -1,4 +1,4 @@
-name: vendor-status-monitoring
+name: statushub
 
 services:
   mailpit:
@@ -9,9 +9,9 @@ services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-statusmon}
-      POSTGRES_USER: ${POSTGRES_USER:-statusmon}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-statusmon_local_only}
+      POSTGRES_DB: ${POSTGRES_DB:-statushub}
+      POSTGRES_USER: ${POSTGRES_USER:-statushub}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-statushub_local_only}
     ports:
       - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
     healthcheck:

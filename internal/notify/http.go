@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	securetransport "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/transport"
+	securetransport "github.com/Seeridia/StatusHub/internal/transport"
 )
 
 const (
@@ -176,7 +176,7 @@ func sendHTTPBody(
 		return Receipt{}, 0, permanent(delivery.Endpoint.Channel, "create request", errors.New("endpoint URL is invalid"))
 	}
 	request.Header.Set("Content-Type", contentType)
-	request.Header.Set("User-Agent", "vendor-status-monitoring/1")
+	request.Header.Set("User-Agent", "statushub/1")
 	if decorate != nil {
 		if err := decorate(request, body, attemptTime); err != nil {
 			return Receipt{}, 0, permanent(delivery.Endpoint.Channel, "decorate request", err)

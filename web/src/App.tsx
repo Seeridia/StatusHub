@@ -1,6 +1,5 @@
 import { currentLanguage, setLanguage, tr } from "./lib/i18n";
 import AccountFlow, { accountRequest } from "./pages/AccountFlow";
-import { ecosystemBrands } from "./lib/brands";
 import { FormField } from "./components";
 import { lazy, Suspense, useEffect, useState } from "react";
 import {
@@ -29,7 +28,6 @@ import {
   TranslateIcon,
   ModeLightIcon,
   AppIcon,
-  ChartBarIcon,
   ChevronRightIcon,
   CloudIcon,
   DashboardIcon,
@@ -58,6 +56,30 @@ const Incidents = lazy(() => import("./pages/Incidents"));
 const Rules = lazy(() => import("./pages/Rules"));
 const Channels = lazy(() => import("./pages/Channels"));
 const Operations = lazy(() => import("./pages/Operations"));
+
+function BrandMark({ compact = false }: { compact?: boolean }) {
+  return (
+    <span
+      className={`brand-mark ${compact ? "is-compact" : ""}`}
+      translate="no"
+    >
+      <img
+        className="brand-mark__logo"
+        src={`${import.meta.env.BASE_URL}brand/statushub.svg`}
+        width={32}
+        height={27}
+        alt=""
+      />
+      {!compact && (
+        <span className="brand-mark__name" aria-label="StatusHub">
+          <span className="brand-mark__status">Status</span>
+          <span className="brand-mark__hub">Hub</span>
+        </span>
+      )}
+    </span>
+  );
+}
+
 function LanguageSelect({ compact = false }: { compact?: boolean }) {
   if (compact)
     return (
@@ -162,13 +184,13 @@ function Login({ onLogin }: { onLogin: (session: Session) => void }) {
     }
   }
   return (
-    <div className="landing-page">
+    <div className="signin-page">
       <img
-        className="landing-art"
-        src={`${import.meta.env.BASE_URL}landing/hero-background.png`}
+        className="signin-art"
+        src={`${import.meta.env.BASE_URL}landing/login-background.png`}
         alt=""
-        width={1440}
-        height={850}
+        width={1672}
+        height={941}
         fetchPriority="high"
       />
       <a
@@ -181,50 +203,36 @@ function Login({ onLogin }: { onLogin: (session: Session) => void }) {
       >
         {tr("\u8DF3\u5230\u5DE5\u4F5C\u533A\u767B\u5F55")}
       </a>
-      <header className="landing-header">
-        <div className="landing-brand">
-          <span className="brand-icon">
-            <ChartBarIcon aria-hidden="true" />
-          </span>
-          <span translate="no">StatusMon</span>
+      <header className="signin-header">
+        <div className="signin-brand">
+          <BrandMark />
         </div>
-        <div className="landing-header-actions">
-          <span className="landing-caption">
+        <div className="signin-header-actions">
+          <span className="signin-caption">
             {tr("\u5916\u90E8\u4F9D\u8D56\u72B6\u6001\u76D1\u63A7")}
           </span>
-          <LanguageSelect />
+          <LanguageSelect compact />
         </div>
       </header>
-      <main className="landing-main">
-        <section className="landing-hero" aria-labelledby="landing-title">
-          <h1 id="landing-title">
-            {tr("\u6570\u5343\u670D\u52A1\u7684\u72B6\u6001\uFF0C")}
-            <br />
-            <em>{tr("\u6C47\u805A\u4E8E\u6B64\u3002")}</em>
-          </h1>
-          <p className="landing-lead">
-            {tr(
-              "\u901A\u8FC7\u901A\u7528\u72B6\u6001\u9875\u9002\u914D\u5668\uFF0C\u9762\u5411\u6570\u5343\u4E2A\u670D\u52A1\u6269\u5C55\u3002",
-            )}
-          </p>
-          <p className="landing-description">
-            {tr(
-              "\u4ECE\u4E91\u57FA\u7840\u8BBE\u65BD\u5230 AI \u4E0E\u56E2\u961F\u5DE5\u5177\uFF0C\u7EDF\u4E00\u8FFD\u8E2A\u72B6\u6001\u3001\u4E8B\u4EF6\u548C\u901A\u77E5\u3002",
-            )}
+      <main className="signin-main">
+        <section className="signin-hero" aria-labelledby="signin-title">
+          <h1 id="signin-title">{tr("登录 StatusHub")}</h1>
+          <p className="signin-intro">
+            {tr("登录工作区，掌握服务状态与重要通知。")}
           </p>
           <section
-            className="landing-login"
+            className="signin-login"
             id="login-workspace"
             tabIndex={-1}
             aria-label={tr("\u767B\u5F55\u5DE5\u4F5C\u533A")}
           >
             <Form
-              className={advanced ? "landing-form is-token" : "landing-form"}
+              className={advanced ? "signin-form is-token" : "signin-form"}
               labelAlign="top"
               layout="vertical"
               onSubmit={() => void connect()}
             >
-              <div className="landing-fields">
+              <div className="signin-fields">
                 <FormField
                   label={tr("\u5DE5\u4F5C\u533A\u6807\u8BC6")}
                   name="workspace"
@@ -251,6 +259,7 @@ function Login({ onLogin }: { onLogin: (session: Session) => void }) {
                         value={email}
                         onChange={setEmail}
                         autocomplete="email"
+                        size="large"
                       />
                     </FormField>
                     <FormField label={tr("密码")} name="password">
@@ -266,6 +275,7 @@ function Login({ onLogin }: { onLogin: (session: Session) => void }) {
                         value={password}
                         onChange={setPassword}
                         autocomplete="current-password"
+                        size="large"
                       />
                     </FormField>
                   </>
@@ -288,7 +298,7 @@ function Login({ onLogin }: { onLogin: (session: Session) => void }) {
                 )}
               </div>
               <Button
-                className="landing-submit"
+                className="signin-submit"
                 size="large"
                 type="submit"
                 loading={busy}
@@ -299,81 +309,51 @@ function Login({ onLogin }: { onLogin: (session: Session) => void }) {
                 <ChevronRightIcon aria-hidden="true" />
               </Button>
               {error && (
-                <div className="landing-error" role="alert">
+                <div className="signin-error" role="alert">
                   <Alert theme="error" message={error} />
                 </div>
               )}
             </Form>
-            <Button
-              variant="text"
-              onClick={() => {
-                location.href = `/auth/${encodeURIComponent(workspace.trim())}/login`;
-              }}
-            >
-              {tr("通过 SSO 登录")}
-            </Button>
-            <Button
-              variant="text"
-              onClick={() => {
-                location.hash = "/account-flow?mode=forgot";
-              }}
-            >
-              {tr("忘记密码")}
-            </Button>
-            <Button
-              variant="text"
-              theme="primary"
-              className="landing-switch"
-              onClick={() => {
-                setAdvanced(!advanced);
-                setError("");
-              }}
-            >
-              {advanced
-                ? tr("邮箱密码登录")
-                : tr("\u4F7F\u7528\u670D\u52A1\u8D26\u53F7\u767B\u5F55")}
-              <ChevronRightIcon aria-hidden="true" />
-            </Button>
+            <div className="signin-options">
+              <Button
+                variant="text"
+                onClick={() => {
+                  location.href = `/auth/${encodeURIComponent(workspace.trim())}/login`;
+                }}
+              >
+                {tr("通过 SSO 登录")}
+              </Button>
+              <Button
+                variant="text"
+                onClick={() => {
+                  location.hash = "/account-flow?mode=forgot";
+                }}
+              >
+                {tr("忘记密码")}
+              </Button>
+              <Button
+                variant="text"
+                theme="primary"
+                className="signin-switch"
+                onClick={() => {
+                  setAdvanced(!advanced);
+                  setError("");
+                }}
+              >
+                {advanced
+                  ? tr("邮箱密码登录")
+                  : tr("\u4F7F\u7528\u670D\u52A1\u8D26\u53F7\u767B\u5F55")}
+                <ChevronRightIcon aria-hidden="true" />
+              </Button>
+            </div>
             {advanced && (
-              <p className="landing-account-note">
+              <p className="signin-account-note">
                 {tr(
                   "\u5DE5\u4F5C\u533A\u7531\u7BA1\u7406\u5458\u521B\u5EFA\uFF0C\u4F7F\u7528\u5DF2\u5206\u914D\u7684\u670D\u52A1\u8D26\u53F7\u4EE4\u724C\u767B\u5F55\u3002",
                 )}
               </p>
             )}
           </section>
-        </section>
-        <section
-          className="landing-ecosystem"
-          aria-label={tr("\u670D\u52A1\u751F\u6001\u5C55\u793A")}
-        >
-          <ul className="landing-logos">
-            {ecosystemBrands.map((brand) => (
-              <li key={brand.slug}>
-                <img
-                  src={`${import.meta.env.BASE_URL}brands/${brand.slug}.svg`}
-                  alt=""
-                  width={32}
-                  height={32}
-                  loading="lazy"
-                  decoding="async"
-                />
-                <span translate="no">{brand.name}</span>
-              </li>
-            ))}
-          </ul>
-          <footer className="landing-footer">
-            <p>
-              {tr(
-                "\u57FA\u4E8E\u901A\u7528\u72B6\u6001\u9875\u9002\u914D\u5668\uFF0C\u8FDE\u63A5\u5E7F\u6CDB\u7684\u670D\u52A1\u751F\u6001",
-              )}
-            </p>
-            <small>
-              {tr(
-                "\u670D\u52A1\u751F\u6001\u5C55\u793A \u00B7 \u5B9E\u9645\u63A5\u5165\u4EE5\u72B6\u6001\u9875\u68C0\u6D4B\u7ED3\u679C\u4E3A\u51C6",
-              )}
-            </small>
-          </footer>
         </section>
       </main>
     </div>
@@ -392,7 +372,7 @@ function Workspace({
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [theme, setTheme] = useState(
-    localStorage.getItem("statusmon-theme") || "system",
+    localStorage.getItem("statushub-theme") || "system",
   );
   useEffect(() => {
     const media = matchMedia("(max-width: 760px)");
@@ -425,7 +405,7 @@ function Workspace({
         theme === "system" ? (media.matches ? "dark" : "light") : theme,
       );
     apply();
-    localStorage.setItem("statusmon-theme", theme);
+    localStorage.setItem("statushub-theme", theme);
     media.addEventListener("change", apply);
     return () => media.removeEventListener("change", apply);
   }, [theme]);
@@ -462,11 +442,8 @@ function Workspace({
           {tr("\u8DF3\u5230\u4E3B\u8981\u5185\u5BB9")}
         </a>
         <aside className="sidebar">
-          <a className="brand" href="#/overview" aria-label="StatusMon">
-            <span className="brand-icon">
-              <ChartBarIcon />
-            </span>
-            {!collapsed && <span>StatusMon</span>}
+          <a className="brand" href="#/overview" aria-label="StatusHub">
+            <BrandMark compact={collapsed} />
           </a>
           <div className="workspace-chip">
             <UserIcon />
@@ -642,7 +619,7 @@ function Workspace({
             </Suspense>
             <footer className="workspace-footer">
               {tr(
-                "StatusMon \u00B7 \u5382\u5546\u516C\u5F00\u72B6\u6001\u4E0E\u91C7\u96C6\u5065\u5EB7\u5206\u5F00\u5448\u73B0",
+                "StatusHub \u00B7 \u5382\u5546\u516C\u5F00\u72B6\u6001\u4E0E\u91C7\u96C6\u5065\u5EB7\u5206\u5F00\u5448\u73B0",
               )}
             </footer>
           </main>

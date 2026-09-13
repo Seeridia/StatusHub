@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/callback"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/callback"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 type fakeRepository struct {

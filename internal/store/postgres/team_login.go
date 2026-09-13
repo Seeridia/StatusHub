@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Seeridia/StatusHub/internal/auth"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/auth"
 )
 
 // Invite tokens authorize a specific membership, never ownership of an email.
@@ -77,11 +77,11 @@ func (s *Store) BootstrapInvitation(ctx context.Context, tenant, email string) (
 	}
 	token := identityToken()
 	id := uuid.NewString()
-	_, e = tx.Exec(ctx, `INSERT INTO team_invitations(id,tenant_id,email,role,token_hash,actor_type,actor_id,expires_at) VALUES($1,$2,$3,'owner',$4,'bootstrap','statusmon-admin',now()+interval '7 days')`, id, tenant, email, tokenDigest(token))
+	_, e = tx.Exec(ctx, `INSERT INTO team_invitations(id,tenant_id,email,role,token_hash,actor_type,actor_id,expires_at) VALUES($1,$2,$3,'owner',$4,'bootstrap','statushub-admin',now()+interval '7 days')`, id, tenant, email, tokenDigest(token))
 	if e != nil {
 		return "", e
 	}
-	if _, e = appendAuditTx(ctx, tx, tenant, auditInput(AuditActor{Type: "system", ID: "statusmon-admin"}, "identity.owner.bootstrap", "invitation", id, json.RawMessage(`{}`))); e != nil {
+	if _, e = appendAuditTx(ctx, tx, tenant, auditInput(AuditActor{Type: "system", ID: "statushub-admin"}, "identity.owner.bootstrap", "invitation", id, json.RawMessage(`{}`))); e != nil {
 		return "", e
 	}
 	return token, tx.Commit(ctx)

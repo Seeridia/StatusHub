@@ -11,12 +11,12 @@ func TestMessageValidate(t *testing.T) {
 		max     int
 		wantErr bool
 	}{
-		{name: "valid", message: Message{ID: "outbox-1", Subject: "statusmon.events.normal", Data: []byte(`{}`)}, max: 1024},
-		{name: "missing ID", message: Message{Subject: "statusmon.events.normal", Data: []byte(`{}`)}, max: 1024, wantErr: true},
-		{name: "wildcard", message: Message{ID: "1", Subject: "statusmon.events.*", Data: []byte(`{}`)}, max: 1024, wantErr: true},
-		{name: "empty token", message: Message{ID: "1", Subject: "statusmon..normal", Data: []byte(`{}`)}, max: 1024, wantErr: true},
-		{name: "empty data", message: Message{ID: "1", Subject: "statusmon.events.normal"}, max: 1024, wantErr: true},
-		{name: "too large", message: Message{ID: "1", Subject: "statusmon.events.normal", Data: []byte(`123`)}, max: 2, wantErr: true},
+		{name: "valid", message: Message{ID: "outbox-1", Subject: "statushub.events.normal", Data: []byte(`{}`)}, max: 1024},
+		{name: "missing ID", message: Message{Subject: "statushub.events.normal", Data: []byte(`{}`)}, max: 1024, wantErr: true},
+		{name: "wildcard", message: Message{ID: "1", Subject: "statushub.events.*", Data: []byte(`{}`)}, max: 1024, wantErr: true},
+		{name: "empty token", message: Message{ID: "1", Subject: "statushub..normal", Data: []byte(`{}`)}, max: 1024, wantErr: true},
+		{name: "empty data", message: Message{ID: "1", Subject: "statushub.events.normal"}, max: 1024, wantErr: true},
+		{name: "too large", message: Message{ID: "1", Subject: "statushub.events.normal", Data: []byte(`123`)}, max: 2, wantErr: true},
 	}
 
 	for _, test := range tests {

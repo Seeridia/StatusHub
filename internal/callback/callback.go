@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 type Event struct {

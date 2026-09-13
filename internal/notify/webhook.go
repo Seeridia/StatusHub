@@ -234,5 +234,5 @@ func compactCloudEvent(event CanonicalEvent, maximumBytes int) ([]byte, error) {
 }
 
 func schemaURI(version string) string {
-	return "urn:vendor-status-monitoring:schema:" + url.PathEscape(version)
+	return "urn:statushub:schema:" + url.PathEscape(version)
 }

@@ -12,9 +12,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/notify"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/notify"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 type Store interface {
@@ -98,7 +98,7 @@ func decodeEndpointConfig(lease store.DeliveryLease, raw []byte) (notify.Endpoin
 }
 
 func endpointAssociatedData(endpointID string, version int) []byte {
-	return []byte(fmt.Sprintf("statusmon.endpoint.v1:%s:%d", endpointID, version))
+	return []byte(fmt.Sprintf("statushub.endpoint.v1:%s:%d", endpointID, version))
 }
 
 func validPathToken(value string) bool {

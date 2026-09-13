@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Seeridia/StatusHub/internal/domain"
 	"github.com/jackc/pgx/v5"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
 )
 
 var ErrReplayNotAllowed = errors.New("postgres store: dead-letter replay is not allowed")

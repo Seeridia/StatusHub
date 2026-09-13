@@ -7,15 +7,15 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/bus"
-	busjs "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/bus/jetstream"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/notify"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/pipeline/fanout"
-	notifierpipeline "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/pipeline/notifier"
-	outboxpipeline "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/pipeline/outbox"
-	eventprocessor "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/pipeline/processor"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/bus"
+	busjs "github.com/Seeridia/StatusHub/internal/bus/jetstream"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/notify"
+	"github.com/Seeridia/StatusHub/internal/pipeline/fanout"
+	notifierpipeline "github.com/Seeridia/StatusHub/internal/pipeline/notifier"
+	outboxpipeline "github.com/Seeridia/StatusHub/internal/pipeline/outbox"
+	eventprocessor "github.com/Seeridia/StatusHub/internal/pipeline/processor"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 type acceptingDriver struct{}
@@ -31,9 +31,9 @@ func (acceptingDriver) Classify(err error) notify.RetryDecision { return notify.
 
 func TestM2EventToFanoutToNotifier(t *testing.T) {
 	databaseURL := os.Getenv("TEST_DATABASE_URL")
-	natsURL := os.Getenv("STATUSMON_TEST_NATS_URL")
+	natsURL := os.Getenv("STATUSHUB_TEST_NATS_URL")
 	if databaseURL == "" || natsURL == "" {
-		t.Skip("set TEST_DATABASE_URL and STATUSMON_TEST_NATS_URL to run M2 integration")
+		t.Skip("set TEST_DATABASE_URL and STATUSHUB_TEST_NATS_URL to run M2 integration")
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -48,7 +48,7 @@ func TestM2EventToFanoutToNotifier(t *testing.T) {
 	}
 
 	suffix := fmt.Sprintf("%d", time.Now().UnixNano())
-	subject := "statusmon.e2e.m2." + suffix + ".critical"
+	subject := "statushub.e2e.m2." + suffix + ".critical"
 	processor, err := eventprocessor.New(repository, subject)
 	if err != nil {
 		t.Fatal(err)
@@ -63,8 +63,8 @@ func TestM2EventToFanoutToNotifier(t *testing.T) {
 	}
 
 	busConfig := busjs.DefaultConfig()
-	busConfig.StreamName = "STATUSMON_M2_" + suffix
-	busConfig.Subjects = []string{"statusmon.e2e.m2." + suffix + ".>"}
+	busConfig.StreamName = "STATUSHUB_M2_" + suffix
+	busConfig.Subjects = []string{"statushub.e2e.m2." + suffix + ".>"}
 	busConfig.MaxAge, busConfig.MaxBytes = time.Minute, 1<<20
 	busConfig.DuplicateWindow = time.Minute
 	eventBus, err := busjs.Connect(ctx, natsURL, busConfig)
@@ -122,12 +122,12 @@ func TestM2EventToFanoutToNotifier(t *testing.T) {
 func TestIntegrationFanoutLoadBaseline(t *testing.T) {
 	deliveryCount, maximum := 25000, 30*time.Second
 	contextTimeout := 2 * time.Minute
-	if os.Getenv("STATUSMON_RUN_M4_MILLION") == "1" {
+	if os.Getenv("STATUSHUB_RUN_M4_MILLION") == "1" {
 		deliveryCount, maximum, contextTimeout = 1000000, 4*time.Minute, 6*time.Minute
-	} else if os.Getenv("STATUSMON_RUN_M4_LOAD") == "1" {
+	} else if os.Getenv("STATUSHUB_RUN_M4_LOAD") == "1" {
 		deliveryCount, maximum = 250000, 60*time.Second
-	} else if os.Getenv("STATUSMON_RUN_LOAD") != "1" {
-		t.Skip("set STATUSMON_RUN_LOAD=1 for 25k, STATUSMON_RUN_M4_LOAD=1 for 250k, or STATUSMON_RUN_M4_MILLION=1 for the million-delivery drill")
+	} else if os.Getenv("STATUSHUB_RUN_LOAD") != "1" {
+		t.Skip("set STATUSHUB_RUN_LOAD=1 for 25k, STATUSHUB_RUN_M4_LOAD=1 for 250k, or STATUSHUB_RUN_M4_MILLION=1 for the million-delivery drill")
 	}
 	databaseURL := os.Getenv("TEST_DATABASE_URL")
 	if databaseURL == "" {
@@ -178,7 +178,7 @@ FROM generate_series(1,$1) n`, deliveryCount); err != nil {
 		EntityKind: domain.EntityIncident, EntityID: "load-incident", AggregateRevision: 1,
 		SourceEventKey: "m2-load-event", NormalizerVersion: "v1", SchemaVersion: "v1",
 		Payload: []byte(`{"current":{"name":"Load event","impact":"major"}}`), ObservedAt: time.Now().UTC()}
-	processor, _ := eventprocessor.New(repository, "statusmon.events.normal")
+	processor, _ := eventprocessor.New(repository, "statushub.events.normal")
 	persisted, err := processor.Persist(ctx, event)
 	if err != nil || !persisted.Inserted {
 		t.Fatalf("persist load event=%#v err=%v", persisted, err)

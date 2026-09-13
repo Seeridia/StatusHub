@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
 // ResourceCadence lets a small active-incidents endpoint run faster than a

@@ -60,7 +60,7 @@ func TestOIDCAuthenticatorVerifiesJWKSClaimsDomainsAndCache(t *testing.T) {
 	issuer = server.URL
 	now := time.Date(2026, 9, 10, 9, 0, 0, 0, time.UTC)
 	repository := &oidcRepositoryStub{
-		provider: OIDCProvider{ID: "provider-1", TenantID: "tenant-1", Issuer: issuer, ClientID: "statusmon",
+		provider: OIDCProvider{ID: "provider-1", TenantID: "tenant-1", Issuer: issuer, ClientID: "statushub",
 			AllowedDomains: []string{"example.com"}, Enabled: true},
 		identity: Identity{TenantID: "tenant-1", ActorType: "user", ActorID: "principal-1", Subject: "oidc-user", Role: RoleAdmin},
 	}
@@ -70,7 +70,7 @@ func TestOIDCAuthenticatorVerifiesJWKSClaimsDomainsAndCache(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	payload := map[string]any{"iss": issuer, "sub": "oidc-user", "aud": "statusmon",
+	payload := map[string]any{"iss": issuer, "sub": "oidc-user", "aud": "statushub",
 		"exp": now.Add(time.Hour).Unix(), "iat": now.Add(-time.Minute).Unix(),
 		"email": "operator@example.com", "email_verified": true, "name": "Operator", "nonce": "browser-nonce"}
 	token := signRS256(t, privateKey, "key-1", payload)

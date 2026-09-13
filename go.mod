@@ -1,4 +1,4 @@
-module github.com/vendor-status-monitoring/vendor-status-monitoring
+module github.com/Seeridia/StatusHub
 
 go 1.25.0
 

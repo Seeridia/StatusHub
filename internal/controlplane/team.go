@@ -10,8 +10,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/auth"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/auth"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 type TeamRepository interface {
@@ -27,11 +27,11 @@ type TeamRepository interface {
 type teamCipher struct{ codec *cookieCodec }
 
 func (c teamCipher) Encode(v json.RawMessage) (string, error) {
-	return c.codec.encode(v, "statusmon.identity.secrets.v1")
+	return c.codec.encode(v, "statushub.identity.secrets.v1")
 }
 func (c teamCipher) Decode(v string) (json.RawMessage, error) {
 	var out json.RawMessage
-	e := c.codec.decode(v, "statusmon.identity.secrets.v1", &out)
+	e := c.codec.decode(v, "statushub.identity.secrets.v1", &out)
 	return out, e
 }
 func (s *Server) teamRoutes() {

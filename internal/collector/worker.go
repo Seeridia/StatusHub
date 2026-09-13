@@ -12,11 +12,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/adapter"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/reconcile"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/scheduler"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/adapter"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/reconcile"
+	"github.com/Seeridia/StatusHub/internal/scheduler"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 type Repository interface {

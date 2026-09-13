@@ -17,7 +17,7 @@ func TestIntegrationFanoutDeliveryLeaseAndCallback(t *testing.T) {
 
 	event := integrationEvent("m2-fanout-event", "incident-upstream")
 	event.Payload = []byte(`{"current":{"name":"API unavailable","impact":"critical","component_ids":["api"]}}`)
-	if inserted, err := database.store.InsertEventWithOutbox(ctx, event, OutboxMessage{ID: integrationUUID(920), Subject: "statusmon.events.critical", Payload: []byte(`{}`)}); err != nil || !inserted {
+	if inserted, err := database.store.InsertEventWithOutbox(ctx, event, OutboxMessage{ID: integrationUUID(920), Subject: "statushub.events.critical", Payload: []byte(`{}`)}); err != nil || !inserted {
 		t.Fatalf("insert event: inserted=%v err=%v", inserted, err)
 	}
 	var eventID string
@@ -126,7 +126,7 @@ func TestIntegrationDeliveryClaimIsTenantFair(t *testing.T) {
 	ctx := context.Background()
 	database.insertSource(t, integrationSourceID, time.Now().Add(time.Hour))
 	event := integrationEvent("tenant-fair-event", "fair-incident")
-	if inserted, err := database.store.InsertEventWithOutbox(ctx, event, OutboxMessage{ID: integrationUUID(950), Subject: "statusmon.events.normal", Payload: []byte(`{}`)}); err != nil || !inserted {
+	if inserted, err := database.store.InsertEventWithOutbox(ctx, event, OutboxMessage{ID: integrationUUID(950), Subject: "statushub.events.normal", Payload: []byte(`{}`)}); err != nil || !inserted {
 		t.Fatalf("insert event: inserted=%v err=%v", inserted, err)
 	}
 	var eventID string

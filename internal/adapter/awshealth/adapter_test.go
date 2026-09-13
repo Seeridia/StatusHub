@@ -7,7 +7,7 @@ import (
 	"time"
 	"unicode/utf16"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
 func TestDecodeCurrentEventsUTF16BE(t *testing.T) {

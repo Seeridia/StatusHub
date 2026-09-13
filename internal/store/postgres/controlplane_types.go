@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/auth"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/auth"
+	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
 type Tenant struct {

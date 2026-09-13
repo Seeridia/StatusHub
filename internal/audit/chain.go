@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-const hashDomain = "statusmon.audit.v1"
+const hashDomain = "statushub.audit.v1"
 
 var ZeroHash = make([]byte, sha256.Size)
 

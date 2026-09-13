@@ -146,7 +146,7 @@ admin/owner 可查看审计记录。适配器升级、影子验证和回滚由�
 
 ## 飞书群机器人通知 / Feishu notifications
 
-在飞书群中添加自定义机器人，开启签名校验，复制 Webhook 地址和签名密钥。在 StatusMon 的“通知渠道 → 添加渠道”选择“飞书”，填写名称、HTTPS Webhook 地址和签名密钥。地址通常为 `https://open.feishu.cn/open-apis/bot/v2/hook/...`。飞书不需要通用 Webhook 的“签名密钥标识”。
+在飞书群中添加自定义机器人，开启签名校验，复制 Webhook 地址和签名密钥。在 StatusHub 的“通知渠道 → 添加渠道”选择“飞书”，填写名称、HTTPS Webhook 地址和签名密钥。地址通常为 `https://open.feishu.cn/open-apis/bot/v2/hook/...`。飞书不需要通用 Webhook 的“签名密钥标识”。
 
 保存后在渠道列表发送测试通知，确认飞书群收到消息，再在通知规则中选择该渠道。保存操作本身不发送消息。签名密钥加密存储，不会在普通响应中回显。若还配置了关键词或 IP 白名单，测试和正式消息都必须满足对应规则；签名校验失败时检查密钥和服务器时钟。
 

@@ -2,11 +2,11 @@
 set -euo pipefail
 
 project_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-db_user="${POSTGRES_USER:-statusmon}"
-migration_db="statusmon_migration_test_$$"
+db_user="${POSTGRES_USER:-statushub}"
+migration_db="statushub_migration_test_$$"
 
 case "$migration_db" in
-  statusmon_migration_test_[0-9]*) ;;
+  statushub_migration_test_[0-9]*) ;;
   *)
     echo "refusing unsafe migration database name: $migration_db" >&2
     exit 1

@@ -13,12 +13,12 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Seeridia/StatusHub/internal/audit"
+	"github.com/Seeridia/StatusHub/internal/auth"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/secret"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 	"github.com/google/uuid"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/audit"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/auth"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/secret"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
 )
 
 const maximumRequestBody = 1 << 20
@@ -221,7 +221,7 @@ func (s *Server) authorize(permission auth.Permission, next http.Handler) http.H
 			}
 		}
 		if err != nil || contextValue.Identity.TenantID != tenant.ID {
-			response.Header().Set("WWW-Authenticate", `Bearer realm="statusmon"`)
+			response.Header().Set("WWW-Authenticate", `Bearer realm="statushub"`)
 			writeProblemStatus(response, request, http.StatusUnauthorized, "unauthenticated", "Authentication is required")
 			return
 		}
@@ -337,7 +337,7 @@ func writeProblem(response http.ResponseWriter, request *http.Request, err error
 func writeProblemStatus(response http.ResponseWriter, request *http.Request, status int, code, detail string) {
 	response.Header().Set("Content-Type", "application/problem+json")
 	response.WriteHeader(status)
-	_ = json.NewEncoder(response).Encode(problem{Type: "https://statusmon.dev/problems/" + code,
+	_ = json.NewEncoder(response).Encode(problem{Type: "https://statushub.dev/problems/" + code,
 		Title: http.StatusText(status), Status: status, Detail: detail, RequestID: requestID(request)})
 }
 

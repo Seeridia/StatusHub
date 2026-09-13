@@ -116,5 +116,5 @@ func (s *StaticEnvelope) Open(ctx context.Context, ciphertext, associatedData []
 }
 
 func EndpointAssociatedData(endpointID string, version int) []byte {
-	return []byte(fmt.Sprintf("statusmon.endpoint.v1:%s:%d", endpointID, version))
+	return []byte(fmt.Sprintf("statushub.endpoint.v1:%s:%d", endpointID, version))
 }

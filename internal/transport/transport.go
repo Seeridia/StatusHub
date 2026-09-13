@@ -105,7 +105,7 @@ func DefaultConfig() Config {
 		MaxIdleConns:           100,
 		MaxIdleConnsPerHost:    8,
 		MaxConnsPerHost:        16,
-		UserAgent:              "vendor-status-monitoring/1",
+		UserAgent:              "statushub/1",
 	}
 }
 

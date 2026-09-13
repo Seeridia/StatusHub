@@ -11,14 +11,14 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Seeridia/StatusHub/internal/adapter/vendorprofile"
+	"github.com/Seeridia/StatusHub/internal/audit"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/notify"
+	"github.com/Seeridia/StatusHub/internal/secret"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/subscription"
 	"github.com/google/uuid"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/adapter/vendorprofile"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/audit"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/notify"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/secret"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/subscription"
 )
 
 type page[T any] struct {

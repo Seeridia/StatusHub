@@ -15,9 +15,9 @@ import base64
 import os
 
 text = Path('deploy/local.env.example').read_text()
-for key in ('STATUSMON_CONFIG_KEY', 'STATUSMON_API_KEY'):
+for key in ('STATUSHUB_CONFIG_KEY', 'STATUSHUB_API_KEY'):
     text = text.replace(key + '=\n', key + '=' + base64.b64encode(os.urandom(32)).decode() + '\n')
-text += '\nDATABASE_URL=postgres://statusmon:statusmon_local_only@127.0.0.1:55432/statusmon?sslmode=disable\n'
+text += '\nDATABASE_URL=postgres://statushub:statushub_local_only@127.0.0.1:55432/statushub?sslmode=disable\n'
 text += 'NATS_URL=nats://127.0.0.1:54222\n'
 fd = os.open('.env', os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
 with os.fdopen(fd, 'w') as output:
@@ -52,9 +52,9 @@ The migration target executes every up migration without version tracking. Do no
 ```bash
 make ui-install
 make ui-build
-export STATUSMON_SMTP_ADDRESS=127.0.0.1:51025
-export STATUSMON_SMTP_ALLOW_LOCAL_PLAINTEXT=true
-go run ./cmd/statusmon-api -allow-http-oidc
+export STATUSHUB_SMTP_ADDRESS=127.0.0.1:51025
+export STATUSHUB_SMTP_ALLOW_LOCAL_PLAINTEXT=true
+go run ./cmd/statushub-api -allow-http-oidc
 ```
 
 Keep this terminal open. The SMTP settings route identity emails into local Mailpit. `-allow-http-oidc` permits local HTTP; use HTTPS for public deployments.
@@ -65,7 +65,7 @@ In a second terminal, load the same configuration and start the worker:
 set -a
 . ./.env
 set +a
-go run ./cmd/statusmond -worker-id local-live
+go run ./cmd/statushubd -worker-id local-live
 ```
 
 In another terminal, check health:
@@ -88,10 +88,10 @@ set +a
 umask 077
 mkdir -p tmp/local
 chmod 700 tmp/local
-go run ./cmd/statusmon-admin tenant-create \
+go run ./cmd/statushub-admin tenant-create \
   -slug local -name 'Local workspace' > tmp/local/tenant.json
 TENANT_ID="$(python3 -c 'import json; print(json.load(open("tmp/local/tenant.json"))["id"])')"
-go run ./cmd/statusmon-admin owner-invite \
+go run ./cmd/statushub-admin owner-invite \
   -tenant-id "$TENANT_ID" -email 'owner@example.test' > tmp/local/owner-invite.json
 ```
 

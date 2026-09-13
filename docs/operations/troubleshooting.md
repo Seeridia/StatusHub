@@ -4,7 +4,7 @@
 
 ## 页面打不开或 8080 被占用
 
-1. 确认 `statusmon-api` 的终端仍在运行；Compose 不负责启动它。
+1. 确认 `statushub-api` 的终端仍在运行；Compose 不负责启动它。
 2. 检查 `/healthz`、`/readyz`，再检查数据库/NATS 容器状态。
 3. 如提示端口占用，在 macOS/Linux 安装有 lsof 时执行 `lsof -nP -iTCP:8080 -sTCP:LISTEN`，确认已有进程身份。
 4. 需要重启时到原终端 Ctrl-C，避免凭进程名称批量终止不相关服务。
@@ -18,7 +18,7 @@
 | 使用服务账号名称作为密码失败 | 名称不是凭据，使用创建结果中的 `token` |
 | 邮箱密码登录失败 | 检查邮箱验证、密码、工作区成员启用状态；使用忘记密码流程恢复 |
 | SSO 失败 | public URL、redirect URI、issuer、client ID、邮箱域及 issuer/subject 绑定 |
-| 重启后 cookie/SSE cursor 失效 | 是否更换了 `STATUSMON_API_KEY`；恢复原配置后重新登录 |
+| 重启后 cookie/SSE cursor 失效 | 是否更换了 `STATUSHUB_API_KEY`；恢复原配置后重新登录 |
 | 403 | 先区分角色权限不足与 cookie 写入缺少 CSRF，不要关闭认证来排错 |
 
 退出登录不会撤销服务令牌。如果令牌丢失或泄露，请有权限的管理员在「设置 → 服务账号」停用或轮换，详见 [团队账号](team-accounts.md)。
@@ -42,7 +42,7 @@
 
 ## 添加成功却没有新数据
 
-先查看 `statusmond` 日志和数据源的 `enabled`、`next_poll_at`、`last_attempt_at`、`last_success_at`、`failure_streak`：
+先查看 `statushubd` 日志和数据源的 `enabled`、`next_poll_at`、`last_attempt_at`、`last_success_at`、`failure_streak`：
 
 - `last_attempt_at` 不推进：worker 未运行、来源未到调度时间、租约未释放，或区域 ownership 不匹配。
 - 尝试时间推进但成功时间不推进：网络、认证、解析或上游错误。
@@ -62,7 +62,7 @@
 - 测试由 API 内的 endpoint-test worker 执行，API 是否还在运行？
 - HTTPS 地址和凭据是否完整，目标接收端是否允许该请求？
 - 是否出现 429、鉴权错误、证书/DNS 问题或禁止重定向？
-- API 是否能使用原 `STATUSMON_CONFIG_KEY` 解密配置？
+- API 是否能使用原 `STATUSHUB_CONFIG_KEY` 解密配置？
 - 等待中的 job 是否仍有有效租约？先查看日志及最终状态，避免连续创建测试任务。
 
 测试会发送真实消息。地址、签名密钥或 Slack Webhook 应在接收端确认，不要把它们贴到公共日志中。
@@ -71,7 +71,7 @@
 
 按顺序检查：
 
-1. `statusmond` 持续运行，且 API/worker 的加密 key 和 key ID 一致。
+1. `statushubd` 持续运行，且 API/worker 的加密 key 和 key ID 一致。
 2. 规则和渠道启用，规则确实关联了这个渠道。
 3. 创建规则之后产生了新的 canonical event；首次基线不补发历史事故。
 4. 厂商、事件类型、最低影响、关键词和静默时段是否把事件过滤掉。

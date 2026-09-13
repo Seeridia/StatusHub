@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/auth"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/auth"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 type oidcFlowRepositoryStub struct {
@@ -73,7 +73,7 @@ func TestOIDCFlowAuthorizationCodePKCECallback(t *testing.T) {
 
 	tenant := store.Tenant{ID: testTenantID, Slug: "acme", Name: "Acme"}
 	repository := &oidcFlowRepositoryStub{tenant: tenant, provider: auth.OIDCProvider{
-		ID: "provider-1", TenantID: tenant.ID, Issuer: issuer, ClientID: "statusmon-client", Enabled: true,
+		ID: "provider-1", TenantID: tenant.ID, Issuer: issuer, ClientID: "statushub-client", Enabled: true,
 	}}
 	verifier := &oidcFlowVerifierStub{}
 	sessions, err := NewSessionManager(make([]byte, 32), false, time.Hour)
@@ -102,7 +102,7 @@ func TestOIDCFlowAuthorizationCodePKCECallback(t *testing.T) {
 	}
 	query := authorizationURL.Query()
 	for key, expected := range map[string]string{
-		"response_type": "code", "client_id": "statusmon-client", "redirect_uri": "http://console.example.test/auth/callback",
+		"response_type": "code", "client_id": "statushub-client", "redirect_uri": "http://console.example.test/auth/callback",
 		"scope": "openid email profile", "code_challenge_method": "S256",
 	} {
 		if query.Get(key) != expected {
@@ -124,7 +124,7 @@ func TestOIDCFlowAuthorizationCodePKCECallback(t *testing.T) {
 		t.Fatalf("callback status=%d location=%q", callbackResponse.Code, callbackResponse.Header().Get("Location"))
 	}
 	if tokenForm.Get("grant_type") != "authorization_code" || tokenForm.Get("code") != "authorization-code" ||
-		tokenForm.Get("client_id") != "statusmon-client" || tokenForm.Get("redirect_uri") != "http://console.example.test/auth/callback" {
+		tokenForm.Get("client_id") != "statushub-client" || tokenForm.Get("redirect_uri") != "http://console.example.test/auth/callback" {
 		t.Fatalf("token form=%v", tokenForm)
 	}
 	challenge := sha256.Sum256([]byte(tokenForm.Get("code_verifier")))

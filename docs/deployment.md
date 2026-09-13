@@ -2,11 +2,11 @@
 
 [README](../README.md) · [Dokploy](dokploy.md)
 
-The root `compose.yaml` runs PostgreSQL, NATS JetStream, a one-shot migration job, API, and worker. It pulls published images; it does not build on the deployment server. All three application services use the exact same `STATUSMON_IMAGE`. This is a single-server setup, not a high-availability cluster.
+The root `compose.yaml` runs PostgreSQL, NATS JetStream, a one-shot migration job, API, and worker. It pulls published images; it does not build on the deployment server. All three application services use the exact same `STATUSHUB_IMAGE`. This is a single-server setup, not a high-availability cluster.
 
 ## Publish an image
 
-The image name is `ghcr.io/seeridia/statusmon` (registry paths use lowercase). Older packages under `vendor-status-monitoring` are not renamed automatically.
+The image name is `ghcr.io/seeridia/statushub` (registry paths use lowercase). Older packages under `statushub` are not renamed automatically.
 
 The frontend is built once on the native build platform. Go cross-compiles the same source for each target architecture; only runtime image setup may use emulation. BuildKit caches dependency and build layers between workflow runs. Initial cache population and registry uploads still add time.
 
@@ -14,7 +14,7 @@ The `Publish container` GitHub Actions workflow runs the shared test suite befor
 
 - Push a version tag such as `v0.1.0` to publish that tag and `sha-<full-commit-sha>`.
 - Run the workflow manually from Actions to publish a commit image without declaring a release.
-- Read the job summary for the immutable `ghcr.io/seeridia/statusmon@sha256:...` reference. Use that digest for reproducible deployment. No `latest` tag is published.
+- Read the job summary for the immutable `ghcr.io/seeridia/statushub@sha256:...` reference. Use that digest for reproducible deployment. No `latest` tag is published.
 
 The workflow definition alone does not mean an image exists. Wait for a successful publish job before deploying it. On first publication, check the GHCR package visibility: a public Git repository does not automatically guarantee a public package. Set package visibility to public if anonymous pulls are intended; otherwise configure registry credentials in Dokploy or `docker login ghcr.io` using a credential with `read:packages`.
 
@@ -26,15 +26,15 @@ On a normal Docker server, obtain `compose.yaml` and `.env.example` from the mat
 
 | Variable | Value |
 | --- | --- |
-| `STATUSMON_IMAGE` | Published GHCR tag or digest |
+| `STATUSHUB_IMAGE` | Published GHCR tag or digest |
 | `POSTGRES_PASSWORD` | URL-safe password, generated with `openssl rand -hex 32` |
-| `STATUSMON_CONFIG_KEY` | Independent key from `openssl rand -base64 32` |
-| `STATUSMON_API_KEY` | Another independently generated base64 key |
-| `STATUSMON_CONFIG_KEY_ID` | Stable identifier such as `production-v1` |
-| `STATUSMON_PUBLIC_URL` | Your public HTTPS origin, without `/ui` |
-| `STATUSMON_SMTP_ADDRESS` | STARTTLS SMTP host and port, typically `smtp.example.com:587` |
-| `STATUSMON_SMTP_FROM` | Sender email |
-| `STATUSMON_SMTP_USERNAME` / `STATUSMON_SMTP_PASSWORD` | SMTP credentials when required |
+| `STATUSHUB_CONFIG_KEY` | Independent key from `openssl rand -base64 32` |
+| `STATUSHUB_API_KEY` | Another independently generated base64 key |
+| `STATUSHUB_CONFIG_KEY_ID` | Stable identifier such as `production-v1` |
+| `STATUSHUB_PUBLIC_URL` | Your public HTTPS origin, without `/ui` |
+| `STATUSHUB_SMTP_ADDRESS` | STARTTLS SMTP host and port, typically `smtp.example.com:587` |
+| `STATUSHUB_SMTP_FROM` | Sender email |
+| `STATUSHUB_SMTP_USERNAME` / `STATUSHUB_SMTP_PASSWORD` | SMTP credentials when required |
 
 Keep the encryption keys unchanged across deployments and back them up securely. Changing `POSTGRES_PASSWORD` alone does not update an existing PostgreSQL volume's user password. Implicit TLS SMTP on port 465 is not supported; plaintext identity SMTP is disabled.
 
@@ -54,13 +54,13 @@ No database, NATS, or metrics ports are exposed on the host. The backend network
 Use `docker compose exec api sh`, or the **api container terminal** in Dokploy after deployment. These commands run inside the container, where `DATABASE_URL` is already configured:
 
 ```sh
-statusmon-admin tenant-create -slug acme -name 'Acme'
+statushub-admin tenant-create -slug acme -name 'Acme'
 ```
 
 Save the returned workspace `id`, then replace the example below with that UUID and your real Owner email:
 
 ```sh
-statusmon-admin owner-invite -tenant-id '<workspace UUID>' -email 'owner@example.com'
+statushub-admin owner-invite -tenant-id '<workspace UUID>' -email 'owner@example.com'
 ```
 
 The result contains `invitation_token`. Treat the terminal output as a secret. Do not include it in deployment logs, screenshots, or support requests. Open:
@@ -84,7 +84,7 @@ Add a public status-page URL from Settings to start monitoring. Create a notific
 
 ### Schema upgrades
 
-`statusmon-migrate` embeds the up migrations and records each filename and SHA-256 checksum in `statusmon_schema_migrations`. A database advisory lock serializes concurrent migration jobs. Each migration and its ledger entry commit in the same transaction. Rerunning an unchanged deployment skips applied migrations.
+`statushub-migrate` embeds the up migrations and records each filename and SHA-256 checksum in `statushub_schema_migrations`. A database advisory lock serializes concurrent migration jobs. Each migration and its ledger entry commit in the same transaction. Rerunning an unchanged deployment skips applied migrations.
 
 It rejects edited applied migrations, gaps, a database with newer migrations, and an existing untracked schema. It does **not** automatically adopt a database initialized using the old `make migrate-up` command. For an existing installation, first rehearse an audited migration/import process on a restored copy; do not delete tables or fabricate the ledger to bypass this check.
 

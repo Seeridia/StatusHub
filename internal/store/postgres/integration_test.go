@@ -15,7 +15,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
 const (
@@ -45,7 +45,7 @@ func openIntegrationDatabase(t *testing.T) integrationDatabase {
 		t.Fatalf("ping integration database: %v", err)
 	}
 
-	schema := fmt.Sprintf("statusmon_store_%d", time.Now().UnixNano())
+	schema := fmt.Sprintf("statushub_store_%d", time.Now().UnixNano())
 	quotedSchema := pgx.Identifier{schema}.Sanitize()
 	if _, err := admin.Exec(ctx, "CREATE SCHEMA "+quotedSchema); err != nil {
 		admin.Close()

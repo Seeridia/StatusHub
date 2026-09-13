@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/Seeridia/StatusHub/internal/reconcile"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/reconcile"
 )
 
 // Project the entire accepted state, including the initial baseline and HTTP

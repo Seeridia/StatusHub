@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 var ErrInvalidCursor = errors.New("controlplane: invalid cursor")
@@ -35,7 +35,7 @@ func NewCursorCodec(masterKey []byte) (*CursorCodec, error) {
 		return nil, errors.New("controlplane: cursor master key must be 32 bytes")
 	}
 	mac := hmac.New(sha256.New, masterKey)
-	_, _ = mac.Write([]byte("statusmon.cursor.v1"))
+	_, _ = mac.Write([]byte("statushub.cursor.v1"))
 	return &CursorCodec{key: mac.Sum(nil)}, nil
 }
 

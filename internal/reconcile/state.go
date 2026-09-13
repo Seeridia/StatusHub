@@ -7,7 +7,7 @@ package reconcile
 import (
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
 // State is the complete source-scoped reconciliation checkpoint.

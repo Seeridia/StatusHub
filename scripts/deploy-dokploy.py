@@ -35,7 +35,7 @@ def deployment_state(rows, title, expected_sha=None, known_ids=()):
 
 def main():
     base = https_origin(os.environ['DOKPLOY_URL'])
-    public = https_origin(os.environ['STATUSMON_PUBLIC_URL'])
+    public = https_origin(os.environ['STATUSHUB_PUBLIC_URL'])
     key = os.environ['DOKPLOY_API_KEY']
     compose = os.environ['DOKPLOY_COMPOSE_ID']
     if not key or not compose:
@@ -43,7 +43,7 @@ def main():
     opener = urllib.request.build_opener(NoRedirect)
 
     def request(url, payload=None, authenticated=True):
-        headers = {'Content-Type': 'application/json', 'User-Agent': 'StatusMon-Deployment/1.0'}
+        headers = {'Content-Type': 'application/json', 'User-Agent': 'StatusHub-Deployment/1.0'}
         if authenticated:
             headers['x-api-key'] = key
         req = urllib.request.Request(url, data=json.dumps(payload).encode() if payload is not None else None, headers=headers)

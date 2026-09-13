@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Seeridia/StatusHub/internal/bus"
+	"github.com/Seeridia/StatusHub/internal/domain"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/bus"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
 )
 
 const awsAccountHealthProvider = "aws-account-health"

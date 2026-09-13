@@ -7,8 +7,8 @@ import (
 	"errors"
 	"net"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/adapter/ecosystem"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/adapter/statuspage"
+	"github.com/Seeridia/StatusHub/internal/adapter/ecosystem"
+	"github.com/Seeridia/StatusHub/internal/adapter/statuspage"
 )
 
 // Only bounded classification codes cross the persistence/API boundary.

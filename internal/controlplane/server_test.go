@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/adapter/shadow"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/auth"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/secret"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/adapter/shadow"
+	"github.com/Seeridia/StatusHub/internal/auth"
+	"github.com/Seeridia/StatusHub/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/secret"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 )
 
 const (

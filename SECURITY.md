@@ -8,7 +8,7 @@ Include the affected commit, configuration assumptions, a minimal reproduction u
 
 ## Operating securely
 
-- Terminate public traffic over HTTPS and set the correct `STATUSMON_PUBLIC_URL`. Local HTTP and Mailpit settings are for development only.
+- Terminate public traffic over HTTPS and set the correct `STATUSHUB_PUBLIC_URL`. Local HTTP and Mailpit settings are for development only.
 - Store encryption keys and SMTP credentials outside Git. Back up keys separately from database backups; losing the configuration key can make stored channel credentials unrecoverable.
 - Limit database and trusted operator CLI access. CLI operations use database authority and are not constrained by the current browser user's role.
 - Use the least privileged member and service-account roles. Rotate compromised service tokens and revoke affected browser sessions.

@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	apiContract "github.com/vendor-status-monitoring/vendor-status-monitoring/api"
+	apiContract "github.com/Seeridia/StatusHub/api"
 )
 
 //go:embed assets/*

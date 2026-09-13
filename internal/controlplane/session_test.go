@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/auth"
+	"github.com/Seeridia/StatusHub/internal/auth"
 )
 
 func TestSessionCookieIsEncryptedTenantBoundAndExpires(t *testing.T) {

@@ -34,10 +34,10 @@ import os
 
 path = Path('.env')
 text = Path('deploy/local.env.example').read_text()
-for key in ('STATUSMON_CONFIG_KEY', 'STATUSMON_API_KEY'):
+for key in ('STATUSHUB_CONFIG_KEY', 'STATUSHUB_API_KEY'):
     value = base64.b64encode(os.urandom(32)).decode()
     text = text.replace(key + '=\n', key + '=' + value + '\n')
-text += '\nDATABASE_URL=postgres://statusmon:statusmon_local_only@127.0.0.1:55432/statusmon?sslmode=disable\n'
+text += '\nDATABASE_URL=postgres://statushub:statushub_local_only@127.0.0.1:55432/statushub?sslmode=disable\n'
 text += 'NATS_URL=nats://127.0.0.1:54222\n'
 fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
 with os.fdopen(fd, 'w') as output:
@@ -63,7 +63,7 @@ make infra-status
 
 ```bash
 docker compose -f deploy/compose.dev.yaml exec -T postgres \
-  psql -U "${POSTGRES_USER:-statusmon}" -d "${POSTGRES_DB:-statusmon}" -c '\dt'
+  psql -U "${POSTGRES_USER:-statushub}" -d "${POSTGRES_DB:-statushub}" -c '\dt'
 ```
 
 **只有空数据库才执行：**
@@ -94,9 +94,9 @@ make ui-build
 set -a
 . ./.env
 set +a
-export STATUSMON_SMTP_ADDRESS=127.0.0.1:51025
-export STATUSMON_SMTP_ALLOW_LOCAL_PLAINTEXT=true
-go run ./cmd/statusmon-api -allow-http-oidc
+export STATUSHUB_SMTP_ADDRESS=127.0.0.1:51025
+export STATUSHUB_SMTP_ALLOW_LOCAL_PLAINTEXT=true
+go run ./cmd/statushub-api -allow-http-oidc
 ```
 
 终端 B 启动采集与投递：
@@ -105,7 +105,7 @@ go run ./cmd/statusmon-api -allow-http-oidc
 set -a
 . ./.env
 set +a
-go run ./cmd/statusmond -worker-id local-live
+go run ./cmd/statushubd -worker-id local-live
 ```
 
 API 和 worker 必须使用同一配置加密密钥及 key ID。`-allow-http-oidc` 只用于此处的本地 HTTP 调试，正式部署使用 HTTPS。
@@ -129,11 +129,11 @@ umask 077
 mkdir -p tmp/local
 chmod 700 tmp/local
 
-go run ./cmd/statusmon-admin tenant-create \
+go run ./cmd/statushub-admin tenant-create \
   -slug local -name '本地监控工作区' > tmp/local/tenant.json
 
 TENANT_ID="$(python3 -c 'import json; print(json.load(open("tmp/local/tenant.json"))["id"])')"
-go run ./cmd/statusmon-admin owner-invite \
+go run ./cmd/statushub-admin owner-invite \
   -tenant-id "$TENANT_ID" -email 'owner@example.test' \
   > tmp/local/owner-invite.json
 ```

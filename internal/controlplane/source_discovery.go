@@ -5,9 +5,9 @@ import (
 	"net/url"
 	"strings"
 
+	"github.com/Seeridia/StatusHub/internal/adapter/vendorprofile"
+	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 	"github.com/google/uuid"
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/adapter/vendorprofile"
-	store "github.com/vendor-status-monitoring/vendor-status-monitoring/internal/store/postgres"
 )
 
 type sourceVendor struct {
@@ -70,7 +70,7 @@ func (s *Server) identifySource(ctx context.Context, result *probeResponse) erro
 	// Preserve path identity for shared status hosting. The hostname is an
 	// honest initial display name; it is not asserted to be a verified company.
 	key := sourceURLKey(result.CanonicalURL)
-	id := uuid.NewSHA1(uuid.NameSpaceURL, []byte("statusmon/vendor/"+key)).String()
+	id := uuid.NewSHA1(uuid.NameSpaceURL, []byte("statushub/vendor/"+key)).String()
 	result.Vendor = &sourceVendor{ID: id, Slug: "site-" + id, Name: parsed.Hostname() + strings.TrimRight(parsed.Path, "/"), New: true}
 	return nil
 }

@@ -477,7 +477,7 @@ paths:
 components:
   securitySchemes:
     bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT or service-account token}
-    browserSession: {type: apiKey, in: cookie, name: statusmon_session}
+    browserSession: {type: apiKey, in: cookie, name: statushub_session}
   parameters:
     Tenant: {in: path, name: tenant, required: true, schema: {type: string}, description: Tenant UUID or slug; authentication must resolve to the same tenant}
     Source: {in: path, name: source, required: true, schema: {type: string, format: uuid}}

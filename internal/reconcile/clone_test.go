@@ -1,7 +1,7 @@
 package reconcile
 
 import (
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/domain"
 	"testing"
 	"time"
 )

@@ -1,6 +1,6 @@
 # 管理 API 与 OIDC
 
-采集、事件、订阅和通知通过以下方式管理：租户隔离的管理 API 与浏览器控制台。控制面由 `statusmon-api` 提供；采集和投递 worker 仍由 `statusmond` 承担。
+采集、事件、订阅和通知通过以下方式管理：租户隔离的管理 API 与浏览器控制台。控制面由 `statushub-api` 提供；采集和投递 worker 仍由 `statushubd` 承担。
 
 ## 能力边界
 
@@ -13,7 +13,7 @@
 - endpoint test：先持久化 job，再由独立 lease worker 异步执行，调用方可查询结果。
 - adapter rollout：租户私有 source 可在 UI/API 启动 shadow、观察样本/错误/不一致率与 p95，再按门禁 promote 或 rollback。
 
-当前静态 AES key backend 只用于本地和受控单实例环境。当前不提供 KMS/Vault、多 key 解密与在线轮换；不要把 `STATUSMON_CONFIG_KEY` 提交到仓库或写入数据库。
+当前静态 AES key backend 只用于本地和受控单实例环境。当前不提供 KMS/Vault、多 key 解密与在线轮换；不要把 `STATUSHUB_CONFIG_KEY` 提交到仓库或写入数据库。
 
 ## 本地启动
 
@@ -21,11 +21,11 @@
 
 - `make migrate-up` 没有迁移版本跟踪，不能在已初始化数据库上反复运行。
 - `.env` 中两把密钥只在首次初始化生成，之后保留原值；API 与 worker 使用同一配置 key/key ID。
-- 同时运行 `statusmon-api` 和 `statusmond` 才具备网页、持续采集及正常通知投递。API 内另有渠道测试 worker。
+- 同时运行 `statushub-api` 和 `statushubd` 才具备网页、持续采集及正常通知投递。API 内另有渠道测试 worker。
 - 本地 HTTP 显式使用 `-allow-http-oidc`；正式部署使用 HTTPS。
 - `/healthz` 是存活检查，`/readyz` 联合检查 PostgreSQL 与 NATS live bridge；合同入口 `/openapi.yaml`，网页 `/ui/`。
 
-`STATUSMON_CONFIG_KEY` 加密渠道配置，`STATUSMON_API_KEY` 派生会话和游标签名。更换前者会导致已有渠道无法解密；更换后者会使旧会话/游标失效。密钥保存与恢复见 [运行与维护](operations/maintenance.md)。
+`STATUSHUB_CONFIG_KEY` 加密渠道配置，`STATUSHUB_API_KEY` 派生会话和游标签名。更换前者会导致已有渠道无法解密；更换后者会使旧会话/游标失效。密钥保存与恢复见 [运行与维护](operations/maintenance.md)。
 
 ## 初始化工作区与账号
 
@@ -42,12 +42,12 @@ https://status.example.com/auth/callback
 先配置 provider，再显式绑定不可变的 `(issuer, subject)` 到租户角色：
 
 ```bash
-go run ./cmd/statusmon-admin oidc-provider-upsert \
+go run ./cmd/statushub-admin oidc-provider-upsert \
   -database-url "$DATABASE_URL" -tenant-id "$TENANT_ID" \
-  -issuer 'https://idp.example.com' -client-id 'statusmon-console' \
+  -issuer 'https://idp.example.com' -client-id 'statushub-console' \
   -allowed-domains 'example.com'
 
-go run ./cmd/statusmon-admin tenant-member-set \
+go run ./cmd/statushub-admin tenant-member-set \
   -database-url "$DATABASE_URL" -tenant-id "$TENANT_ID" \
   -issuer 'https://idp.example.com' -subject "$OIDC_SUBJECT" \
   -email 'operator@example.com' -role admin
@@ -62,7 +62,7 @@ go run ./cmd/statusmon-admin tenant-member-set \
 ```bash
 IDEMPOTENCY_KEY="$(uuidgen)"
 curl -fsS -X POST \
-  -H "Authorization: Bearer $STATUSMON_SERVICE_ACCOUNT_TOKEN" \
+  -H "Authorization: Bearer $STATUSHUB_SERVICE_ACCOUNT_TOKEN" \
   -H "Idempotency-Key: $IDEMPOTENCY_KEY" \
   -H 'Content-Type: application/json' \
   -d '{"name":"Ops","channel":"slack","config":{"url":"https://hooks.slack.com/services/..."}}' \
@@ -83,7 +83,7 @@ UI/API 允许新建 `generic_webhook` 和 `slack`；其他渠道 driver 仍可�
 
 ```bash
 curl -N \
-  -H "Authorization: Bearer $STATUSMON_SERVICE_ACCOUNT_TOKEN" \
+  -H "Authorization: Bearer $STATUSHUB_SERVICE_ACCOUNT_TOKEN" \
   -H "Last-Event-ID: $SIGNED_CURSOR" \
   'http://127.0.0.1:8080/v1/tenants/acme/events/stream'
 ```

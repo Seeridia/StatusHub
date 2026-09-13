@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vendor-status-monitoring/vendor-status-monitoring/internal/domain"
+	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
 const testEvent = `{
@@ -40,7 +40,7 @@ func TestDecodeAWSHealthEventBridge(t *testing.T) {
 		t.Fatal(err)
 	}
 	if event.Provider != Provider || event.Kind != domain.EventKindIncidentCreated || event.EntityKind != domain.EntityIncident ||
-		event.EntityID == "" || event.SourceEventKey == "" || event.SourceUpdatedAt == nil || subject != "statusmon.events.normal" {
+		event.EntityID == "" || event.SourceEventKey == "" || event.SourceUpdatedAt == nil || subject != "statushub.events.normal" {
 		t.Fatalf("event=%#v subject=%q", event, subject)
 	}
 	if string(event.Payload) == string([]byte(testEvent)) {
