@@ -14,7 +14,7 @@ case "$migration_db" in
 esac
 
 compose() {
-  docker compose -f "$project_dir/deploy/compose.yaml" "$@"
+  docker compose -f "$project_dir/deploy/compose.dev.yaml" "$@"
 }
 
 cleanup() {

@@ -20,6 +20,7 @@ RUN CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /out/statusmon-api ./cm
     CGO_ENABLED=0 go build -trimpath -ldflags='-s -w' -o /out/statusmon-migrate ./cmd/statusmon-migrate
 
 FROM debian:bookworm-slim AS runtime
+LABEL org.opencontainers.image.source="https://github.com/Seeridia/vendor-status-monitoring"
 RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates tzdata curl && rm -rf /var/lib/apt/lists/*
 COPY --from=build /out/ /usr/local/bin/
 USER 65532:65532

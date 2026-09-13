@@ -24,7 +24,7 @@ Compose 启动 PostgreSQL、NATS 和本地邮件沙箱 Mailpit，不会自动启
 
 ## 2. 首次初始化配置
 
-**已有 `.env` 时跳过本节，保留原密钥。** 以下命令拒绝覆盖已有文件，根据 `.env.example` 创建仅当前用户可读的本地配置：
+**已有 `.env` 时跳过本节，保留原密钥。** 以下命令拒绝覆盖已有文件，根据 `deploy/local.env.example` 创建仅当前用户可读的本地配置：
 
 ```bash
 python3 - <<'PY'
@@ -33,7 +33,7 @@ import base64
 import os
 
 path = Path('.env')
-text = Path('.env.example').read_text()
+text = Path('deploy/local.env.example').read_text()
 for key in ('STATUSMON_CONFIG_KEY', 'STATUSMON_API_KEY'):
     value = base64.b64encode(os.urandom(32)).decode()
     text = text.replace(key + '=\n', key + '=' + value + '\n')
@@ -62,7 +62,7 @@ make infra-status
 确认 PostgreSQL 和 NATS healthy，Mailpit 正在运行。检查数据库是否已经初始化：
 
 ```bash
-docker compose -f deploy/compose.yaml exec -T postgres \
+docker compose -f deploy/compose.dev.yaml exec -T postgres \
   psql -U "${POSTGRES_USER:-statusmon}" -d "${POSTGRES_DB:-statusmon}" -c '\dt'
 ```
 

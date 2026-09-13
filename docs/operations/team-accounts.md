@@ -36,7 +36,7 @@ SMTP 使用 STARTTLS（TLS 1.2 以上）。不支持隐式 TLS 465 端口。若 
 本地沙箱：
 
 ```bash
-docker compose -f deploy/compose.yaml up -d mailpit
+docker compose -f deploy/compose.dev.yaml up -d mailpit
 export STATUSMON_SMTP_ADDRESS=127.0.0.1:51025
 export STATUSMON_SMTP_FROM=statusmon@localhost
 export STATUSMON_SMTP_ALLOW_LOCAL_PLAINTEXT=true

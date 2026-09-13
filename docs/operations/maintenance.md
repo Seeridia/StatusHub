@@ -21,13 +21,13 @@ curl -fsS http://127.0.0.1:9464/metrics -o /dev/null
 API 和 worker 由命令行启动时，日志在对应终端。Compose 日志只覆盖数据库和 NATS：
 
 ```bash
-docker compose -f deploy/compose.yaml logs --tail=100 postgres nats
+docker compose -f deploy/compose.dev.yaml logs --tail=100 postgres nats
 ```
 
 必要时只读查询来源状态：
 
 ```bash
-docker compose -f deploy/compose.yaml exec -T postgres \
+docker compose -f deploy/compose.dev.yaml exec -T postgres \
   psql -U "${POSTGRES_USER:-statusmon}" -d "${POSTGRES_DB:-statusmon}" \
   -c 'SELECT canonical_url, enabled, health_state, last_attempt_at, last_success_at, failure_streak, next_poll_at FROM sources ORDER BY last_attempt_at DESC NULLS LAST;'
 ```
@@ -41,7 +41,7 @@ docker compose -f deploy/compose.yaml exec -T postgres \
 暂停基础设施：
 
 ```bash
-docker compose -f deploy/compose.yaml stop
+docker compose -f deploy/compose.dev.yaml stop
 ```
 
 重新启动后按[启动步骤](getting-started.md#5-启动服务)运行两个 Go 进程。
@@ -57,7 +57,7 @@ docker compose -f deploy/compose.yaml stop
 5. 如前端变化，重新安装锁定依赖并构建网页，再编译 Go 程序。
 6. 启动服务，检查 readiness、来源采集、事件详情、登录和投递，再恢复正常流量。
 
-使用旧版 `make migrate-up` 初始化的数据库没有自动迁移历史表；本节适用于这类安装。Dokploy 新部署使用带版本与校验记录的 `statusmon-migrate`，请按 [Dokploy 升级说明](../dokploy.md#schema-upgrades) 操作。维护人员需要保存已执行文件名、版本、时间和结果。不要根据“程序能启动”推断所有迁移都已完成。查找迁移文件：
+使用旧版 `make migrate-up` 初始化的数据库没有自动迁移历史表；本节适用于这类安装。Dokploy 新部署使用带版本与校验记录的 `statusmon-migrate`，请按 [Dokploy 升级说明](../deployment.md#schema-upgrades) 操作。维护人员需要保存已执行文件名、版本、时间和结果。不要根据“程序能启动”推断所有迁移都已完成。查找迁移文件：
 
 ```bash
 ls migrations/*.up.sql
@@ -66,7 +66,7 @@ ls migrations/*.up.sql
 下例仅演示执行一份**已确认缺失**的迁移，不是每次升级固定运行：
 
 ```bash
-docker compose -f deploy/compose.yaml exec -T postgres \
+docker compose -f deploy/compose.dev.yaml exec -T postgres \
   psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-statusmon}" -d "${POSTGRES_DB:-statusmon}" \
   < migrations/000011_m5_control_plane.up.sql
 ```
@@ -94,7 +94,7 @@ API 的网页由编译时 embed 决定，正确顺序是“网页构建 → Go �
 umask 077
 mkdir -p tmp/backups
 BACKUP_FILE="tmp/backups/statusmon-$(date +%Y%m%d-%H%M%S).dump"
-docker compose -f deploy/compose.yaml exec -T postgres \
+docker compose -f deploy/compose.dev.yaml exec -T postgres \
   pg_dump -U "${POSTGRES_USER:-statusmon}" -d "${POSTGRES_DB:-statusmon}" -Fc \
   > "$BACKUP_FILE"
 test -s "$BACKUP_FILE"
@@ -109,15 +109,15 @@ test -s "$BACKUP_FILE"
 确认 `statusmon_restore_check` 不存在，且不是正在使用的业务数据库。将 `BACKUP_FILE` 设为上一步实际路径：
 
 ```bash
-docker compose -f deploy/compose.yaml exec -T postgres \
+docker compose -f deploy/compose.dev.yaml exec -T postgres \
   createdb -U "${POSTGRES_USER:-statusmon}" statusmon_restore_check
 
-docker compose -f deploy/compose.yaml exec -T postgres \
+docker compose -f deploy/compose.dev.yaml exec -T postgres \
   pg_restore --exit-on-error --no-owner --no-privileges \
   -U "${POSTGRES_USER:-statusmon}" -d statusmon_restore_check \
   < "$BACKUP_FILE"
 
-docker compose -f deploy/compose.yaml exec -T postgres \
+docker compose -f deploy/compose.dev.yaml exec -T postgres \
   psql -U "${POSTGRES_USER:-statusmon}" -d statusmon_restore_check \
   -c 'SELECT count(*) FROM sources; SELECT count(*) FROM incidents; SELECT count(*) FROM endpoints;'
 ```

@@ -36,24 +36,24 @@ vet:
 verify: ui-check infra-up fmt-check vet test-race migrate-check test-integration
 
 infra-up:
-	docker compose -f deploy/compose.yaml up -d --wait
+	docker compose -f deploy/compose.dev.yaml up -d --wait
 
 infra-down:
-	docker compose -f deploy/compose.yaml down
+	docker compose -f deploy/compose.dev.yaml down
 
 infra-status:
-	docker compose -f deploy/compose.yaml ps
+	docker compose -f deploy/compose.dev.yaml ps
 
 migrate-up:
 	@for migration in migrations/*.up.sql; do \
-		docker compose -f deploy/compose.yaml exec -T postgres \
+		docker compose -f deploy/compose.dev.yaml exec -T postgres \
 			psql -v ON_ERROR_STOP=1 -U "$${POSTGRES_USER:-statusmon}" -d "$${POSTGRES_DB:-statusmon}" \
 			< "$$migration" || exit 1; \
 	done
 
 migrate-down:
 	@find migrations -maxdepth 1 -name '*.down.sql' -print | sort -r | while read migration; do \
-		docker compose -f deploy/compose.yaml exec -T postgres \
+		docker compose -f deploy/compose.dev.yaml exec -T postgres \
 			psql -v ON_ERROR_STOP=1 -U "$${POSTGRES_USER:-statusmon}" -d "$${POSTGRES_DB:-statusmon}" \
 			< "$$migration" || exit 1; \
 	done
@@ -62,17 +62,17 @@ migrate-check:
 	./scripts/check-migrations.sh
 
 bootstrap-github:
-	docker compose -f deploy/compose.yaml exec -T postgres \
+	docker compose -f deploy/compose.dev.yaml exec -T postgres \
 		psql -v ON_ERROR_STOP=1 -U "$${POSTGRES_USER:-statusmon}" -d "$${POSTGRES_DB:-statusmon}" \
 		< scripts/bootstrap-github-canary.sql
 
 bootstrap-top5:
-	docker compose -f deploy/compose.yaml exec -T postgres \
+	docker compose -f deploy/compose.dev.yaml exec -T postgres \
 		psql -v ON_ERROR_STOP=1 -U "$${POSTGRES_USER:-statusmon}" -d "$${POSTGRES_DB:-statusmon}" \
 		< scripts/bootstrap-top5.sql
 
 bootstrap-ecosystem:
-	docker compose -f deploy/compose.yaml exec -T postgres \
+	docker compose -f deploy/compose.dev.yaml exec -T postgres \
 		psql -v ON_ERROR_STOP=1 -U "$${POSTGRES_USER:-statusmon}" -d "$${POSTGRES_DB:-statusmon}" \
 		< scripts/bootstrap-ecosystem.sql
 

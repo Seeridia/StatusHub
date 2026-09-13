@@ -14,7 +14,7 @@ from pathlib import Path
 import base64
 import os
 
-text = Path('.env.example').read_text()
+text = Path('deploy/local.env.example').read_text()
 for key in ('STATUSMON_CONFIG_KEY', 'STATUSMON_API_KEY'):
     text = text.replace(key + '=\n', key + '=' + base64.b64encode(os.urandom(32)).decode() + '\n')
 text += '\nDATABASE_URL=postgres://statusmon:statusmon_local_only@127.0.0.1:55432/statusmon?sslmode=disable\n'

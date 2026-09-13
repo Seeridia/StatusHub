@@ -1,6 +1,7 @@
 name: ci
 
 on:
+  workflow_call:
   push:
   pull_request:
 
@@ -13,6 +14,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Check Compose configuration
+        run: python3 scripts/check-compose.py
       - name: Check public documentation
         run: python3 scripts/check-public-docs.py
       - uses: actions/setup-go@v5
@@ -33,11 +36,11 @@ jobs:
       - name: Test
         run: go test -race -count=1 ./...
       - name: Start integration dependencies
-        run: docker compose -f deploy/compose.yaml up -d --wait
+        run: docker compose -f deploy/compose.dev.yaml up -d --wait
       - name: Verify deployment migration lifecycle
         run: TEST_DATABASE_URL=postgres://statusmon:statusmon_local_only@127.0.0.1:55432/statusmon?sslmode=disable go test -race ./cmd/statusmon-migrate
       - name: Verify migrations and crash/redelivery invariants
         run: make migrate-check test-integration
       - name: Stop integration dependencies
         if: always()
-        run: docker compose -f deploy/compose.yaml down -v
+        run: docker compose -f deploy/compose.dev.yaml down -v
