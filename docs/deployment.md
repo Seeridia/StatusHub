@@ -10,7 +10,7 @@ The `Publish container` GitHub Actions workflow runs the shared test suite befor
 
 - Push a version tag such as `v0.1.0` to publish that tag and `sha-<full-commit-sha>`.
 - Run the workflow manually from Actions to publish a commit image without declaring a release.
-- Read the job summary for the immutable `ghcr.io/seeridia/vendor-status-monitoring@sha256:...` reference. Use that digest for reproducible deployment. No `latest` tag is published.
+- Read the job summary for the immutable `ghcr.io/seeridia/statusmon@sha256:...` reference. Use that digest for reproducible deployment. No `latest` tag is published.
 
 The workflow definition alone does not mean an image exists. Wait for a successful publish job before deploying it. On first publication, check the GHCR package visibility: a public Git repository does not automatically guarantee a public package. Set package visibility to public if anonymous pulls are intended; otherwise configure registry credentials in Dokploy or `docker login ghcr.io` using a credential with `read:packages`.
 

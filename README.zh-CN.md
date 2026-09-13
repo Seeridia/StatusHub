@@ -27,8 +27,8 @@ StatusMon 是可自托管的厂商状态监控与通知平台。输入公开状�
 需要 Go 1.25+、Node.js 22.12+、npm、Python 3、Docker Compose v2。
 
 ```bash
-git clone https://github.com/Seeridia/vendor-status-monitoring.git
-cd vendor-status-monitoring
+git clone https://github.com/Seeridia/StatusMon.git
+cd StatusMon
 ```
 
 按[安装与启动](docs/operations/getting-started.md)生成密钥，启动 PostgreSQL、NATS、Mailpit，初始化空数据库，然后运行 API 与 worker。该指南包含首位 Owner 的邀请、邮件验证和登录流程。

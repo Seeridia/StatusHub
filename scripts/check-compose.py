@@ -8,7 +8,7 @@ import subprocess
 root = Path(__file__).resolve().parents[1]
 env = os.environ.copy()
 env.update(
-    STATUSMON_IMAGE="ghcr.io/seeridia/vendor-status-monitoring:sha-test",
+    STATUSMON_IMAGE="ghcr.io/seeridia/statusmon:sha-test",
     POSTGRES_PASSWORD="a" * 64,
     STATUSMON_CONFIG_KEY="a" * 44,
     STATUSMON_API_KEY="b" * 44,

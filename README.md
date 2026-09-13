@@ -28,8 +28,8 @@ Collection uses adaptive polling and upstream cache constraints. Stable incident
 Requirements: Go 1.25+, Node.js 22.12+, npm, Python 3, and Docker Compose v2. Exact Go requirements are in [go.mod](go.mod).
 
 ```bash
-git clone https://github.com/Seeridia/vendor-status-monitoring.git
-cd vendor-status-monitoring
+git clone https://github.com/Seeridia/StatusMon.git
+cd StatusMon
 ```
 
 Follow the [local installation guide](docs/getting-started.md) to generate keys, start PostgreSQL/NATS/Mailpit, initialize an empty database, and run the API and worker. It also walks through inviting your first Owner and verifying the account in the local mail sandbox.
