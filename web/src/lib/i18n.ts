@@ -4,6 +4,7 @@ import { initReactI18next } from "react-i18next";
 export type AppLanguage = "en" | "zh";
 
 const english: Record<string, string> = {
+  采集频率说明: "Collection frequency",
   删除: "Delete",
   删除配置: "Delete configuration",
   确认删除: "Confirm deletion",

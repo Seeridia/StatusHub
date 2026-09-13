@@ -83,6 +83,7 @@ export default function Incidents() {
         <QueryState query={query}>
           <Table
             rowKey="id"
+            tableLayout="fixed"
             hover
             data={query.rows}
             empty={
@@ -94,14 +95,20 @@ export default function Incidents() {
               />
             }
             columns={[
-              { colKey: "vendor_name", title: tr("\u5382\u5546"), width: 130 },
+              {
+                colKey: "vendor_name",
+                title: tr("\u5382\u5546"),
+                width: 160,
+                ellipsis: true,
+              },
               {
                 colKey: "name",
                 title: tr("\u4E8B\u4EF6"),
-                minWidth: 260,
+                width: 320,
                 cell: ({ row }) => (
                   <button
                     className="text-link incident-name"
+                    title={row.name}
                     onClick={() => change("detail", row.id)}
                   >
                     {row.name}

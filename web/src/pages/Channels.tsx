@@ -316,6 +316,7 @@ export default function Channels() {
       <section className="panel">
         <QueryState query={query}>
           <Table
+            tableLayout="fixed"
             rowKey="id"
             data={query.rows}
             hover
@@ -338,25 +339,25 @@ export default function Channels() {
               {
                 colKey: "name",
                 title: tr("\u6E20\u9053\u540D\u79F0"),
-                minWidth: 180,
+                width: 160,
                 cell: ({ row }) => <strong>{row.name}</strong>,
               },
               {
                 colKey: "channel",
                 title: tr("\u7C7B\u578B"),
-                width: 130,
+                width: 120,
                 cell: ({ row }) => label(row.channel),
               },
               {
                 colKey: "health_state",
                 title: tr("\u5065\u5EB7\u72B6\u6001"),
-                width: 140,
+                width: 120,
                 cell: ({ row }) => <StatusBadge value={row.health_state} />,
               },
               {
                 colKey: "enabled",
                 title: tr("\u542F\u7528\u72B6\u6001"),
-                width: 120,
+                width: 110,
                 cell: ({ row }) => (
                   <StatusBadge value={row.enabled ? "enabled" : "disabled"} />
                 ),
@@ -364,7 +365,7 @@ export default function Channels() {
               {
                 colKey: "secret_version",
                 title: tr("\u51ED\u636E"),
-                minWidth: 150,
+                width: 115,
                 cell: ({ row }) => (
                   <span className="muted">
                     {tr("\u5DF2\u52A0\u5BC6 \u00B7 v")}
@@ -375,16 +376,16 @@ export default function Channels() {
               {
                 colKey: "updated_at",
                 title: tr("\u66F4\u65B0\u65F6\u95F4"),
-                minWidth: 180,
+                width: 160,
                 cell: ({ row }) => fmt(row.updated_at),
               },
               {
                 colKey: "actions",
+                fixed: "right",
                 title: tr("\u64CD\u4F5C"),
-                width: 190,
+                width: 180,
                 cell: ({ row }) => (
-                  <>
-                    {" "}
+                  <div className="table-actions">
                     <Button
                       variant="text"
                       disabled={
@@ -400,7 +401,7 @@ export default function Channels() {
                       channel
                       disabled={!permission.write || testing || pending}
                     />
-                  </>
+                  </div>
                 ),
               },
             ]}

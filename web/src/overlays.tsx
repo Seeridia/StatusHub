@@ -1,3 +1,5 @@
+import { CloseIcon } from "tdesign-icons-react";
+import { tr } from "./lib/i18n";
 import { useEffect } from "react";
 import { Dialog as TDialog, Drawer as TDrawer } from "tdesign-react";
 import type { DialogProps, DrawerProps } from "tdesign-react";
@@ -15,9 +17,29 @@ function useScrollLock(visible?: boolean) {
 }
 export function Drawer(props: DrawerProps) {
   useScrollLock(props.visible);
-  return <TDrawer {...props} preventScrollThrough={false} />;
+  return (
+    <TDrawer
+      closeBtn={
+        <button type="button" className="overlay-close" aria-label={tr("关闭")}>
+          <CloseIcon aria-hidden="true" />
+        </button>
+      }
+      {...props}
+      preventScrollThrough={false}
+    />
+  );
 }
 export function Dialog(props: DialogProps) {
   useScrollLock(props.visible);
-  return <TDialog {...props} preventScrollThrough={false} />;
+  return (
+    <TDialog
+      closeBtn={
+        <button type="button" className="overlay-close" aria-label={tr("关闭")}>
+          <CloseIcon aria-hidden="true" />
+        </button>
+      }
+      {...props}
+      preventScrollThrough={false}
+    />
+  );
 }

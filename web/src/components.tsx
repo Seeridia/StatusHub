@@ -1,3 +1,5 @@
+import { serviceCatalog } from "./lib/service-catalog";
+import { ecosystemBrands } from "./lib/brands";
 import { tr } from "./lib/i18n";
 import type { ReactNode } from "react";
 import {
@@ -69,14 +71,34 @@ export function VendorIdentity({
 }: {
   vendor: Pick<Vendor, "name" | "slug">;
 }) {
+  const service = serviceCatalog.find((item) => {
+    const hostname = new URL(item.url).hostname;
+    return (
+      item.name.toLowerCase() === vendor.name.toLowerCase() ||
+      hostname === vendor.name.toLowerCase()
+    );
+  });
+  const name = service?.name || vendor.name;
+  const brand = ecosystemBrands.find(
+    (item) => item.name.toLowerCase() === name.toLowerCase(),
+  );
   return (
     <div className="vendor-identity">
       <span className="vendor-icon">
-        <CloudIcon size="22px" />
+        {brand ? (
+          <img
+            src={`${import.meta.env.BASE_URL}brands/${brand.slug}.svg`}
+            width="22"
+            height="22"
+            alt=""
+          />
+        ) : (
+          <CloudIcon size="22px" aria-hidden="true" />
+        )}
       </span>
       <span>
-        <strong>{vendor.name}</strong>
-        <small>{vendor.slug}</small>
+        <strong translate="no">{name}</strong>
+        {service && <small>{new URL(service.url).hostname}</small>}
       </span>
     </div>
   );

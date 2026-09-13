@@ -60,6 +60,7 @@ function LanguageSelect({ compact = false }: { compact?: boolean }) {
     <Select
       className={compact ? "language-select is-compact" : "language-select"}
       aria-label={tr("界面语言")}
+      placeholder={tr("界面语言")}
       value={currentLanguage()}
       onChange={(value) => setLanguage(String(value) as "en" | "zh")}
       options={[
@@ -218,7 +219,12 @@ function Login({ onLogin }: { onLogin: (session: Session) => void }) {
                     <FormField label={tr("邮箱")} name="email">
                       <Input
                         aria-label={tr("邮箱")}
-                        ref={input=>input?.inputElement?.setAttribute('aria-label',tr('邮箱'))}
+                        ref={(input) =>
+                          input?.inputElement?.setAttribute(
+                            "aria-label",
+                            tr("邮箱"),
+                          )
+                        }
                         value={email}
                         onChange={setEmail}
                         autocomplete="email"
@@ -227,7 +233,12 @@ function Login({ onLogin }: { onLogin: (session: Session) => void }) {
                     <FormField label={tr("密码")} name="password">
                       <Input
                         aria-label={tr("密码")}
-                        ref={input=>input?.inputElement?.setAttribute('aria-label',tr('密码'))}
+                        ref={(input) =>
+                          input?.inputElement?.setAttribute(
+                            "aria-label",
+                            tr("密码"),
+                          )
+                        }
                         type="password"
                         value={password}
                         onChange={setPassword}
@@ -461,7 +472,12 @@ function Workspace({
             }}
           >
             {navigation.map((item) => (
-              <Menu.MenuItem key={item.path} value={item.path} icon={item.icon}>
+              <Menu.MenuItem
+                key={item.path}
+                value={item.path}
+                icon={item.icon}
+                href={`#${item.path}`}
+              >
                 {item.label}
               </Menu.MenuItem>
             ))}
@@ -529,6 +545,7 @@ function Workspace({
               </Tag>
               <Select
                 aria-label={tr("\u5916\u89C2\u4E3B\u9898")}
+                placeholder={tr("外观主题")}
                 className="theme-select"
                 value={theme}
                 onChange={(value) => setTheme(String(value))}

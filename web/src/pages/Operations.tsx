@@ -98,6 +98,7 @@ function Deliveries() {
         </div>
         <QueryState query={query}>
           <Table
+            tableLayout="fixed"
             rowKey="id"
             data={query.rows}
             hover
@@ -153,6 +154,7 @@ function Deliveries() {
               },
               {
                 colKey: "actions",
+                fixed: "right",
                 title: tr("\u64CD\u4F5C"),
                 width: 150,
                 cell: ({ row }) => (
@@ -339,33 +341,39 @@ function Sources() {
             )}
           </p>
         </div>
-        <Button
-          variant="outline"
-          icon={<RefreshIcon />}
-          onClick={() => query.refetch()}
-        >
-          {tr("刷新")}
-        </Button>
-        {permission.write && (
+        <div className="heading-actions">
           <Button
-            icon={<AddIcon />}
-            onClick={() => {
-              setError("");
-              setAdding(true);
-            }}
+            variant="outline"
+            icon={<RefreshIcon />}
+            onClick={() => query.refetch()}
           >
-            {tr("\u6DFB\u52A0\u6570\u636E\u6E90")}
+            {tr("刷新")}
           </Button>
-        )}
+          {permission.write && (
+            <Button
+              icon={<AddIcon />}
+              onClick={() => {
+                setError("");
+                setAdding(true);
+              }}
+            >
+              {tr("\u6DFB\u52A0\u6570\u636E\u6E90")}
+            </Button>
+          )}
+        </div>
       </div>
-      <Alert
-        theme="info"
-        message={tr(
-          "采集按资源独立调度。稳定期通常为 4–5 分钟，事件活跃期为 60–90 秒；维护资源为 5–15 分钟，上游缓存和退避可能延长等待。发现新事件还需叠加上游发布与缓存时间。查看采集计划了解实际安排。",
-        )}
-      />
+      <details className="collection-help">
+        <summary>{tr("采集频率说明")}</summary>
+        <Alert
+          theme="info"
+          message={tr(
+            "采集按资源独立调度。稳定期通常为 4–5 分钟，事件活跃期为 60–90 秒；维护资源为 5–15 分钟，上游缓存和退避可能延长等待。发现新事件还需叠加上游发布与缓存时间。查看采集计划了解实际安排。",
+          )}
+        />
+      </details>
       <QueryState query={query}>
         <Table
+          tableLayout="fixed"
           rowKey="id"
           data={query.rows}
           hover
@@ -408,6 +416,7 @@ function Sources() {
             },
             {
               colKey: "delete",
+              fixed: "right",
               title: tr("操作"),
               width: 120,
               cell: ({ row }) =>
@@ -478,6 +487,7 @@ function Sources() {
               </p>
             </details>
             <Table
+              tableLayout="fixed"
               rowKey="kind"
               data={schedule.collection?.resources || []}
               empty={<EmptyState title={tr("等待资源检查点")} />}
@@ -656,6 +666,7 @@ function AuditLog() {
       </div>
       <QueryState query={query}>
         <Table
+          tableLayout="fixed"
           rowKey="sequence"
           data={query.rows}
           empty={

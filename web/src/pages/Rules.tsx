@@ -517,6 +517,7 @@ export default function Rules() {
       <section className="panel">
         <QueryState query={query}>
           <Table
+            tableLayout="fixed"
             rowKey="id"
             data={query.rows}
             hover
@@ -541,7 +542,7 @@ export default function Rules() {
               {
                 colKey: "name",
                 title: tr("\u89C4\u5219\u540D\u79F0"),
-                minWidth: 240,
+                width: 180,
                 cell: ({ row }) => (
                   <button
                     className="text-link"
@@ -554,7 +555,7 @@ export default function Rules() {
               {
                 colKey: "enabled",
                 title: tr("\u72B6\u6001"),
-                width: 120,
+                width: 90,
                 cell: ({ row }) => (
                   <StatusBadge value={row.enabled ? "enabled" : "disabled"} />
                 ),
@@ -562,7 +563,7 @@ export default function Rules() {
               {
                 colKey: "rule",
                 title: tr("\u6700\u4F4E\u5F71\u54CD"),
-                width: 150,
+                width: 120,
                 cell: ({ row }) =>
                   row.rule.minimum_impact === "unknown" ||
                   !row.rule.minimum_impact
@@ -574,7 +575,7 @@ export default function Rules() {
               {
                 colKey: "endpoint_ids",
                 title: tr("\u63A5\u6536\u6E20\u9053"),
-                width: 120,
+                width: 90,
                 cell: ({ row }) =>
                   tr("channelCount", {
                     count: row.endpoint_ids?.length || 0,
@@ -583,32 +584,25 @@ export default function Rules() {
               {
                 colKey: "updated_at",
                 title: tr("\u66F4\u65B0\u65F6\u95F4"),
-                minWidth: 180,
+                width: 165,
                 cell: ({ row }) => fmt(row.updated_at),
               },
               {
-                colKey: "action",
-                title: tr("\u64CD\u4F5C"),
-                width: 100,
-                cell: ({ row }) => (
-                  <Button
-                    variant="text"
-                    onClick={() => navigate(`/rules/${row.id}`)}
-                  >
-                    {permission.write ? tr("\u7F16\u8F91") : tr("\u67E5\u770B")}
-                  </Button>
-                ),
-              },
-              {
-                colKey: "delete",
+                colKey: "actions",
                 title: tr("操作"),
-                width: 90,
+                width: 145,
+                fixed: "right",
                 cell: ({ row }) => (
-                  <DeleteResource
-                    path={`/subscriptions/${row.id}`}
-                    name={row.name}
-                    disabled={!permission.write}
-                  />
+                  <div className="table-actions">
+                    <Button variant="text" href={`#/rules/${row.id}`}>
+                      {permission.write ? tr("编辑") : tr("查看")}
+                    </Button>
+                    <DeleteResource
+                      path={`/subscriptions/${row.id}`}
+                      name={row.name}
+                      disabled={!permission.write}
+                    />
+                  </div>
                 ),
               },
             ]}

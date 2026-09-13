@@ -43,8 +43,12 @@ export function Team({
   const [error, setError] = useState("");
   const [result, setResult] = useState("");
   const [confirm, setConfirm] = useState<(() => Promise<void>) | null>(null);
-  const [confirmationTarget,setConfirmationTarget]=useState('');
-  function confirmAction(run:()=>Promise<void>,target:string){setError('');setConfirmationTarget(target);setConfirm(()=>run)}
+  const [confirmationTarget, setConfirmationTarget] = useState("");
+  function confirmAction(run: () => Promise<void>, target: string) {
+    setError("");
+    setConfirmationTarget(target);
+    setConfirm(() => run);
+  }
   const roles = [
     { value: "viewer", label: tr("查看者") },
     { value: "operator", label: tr("操作员") },
@@ -107,7 +111,10 @@ export function Team({
             : { name, role, enabled },
         editing.id ? "PATCH" : "POST",
       );
-    confirmAction(run,`${name} · ${role} · ${enabled?tr('已启用'):tr('已停用')}`);
+    confirmAction(
+      run,
+      `${name} · ${role} · ${enabled ? tr("已启用") : tr("已停用")}`,
+    );
   }
   return (
     <div className="team-panel">
@@ -130,6 +137,7 @@ export function Team({
         />
       )}
       <Table
+        tableLayout="fixed"
         rowKey="id"
         data={query.rows}
         loading={query.isLoading}
@@ -195,6 +203,7 @@ export function Team({
           },
           {
             colKey: "actions",
+            fixed: "right",
             title: tr("操作"),
             width: 210,
             cell: ({ row }) => (
@@ -209,9 +218,8 @@ export function Team({
                   onClick={() =>
                     kind === "invitations"
                       ? confirmAction(
-                          () =>
-                            mutate(`/invitations/${row.id}/revoke`, {}),
-                          row.email||row.id,
+                          () => mutate(`/invitations/${row.id}/revoke`, {}),
+                          row.email || row.id,
                         )
                       : edit(row)
                   }
@@ -224,9 +232,8 @@ export function Team({
                     disabled={!allowed(row)}
                     onClick={() =>
                       confirmAction(
-                        () =>
-                          mutate(`/service-accounts/${row.id}/rotate`, {}),
-                        row.name||row.id,
+                        () => mutate(`/service-accounts/${row.id}/rotate`, {}),
+                        row.name || row.id,
                       )
                     }
                   >
@@ -280,9 +287,17 @@ export function Team({
       <Dialog
         visible={!!confirm}
         header={tr("确认账号操作")}
-        body={<><p style={{overflowWrap:'anywhere'}}>{confirmationTarget}</p><p>{tr(
-          "权限变更和停用会影响后续访问；轮换令牌会立即使旧令牌失效。请确认目标与角色。",
-        )}</p>{error&&<Alert theme="error" message={error}/>}</>}
+        body={
+          <>
+            <p style={{ overflowWrap: "anywhere" }}>{confirmationTarget}</p>
+            <p>
+              {tr(
+                "权限变更和停用会影响后续访问；轮换令牌会立即使旧令牌失效。请确认目标与角色。",
+              )}
+            </p>
+            {error && <Alert theme="error" message={error} />}
+          </>
+        }
         confirmBtn={{ content: tr("确认"), loading: busy }}
         onConfirm={() => void confirm?.()}
         onClose={() => setConfirm(null)}
@@ -364,7 +379,12 @@ export function PersonalAccount() {
           <Dialog
             visible={!!action}
             header={tr("确认账号操作")}
-            body={<><p>{tr("操作完成后需要重新登录。")}</p>{error&&<Alert theme="error" message={error}/>}</>}
+            body={
+              <>
+                <p>{tr("操作完成后需要重新登录。")}</p>
+                {error && <Alert theme="error" message={error} />}
+              </>
+            }
             confirmBtn={{ content: tr("确认"), loading: busy }}
             onConfirm={run}
             onClose={() => setAction("")}
