@@ -126,6 +126,13 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) routes() {
 	s.teamRoutes()
+	s.mux.HandleFunc("GET /{$}", func(response http.ResponseWriter, request *http.Request) {
+		target := "/ui/"
+		if request.URL.RawQuery != "" {
+			target += "?" + request.URL.RawQuery
+		}
+		http.Redirect(response, request, target, http.StatusFound)
+	})
 	s.mux.HandleFunc("GET /healthz", func(response http.ResponseWriter, _ *http.Request) {
 		writeJSON(response, http.StatusOK, map[string]string{"status": "ok"})
 	})

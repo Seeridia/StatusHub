@@ -78,3 +78,22 @@ func TestTenantSessionAndLogout(t *testing.T) {
 		}
 	}
 }
+
+func TestConsoleRootRedirect(t *testing.T) {
+	server := newTestServer(t, &repositoryStub{}, verifierStub{tenantID: testTenantID}, nil)
+	for _, tc := range []struct {
+		method, path, location string
+		status                 int
+	}{
+		{"GET", "/", "/ui/", http.StatusFound},
+		{"HEAD", "/", "/ui/", http.StatusFound},
+		{"GET", "/?tenant=statusmon", "/ui/?tenant=statusmon", http.StatusFound},
+		{"GET", "/not-a-route", "", http.StatusNotFound},
+	} {
+		response := httptest.NewRecorder()
+		server.Handler().ServeHTTP(response, httptest.NewRequest(tc.method, tc.path, nil))
+		if response.Code != tc.status || response.Header().Get("Location") != tc.location {
+			t.Errorf("%s %s: status %d, location %q", tc.method, tc.path, response.Code, response.Header().Get("Location"))
+		}
+	}
+}
