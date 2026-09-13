@@ -1,0 +1,15 @@
+[
+  {
+    "host": "www.githubstatus.com",
+    "path": "/",
+    "overall_status_selector": ".page-status .status",
+    "component_selector": ".component-inner-container[data-component-status]",
+    "component_name_selector": ".name",
+    "component_status_selector": ".component-status",
+    "incident_selector": ".unresolved-incident",
+    "incident_title_selector": ".incident-title",
+    "incident_body_selector": ".updates .update-body",
+    "incident_status_selector": ".updates .update-title",
+    "maximum_matches": 500
+  }
+]

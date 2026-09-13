@@ -1,0 +1,642 @@
+openapi: 3.1.0
+info:
+  title: Vendor Status Monitoring Control Plane
+  version: 1.0.0-m5
+  description: Tenant-scoped API for vendor status, subscriptions, endpoints, delivery evidence, audit export, and live canonical events.
+servers:
+  - url: /
+security:
+  - bearerAuth: []
+  - browserSession: []
+paths:
+  /auth/team/{action}:
+    post:
+      security: []
+      operationId: teamAuthentication
+      description: Invite-only password authentication. Origin-checked JSON; shared IP/email rate limits. Login sets a revocable cookie; verification and reset tokens are single-use. Forgot always returns a generic acknowledgement for eligible or unknown emails.
+      parameters:
+        - in: path
+          name: action
+          required: true
+          schema: {type: string, enum: [login, verify-request, forgot, verify, reset, accept]}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tenant: {type: string}
+                email: {type: string, format: email}
+                password: {type: string, writeOnly: true}
+                token: {type: string, writeOnly: true}
+                invitation: {type: string, writeOnly: true}
+      responses:
+        '200': {description: "Completed or generic mail acknowledgement; may include target tenant UUID"}
+        '401': {description: "Invalid credential, invitation or single-use token"}
+        '429': {description: "Shared authentication rate limit reached"}
+  /v1/tenants/{tenant}/account/{action}:
+    post:
+      operationId: personalAccountAction
+      description: Human identities only. Password change requires the original password. Both actions revoke all browser sessions for the identity; cookie requests require CSRF.
+      parameters:
+        - {in: path, name: tenant, required: true, schema: {type: string}}
+        - {in: path, name: action, required: true, schema: {type: string, enum: [password, logout-all]}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                old_password: {type: string, writeOnly: true}
+                password: {type: string, writeOnly: true, minLength: 12, maxLength: 128}
+      responses:
+        '200': {description: "Completed; sign-in required again"}
+        '401': {description: "Invalid session or password"}
+  /v1/tenants/{tenant}/members:
+    get:
+      operationId: listTeamMembers
+      description: Admin/owner only; tenant-scoped metadata, no credentials. Returns a data array with up to 1000 entries.
+      parameters:
+        - {in: path, name: tenant, required: true, schema: {type: string}}
+      responses:
+        '200': {description: "Metadata list"}
+        '403': {description: "Role cannot manage team accounts"}
+  /v1/tenants/{tenant}/invitations:
+    get:
+      operationId: listTeamInvitations
+      description: Admin/owner only; tenant-scoped metadata, no credentials. Returns a data array with up to 1000 entries.
+      parameters:
+        - {in: path, name: tenant, required: true, schema: {type: string}}
+      responses:
+        '200': {description: "Metadata list"}
+        '403': {description: "Role cannot manage team accounts"}
+    post:
+      operationId: createInvitation
+      description: Creates an invitation bound to email and role; 7 days. Returns invitation_token once. Reissuing revokes older unaccepted invitations to that email. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Secret retry results are encrypted for 10 minutes; later retries return completed and secret_unavailable without repeating the mutation.
+      parameters:
+        - {in: path, name: tenant, required: true, schema: {type: string}}
+        - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: {type: string, format: email}
+                name: {type: string, maxLength: 128}
+                role: {type: string, enum: [viewer, operator, admin, owner]}
+                enabled: {type: boolean}
+      responses:
+        '200': {description: "Completed; may contain one-time token or invitation_token, or secret_unavailable"}
+        '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
+        '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
+
+  /v1/tenants/{tenant}/service-accounts:
+    get:
+      operationId: listTeamServiceaccounts
+      description: Admin/owner only; tenant-scoped metadata, no credentials. Returns a data array with up to 1000 entries.
+      parameters:
+        - {in: path, name: tenant, required: true, schema: {type: string}}
+      responses:
+        '200': {description: "Metadata list"}
+        '403': {description: "Role cannot manage team accounts"}
+    post:
+      operationId: createManagedServiceAccount
+      description: Creates a service account and returns token once. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Secret retry results are encrypted for 10 minutes; later retries return completed and secret_unavailable without repeating the mutation.
+      parameters:
+        - {in: path, name: tenant, required: true, schema: {type: string}}
+        - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: {type: string, format: email}
+                name: {type: string, maxLength: 128}
+                role: {type: string, enum: [viewer, operator, admin, owner]}
+                enabled: {type: boolean}
+      responses:
+        '200': {description: "Completed; may contain one-time token or invitation_token, or secret_unavailable"}
+        '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
+        '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
+  /v1/tenants/{tenant}/members/{id}:
+    patch:
+      operationId: updateTeamMember
+      description: Update role and enabled state. Rejects self changes and removing the final active human owner. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Secret retry results are encrypted for 10 minutes; later retries return completed and secret_unavailable without repeating the mutation.
+      parameters:
+        - {in: path, name: tenant, required: true, schema: {type: string}}
+        - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: {type: string, format: email}
+                name: {type: string, maxLength: 128}
+                role: {type: string, enum: [viewer, operator, admin, owner]}
+                enabled: {type: boolean}
+      responses:
+        '200': {description: "Completed; may contain one-time token or invitation_token, or secret_unavailable"}
+        '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
+        '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
+  /v1/tenants/{tenant}/service-accounts/{id}:
+    patch:
+      operationId: updateManagedServiceAccount
+      description: Update role and enabled state. Checks current and target roles. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Secret retry results are encrypted for 10 minutes; later retries return completed and secret_unavailable without repeating the mutation.
+      parameters:
+        - {in: path, name: tenant, required: true, schema: {type: string}}
+        - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: {type: string, format: email}
+                name: {type: string, maxLength: 128}
+                role: {type: string, enum: [viewer, operator, admin, owner]}
+                enabled: {type: boolean}
+      responses:
+        '200': {description: "Completed; may contain one-time token or invitation_token, or secret_unavailable"}
+        '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
+        '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
+  /v1/tenants/{tenant}/service-accounts/{id}/rotate:
+    post:
+      operationId: rotateManagedServiceAccount
+      description: Returns a new token and immediately invalidates the old one. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Secret retry results are encrypted for 10 minutes; later retries return completed and secret_unavailable without repeating the mutation.
+      parameters:
+        - {in: path, name: tenant, required: true, schema: {type: string}}
+        - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: {type: string, format: email}
+                name: {type: string, maxLength: 128}
+                role: {type: string, enum: [viewer, operator, admin, owner]}
+                enabled: {type: boolean}
+      responses:
+        '200': {description: "Completed; may contain one-time token or invitation_token, or secret_unavailable"}
+        '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
+        '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
+  /v1/tenants/{tenant}/invitations/{id}/revoke:
+    post:
+      operationId: revokeInvitation
+      description: Revokes an unaccepted invitation. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Secret retry results are encrypted for 10 minutes; later retries return completed and secret_unavailable without repeating the mutation.
+      parameters:
+        - {in: path, name: tenant, required: true, schema: {type: string}}
+        - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email: {type: string, format: email}
+                name: {type: string, maxLength: 128}
+                role: {type: string, enum: [viewer, operator, admin, owner]}
+                enabled: {type: boolean}
+      responses:
+        '200': {description: "Completed; may contain one-time token or invitation_token, or secret_unavailable"}
+        '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
+        '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
+  /healthz:
+    get:
+      security: []
+      operationId: health
+      responses:
+        '200': {description: "Process is alive"}
+  /readyz:
+    get:
+      security: []
+      operationId: ready
+      responses:
+        '200': {description: "PostgreSQL and the live-event bridge are ready"}
+        '503': {$ref: '#/components/responses/Problem'}
+  /v1/tenants/{tenant}/session:
+    get:
+      operationId: getTenantSession
+      parameters: [{$ref: '#/components/parameters/Tenant'}]
+      responses:
+        '200': {description: Tenant-scoped identity and browser CSRF token; supports service accounts, content: {application/json: {schema: {type: object}}}}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /v1/tenants/{tenant}/logout:
+    post:
+      operationId: logoutTenantSession
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/CSRF'}]
+      responses:
+        '200': {description: "Clears browser session; service-account callers discard their token locally"}
+        '401': {$ref: '#/components/responses/Problem'}
+        '403': {$ref: '#/components/responses/Problem'}
+  /auth/{tenant}/login:
+    get:
+      security: []
+      operationId: startOIDCLogin
+      parameters:
+        - $ref: '#/components/parameters/Tenant'
+        - in: query
+          name: issuer
+          schema: {type: string, format: uri}
+      responses:
+        '302': {description: "Redirect to the configured OIDC authorization endpoint"}
+  /auth/callback:
+    get:
+      security: []
+      operationId: finishOIDCLogin
+      responses:
+        '302': {description: "Sets an encrypted HttpOnly session and redirects to the UI"}
+  /auth/session:
+    get:
+      operationId: getBrowserSession
+      responses:
+        '200': {description: Current browser identity and CSRF token, content: {application/json: {schema: {type: object}}}}
+  /auth/logout:
+    post:
+      operationId: logoutBrowserSession
+      parameters: [{$ref: '#/components/parameters/CSRF'}]
+      responses:
+        '200': {description: "Session cleared"}
+  /v1/tenants/{tenant}/vendors:
+    get:
+      operationId: listVendors
+      parameters: [{$ref: '#/components/parameters/Tenant'}]
+      responses:
+        '200': {$ref: '#/components/responses/List'}
+  /v1/tenants/{tenant}/vendors/{vendor}/status:
+    get:
+      operationId: getVendorStatus
+      parameters:
+        - $ref: '#/components/parameters/Tenant'
+        - {in: path, name: vendor, required: true, schema: {type: string}}
+      responses:
+        '200': {description: Aggregated vendor status, content: {application/json: {schema: {$ref: '#/components/schemas/VendorStatus'}}}}
+        '404': {$ref: '#/components/responses/Problem'}
+  /v1/tenants/{tenant}/sources:probe:
+    post:
+      operationId: probeSource
+      parameters: [{$ref: '#/components/parameters/Tenant'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SourceInput'}}}}
+      responses:
+        '200': {description: Adapter capabilities without persistence, content: {application/json: {schema: {type: object}}}}
+  /v1/tenants/{tenant}/sources:
+    get:
+      operationId: listSources
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/Limit'}]
+      responses: {'200': {$ref: '#/components/responses/List'}}
+    post:
+      operationId: createSource
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SourceInput'}}}}
+      responses:
+        '201': {description: Source created, content: {application/json: {schema: {$ref: '#/components/schemas/Source'}}}}
+        '409': {$ref: '#/components/responses/Problem'}
+  /v1/tenants/{tenant}/sources/{source}:
+    get:
+      operationId: getSource
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Source'}]
+      responses: {'200': {description: Source, content: {application/json: {schema: {$ref: '#/components/schemas/Source'}}}}}
+    patch:
+      operationId: updateSource
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Source'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [enabled], properties: {enabled: {type: boolean}}}}}}
+      responses: {'200': {description: "Updated source"}}
+  /v1/tenants/{tenant}/sources/{source}/adapter-rollouts:
+    post:
+      operationId: createAdapterRollout
+      description: Start a bounded shadow rollout for a tenant-private source. Shared public sources remain platform-managed.
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Source'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/AdapterRolloutInput'}}}}
+      responses:
+        '201': {description: Shadow rollout started, content: {application/json: {schema: {$ref: '#/components/schemas/AdapterRollout'}}}}
+        '409': {$ref: '#/components/responses/Problem'}
+  /v1/tenants/{tenant}/sources/{source}/adapter-rollout:
+    get:
+      operationId: getLatestSourceAdapterRollout
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Source'}]
+      responses:
+        '200': {description: Most recently created rollout and current statistics, content: {application/json: {schema: {$ref: '#/components/schemas/AdapterRolloutView'}}}}
+        '404': {$ref: '#/components/responses/Problem'}
+  /v1/tenants/{tenant}/adapter-rollouts/{rollout}:
+    get:
+      operationId: getAdapterRollout
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Rollout'}]
+      responses:
+        '200': {description: Rollout and current quality-gate statistics, content: {application/json: {schema: {$ref: '#/components/schemas/AdapterRolloutView'}}}}
+        '404': {$ref: '#/components/responses/Problem'}
+  /v1/tenants/{tenant}/adapter-rollouts/{rollout}/promote:
+    post:
+      operationId: promoteAdapterRollout
+      description: Atomically promote the candidate only when minimum samples, mismatch rate, and error rate pass.
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Rollout'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/AdapterRolloutDecision'}}}}
+      responses: {'200': {description: "Candidate promoted"}, '409': {$ref: '#/components/responses/Problem'}}
+  /v1/tenants/{tenant}/adapter-rollouts/{rollout}/rollback:
+    post:
+      operationId: rollbackAdapterRollout
+      description: Stop a shadow rollout or restore the baseline adapter after promotion.
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Rollout'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/AdapterRolloutDecision'}}}}
+      responses: {'200': {description: "Baseline retained or restored"}, '409': {$ref: '#/components/responses/Problem'}}
+  /v1/tenants/{tenant}/incidents:
+    get:
+      operationId: listIncidents
+      parameters:
+        - $ref: '#/components/parameters/Tenant'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - {in: query, name: vendor, schema: {type: string}}
+        - {in: query, name: phase, schema: {type: string}}
+        - {in: query, name: since, schema: {type: string, format: date-time}}
+      responses: {'200': {$ref: '#/components/responses/List'}}
+  /v1/tenants/{tenant}/incidents/{incident}:
+    get:
+      operationId: getIncidentTimeline
+      parameters:
+        - $ref: '#/components/parameters/Tenant'
+        - {in: path, name: incident, required: true, schema: {type: string, format: uuid}}
+      responses: {'200': {description: "Incident and ordered update timeline"}}
+  /v1/tenants/{tenant}/events/stream:
+    get:
+      operationId: streamCanonicalEvents
+      parameters:
+        - $ref: '#/components/parameters/Tenant'
+        - {in: header, name: Last-Event-ID, schema: {type: string}, description: Signed cursor returned in the preceding SSE id field}
+      responses:
+        '200': {description: SSE stream with canonical_event messages, content: {text/event-stream: {schema: {type: string}}}}
+  /v1/tenants/{tenant}/subscriptions:
+    get:
+      operationId: listSubscriptions
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/Limit'}]
+      responses: {'200': {$ref: '#/components/responses/List'}}
+    post:
+      operationId: createSubscription
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SubscriptionInput'}}}}
+      responses: {'201': {description: "Subscription created"}}
+  /v1/tenants/{tenant}/subscriptions/{subscription}:
+    get:
+      operationId: getSubscription
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Subscription'}]
+      responses: {'200': {description: "Subscription"}}
+    put:
+      operationId: updateSubscription
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Subscription'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SubscriptionInput'}}}}
+      responses: {'200': {description: "Subscription updated"}, '409': {$ref: '#/components/responses/Problem'}}
+    delete:
+      operationId: disableSubscription
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Subscription'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      responses: {'200': {description: "Subscription disabled; history retained"}}
+  /v1/tenants/{tenant}/endpoints:
+    get:
+      operationId: listEndpoints
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/Limit'}]
+      responses: {'200': {$ref: '#/components/responses/List'}}
+    post:
+      operationId: createEndpoint
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/EndpointInput'}}}}
+      responses: {'201': {description: "Encrypted endpoint created"}}
+  /v1/tenants/{tenant}/endpoints/{endpoint}:
+    get:
+      operationId: getEndpoint
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Endpoint'}]
+      responses: {'200': {description: "Endpoint metadata; credentials are never returned"}}
+    put:
+      operationId: rotateEndpoint
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Endpoint'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/EndpointInput'}}}}
+      responses: {'200': {description: "Endpoint configuration rotated"}, '409': {$ref: '#/components/responses/Problem'}}
+    delete:
+      operationId: disableEndpoint
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Endpoint'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      responses: {'200': {description: "Endpoint disabled; delivery history retained"}}
+  /v1/tenants/{tenant}/endpoints/{endpoint}/test:
+    post:
+      operationId: testEndpoint
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Endpoint'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      responses: {'202': {description: "Durable asynchronous endpoint test queued"}}
+  /v1/tenants/{tenant}/endpoint-tests/{test}:
+    get:
+      operationId: getEndpointTest
+      parameters:
+        - $ref: '#/components/parameters/Tenant'
+        - {in: path, name: test, required: true, schema: {type: string, format: uuid}}
+      responses: {'200': {description: "Endpoint test result"}}
+  /v1/tenants/{tenant}/deliveries:
+    get:
+      operationId: listDeliveries
+      parameters:
+        - $ref: '#/components/parameters/Tenant'
+        - $ref: '#/components/parameters/Cursor'
+        - $ref: '#/components/parameters/Limit'
+        - {in: query, name: status, schema: {type: string}}
+      responses: {'200': {$ref: '#/components/responses/List'}}
+  /v1/tenants/{tenant}/deliveries/{delivery}:
+    get:
+      operationId: getDeliveryAttempts
+      parameters:
+        - $ref: '#/components/parameters/Tenant'
+        - {in: path, name: delivery, required: true, schema: {type: string, format: uuid}}
+      responses: {'200': {description: "Delivery and its ordered attempt evidence"}}
+  /v1/tenants/{tenant}/deliveries/{delivery}/retry:
+    post:
+      operationId: retryDelivery
+      parameters:
+        - $ref: '#/components/parameters/Tenant'
+        - {in: path, name: delivery, required: true, schema: {type: string, format: uuid}}
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/CSRF'
+      responses: {'202': {description: "Dead-letter delivery queued for replay"}, '409': {$ref: '#/components/responses/Problem'}}
+  /v1/tenants/{tenant}/audit-events:
+    get:
+      operationId: exportAuditEvents
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/Limit'}]
+      responses: {'200': {$ref: '#/components/responses/List'}}
+components:
+  securitySchemes:
+    bearerAuth: {type: http, scheme: bearer, bearerFormat: JWT or service-account token}
+    browserSession: {type: apiKey, in: cookie, name: statusmon_session}
+  parameters:
+    Tenant: {in: path, name: tenant, required: true, schema: {type: string}, description: Tenant UUID or slug; authentication must resolve to the same tenant}
+    Source: {in: path, name: source, required: true, schema: {type: string, format: uuid}}
+    Rollout: {in: path, name: rollout, required: true, schema: {type: string, format: uuid}}
+    Subscription: {in: path, name: subscription, required: true, schema: {type: string, format: uuid}}
+    Endpoint: {in: path, name: endpoint, required: true, schema: {type: string, format: uuid}}
+    Cursor: {in: query, name: cursor, schema: {type: string}, description: Signed opaque cursor bound to tenant and resource kind}
+    Limit: {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 200, default: 50}}
+    IdempotencyKey: {in: header, name: Idempotency-Key, required: true, schema: {type: string, maxLength: 128}}
+    CSRF: {in: header, name: X-CSRF-Token, schema: {type: string}, description: Required for cookie-authenticated unsafe requests; not required with Authorization bearer tokens}
+  responses:
+    List:
+      description: Cursor-paginated collection
+      content: {application/json: {schema: {$ref: '#/components/schemas/Page'}}}
+    Problem:
+      description: RFC 9457-style problem response
+      content: {application/problem+json: {schema: {$ref: '#/components/schemas/Problem'}}}
+  schemas:
+    Page:
+      type: object
+      required: [data]
+      properties: {data: {type: array, items: {}}, next_cursor: {type: string}}
+    Problem:
+      type: object
+      required: [type, title, status, detail, request_id]
+      properties: {type: {type: string, format: uri}, title: {type: string}, status: {type: integer}, detail: {type: string}, request_id: {type: string}}
+    VendorStatus:
+      type: object
+      required: [id, slug, name, status, active_incidents, visible_sources]
+      properties:
+        collection: {$ref: '#/components/schemas/CollectionStatus'}
+        id: {type: string, format: uuid}
+        slug: {type: string}
+        name: {type: string}
+        status: {type: string, enum: [operational, degraded, partial_outage, major_outage, under_maintenance, unknown]}
+        active_incidents: {type: integer}
+        visible_sources: {type: integer}
+        last_observed_at: {type: string, format: date-time}
+    SourceInput:
+      type: object
+      required: [url]
+      properties:
+        url: {type: string, format: uri}
+        vendor_id: {type: string, format: uuid}
+        provider: {type: string}
+        page_id: {type: string}
+        source_type: {type: string}
+    Source:
+      type: object
+      required: [id, vendor_id, canonical_url, source_type, enabled, health_state]
+      properties:
+        collection: {$ref: '#/components/schemas/CollectionStatus'}
+        last_attempt_at: {type: string, format: date-time}
+        last_success_at: {type: string, format: date-time}
+        next_poll_at: {type: string, format: date-time}
+        failure_streak: {type: integer, minimum: 0}
+        id: {type: string, format: uuid}
+        vendor_id: {type: string, format: uuid}
+        canonical_url: {type: string, format: uri}
+        source_type: {type: string}
+        enabled: {type: boolean}
+        health_state: {type: string}
+    CollectionStatus:
+      type: object
+      description: Resource deadlines from successful checkpoints plus a 120-second execution allowance. Retries never extend these deadlines. Unknown includes older checkpoints awaiting resource success metadata. Vendor aggregation considers enabled tenant-visible sources only and uses the worst state.
+      required: [state, reason, evaluated_at]
+      properties:
+        state: {type: string, enum: [fresh, stale, unknown, disabled]}
+        failure_code:
+          type: string
+          enum: [rate_limited, access_denied, upstream_server, upstream_http, timeout, network, invalid_payload, unsupported_source, cancelled, unclassified]
+          description: Latest source failure category; omitted after recovery and in vendor aggregates. Contains no raw upstream errors. Concurrent failures use a deterministic representative category, prioritizing rate limits and HTTP failures.
+        reason: {type: string, enum: [on_schedule, resource_overdue, awaiting_first_success, awaiting_resource_checkpoint, failure_backoff, collection_degraded, disabled, no_enabled_sources]}
+        mode: {type: string}
+        fresh_until: {type: string, format: date-time}
+        next_poll_at: {type: string, format: date-time}
+        evaluated_at: {type: string, format: date-time}
+        resources:
+          type: array
+          items:
+            type: object
+            required: [kind, state, schedule_reason]
+            properties:
+              kind: {type: string}
+              state: {type: string, enum: [fresh, stale, unknown]}
+              last_success_at: {type: string, format: date-time}
+              next_poll_at: {type: string, format: date-time}
+              fresh_until: {type: string, format: date-time}
+              schedule_reason: {type: string, enum: [cadence, cache_policy, retry_after, unknown]}
+    AdapterRolloutInput:
+      type: object
+      required: [candidate_adapter_name, candidate_adapter_version]
+      properties:
+        candidate_adapter_name: {type: string, minLength: 1}
+        candidate_adapter_version: {type: string, minLength: 1}
+        sample_rate: {type: number, exclusiveMinimum: 0, maximum: 1, default: 1}
+        minimum_samples: {type: integer, minimum: 1, default: 100}
+        maximum_mismatch_rate: {type: number, minimum: 0, maximum: 1, default: 0}
+        maximum_error_rate: {type: number, minimum: 0, maximum: 1, default: 0.01}
+    AdapterRolloutDecision:
+      type: object
+      required: [reason]
+      properties: {reason: {type: string, minLength: 1}}
+    AdapterRollout:
+      type: object
+      required: [id, source_id, candidate_adapter_name, candidate_adapter_version, state, sample_rate, minimum_samples, maximum_mismatch_rate, maximum_error_rate]
+      properties:
+        id: {type: string, format: uuid}
+        source_id: {type: string, format: uuid}
+        baseline_adapter_name: {type: string}
+        baseline_adapter_version: {type: string}
+        candidate_adapter_name: {type: string}
+        candidate_adapter_version: {type: string}
+        state: {type: string, enum: [shadow, promoted, rolled_back]}
+        sample_rate: {type: number}
+        minimum_samples: {type: integer}
+        maximum_mismatch_rate: {type: number}
+        maximum_error_rate: {type: number}
+        decision_reason: {type: string}
+        created_at: {type: string, format: date-time}
+        decided_at: {type: string, format: date-time}
+    AdapterRolloutStatistics:
+      type: object
+      required: [total, equivalent, mismatches, errors, mismatch_rate, error_rate, primary_p95_ms, candidate_p95_ms]
+      properties:
+        total: {type: integer}
+        equivalent: {type: integer}
+        mismatches: {type: integer}
+        errors: {type: integer}
+        mismatch_rate: {type: number}
+        error_rate: {type: number}
+        primary_p95_ms: {type: number}
+        candidate_p95_ms: {type: number}
+    AdapterRolloutView:
+      type: object
+      required: [rollout, statistics]
+      properties:
+        rollout: {$ref: '#/components/schemas/AdapterRollout'}
+        statistics: {$ref: '#/components/schemas/AdapterRolloutStatistics'}
+    SubscriptionInput:
+      type: object
+      required: [name, rule, endpoint_ids]
+      properties:
+        name: {type: string, maxLength: 200}
+        enabled: {type: boolean, default: true}
+        expected_rule_version: {type: integer, minimum: 1}
+        rule: {type: object}
+        scopes: {type: array, maxItems: 200, items: {type: object}}
+        endpoint_ids: {type: array, minItems: 1, maxItems: 100, items: {type: string, format: uuid}}
+    EndpointInput:
+      type: object
+      required: [name, channel, config]
+      properties:
+        name: {type: string, maxLength: 200}
+        channel: {type: string, enum: [generic_webhook, slack]}
+        enabled: {type: boolean, default: true}
+        expected_secret_version: {type: integer, minimum: 1}
+        config:
+          type: object
+          writeOnly: true
+          properties:
+            url: {type: string, format: uri}
+            secret: {type: string, writeOnly: true}
+            signing_key_id: {type: string}
+            max_payload_bytes: {type: integer}
+        rate_limit_config: {type: object}

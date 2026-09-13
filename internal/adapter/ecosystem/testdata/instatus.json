@@ -1,0 +1,9 @@
+{
+  "page": {"name": "Example", "url": "https://status.example.test", "status": "HASISSUES"},
+  "incidents": [{
+    "id": "inc-1", "name": "API unavailable", "status": "INVESTIGATING", "impact": "MAJOR",
+    "started": "2026-09-10T00:00:00Z", "components": [{"id": "api"}],
+    "updates": [{"id": "upd-1", "text": "Investigating", "status": "INVESTIGATING", "createdAt": "2026-09-10T00:01:00Z"}]
+  }],
+  "maintenances": []
+}

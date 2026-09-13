@@ -1,0 +1,8 @@
+{
+  "data": {"id": "page-1", "type": "status_page", "attributes": {"company_name": "Example", "aggregate_state": "degraded", "updated_at": "2026-09-10T00:10:00Z"}},
+  "included": [
+    {"id": "resource-1", "type": "status_page_resource", "attributes": {"public_name": "API", "explanation": "Public API", "status": "degraded", "status_page_section_id": 1}},
+    {"id": "report-1", "type": "status_report", "attributes": {"title": "API latency", "report_type": "manual", "aggregate_state": "investigating", "starts_at": "2026-09-10T00:00:00Z", "ends_at": null, "affected_resources": [{"status_page_resource_id": "resource-1", "status": "degraded"}]}, "relationships": {"status_updates": {"data": [{"id": "update-1"}]}}},
+    {"id": "update-1", "type": "status_update", "attributes": {"message": "Investigating", "published_at": "2026-09-10T00:01:00Z"}}
+  ]
+}

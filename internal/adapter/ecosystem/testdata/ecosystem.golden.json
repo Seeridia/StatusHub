@@ -1,0 +1,10 @@
+{
+  "incident-io-widget": {"overall":"degraded","components":0,"incidents":2,"synthetic":false},
+  "instatus-v3": {"overall":"degraded","components":0,"incidents":1,"synthetic":false},
+  "better-stack-status-page": {"overall":"degraded","components":1,"incidents":1,"synthetic":false},
+  "status-io-v1": {"overall":"degraded","components":1,"incidents":2,"synthetic":false},
+  "cachet-v2-v3": {"overall":"degraded","components":2,"incidents":0,"synthetic":false},
+  "gatus-synthetic": {"overall":"major_outage","components":1,"incidents":1,"synthetic":true},
+  "cstate-v2": {"overall":"partial_outage","components":1,"incidents":1,"synthetic":false},
+  "html-recipe": {"overall":"degraded","components":1,"incidents":1,"synthetic":false}
+}

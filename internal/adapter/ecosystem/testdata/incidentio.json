@@ -1,0 +1,12 @@
+{
+  "ongoing_incidents": [{
+    "id": "inc-1", "name": "API latency", "status": "monitoring", "impact": "major",
+    "started_at": "2026-09-10T00:00:00Z", "affected_components": [{"id": "api", "name": "API"}],
+    "last_update": {"id": "upd-1", "message": "Recovery observed", "status": "monitoring", "created_at": "2026-09-10T00:05:00Z"}
+  }],
+  "in_progress_maintenances": [],
+  "scheduled_maintenances": [{
+    "id": "maint-1", "name": "Database upgrade", "status": "maintenance_scheduled",
+    "scheduled_start_at": "2026-09-11T00:00:00Z", "scheduled_end_at": "2026-09-11T01:00:00Z"
+  }]
+}

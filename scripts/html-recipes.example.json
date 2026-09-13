@@ -1,0 +1,15 @@
+[
+  {
+    "host": "status.example.com",
+    "path": "/",
+    "overall_status_selector": "[data-status-overall]",
+    "component_selector": "[data-component]",
+    "component_name_selector": "[data-component-name]",
+    "component_status_selector": "[data-component-status]",
+    "incident_selector": "[data-incident]",
+    "incident_title_selector": "[data-incident-title]",
+    "incident_body_selector": "[data-incident-body]",
+    "incident_status_selector": "[data-incident-status]",
+    "maximum_matches": 500
+  }
+]

@@ -1,0 +1,7 @@
+{
+  "data": [
+    {"type": "components", "id": "api", "attributes": {"name": "API", "description": "Public API", "status": "operational", "group_id": "core", "created_at": "2026-09-10T00:00:00Z", "updated_at": "2026-09-10T00:01:00Z"}},
+    {"type": "components", "id": "dashboard", "attributes": {"name": "Dashboard", "description": "Web UI", "status": "degraded", "group_id": "core", "created_at": "2026-09-10T00:00:00Z", "updated_at": "2026-09-10T00:01:00Z"}}
+  ],
+  "meta": {"pagination": {"current_page": 1, "total_pages": 1}}
+}

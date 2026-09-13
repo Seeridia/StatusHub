@@ -1,0 +1,110 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Send tenant-scoped AWS Health EventBridge events to Statusmon through signed SNS HTTPS delivery. Deploy in us-east-1.
+
+Parameters:
+  ConnectorID:
+    Type: String
+    AllowedPattern: "^[0-9a-fA-F-]{36}$"
+  IngressBaseURL:
+    Type: String
+    AllowedPattern: "^https://[^/]+(?:/[^/]+)*$"
+  KmsKeyArn:
+    Type: String
+    Default: ""
+    Description: Optional customer-managed KMS key ARN for the SNS topic.
+
+Conditions:
+  UseKmsKey: !Not [!Equals [!Ref KmsKeyArn, ""]]
+
+Resources:
+  HealthDeadLetterQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      KmsMasterKeyId: alias/aws/sqs
+      MessageRetentionPeriod: 1209600
+
+  HealthTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      KmsMasterKeyId: !If [UseKmsKey, !Ref KmsKeyArn, !Ref "AWS::NoValue"]
+
+  HealthRule:
+    Type: AWS::Events::Rule
+    DependsOn:
+      - HealthTopicPolicy
+      - HealthDeadLetterQueuePolicy
+    Properties:
+      State: ENABLED
+      EventPattern:
+        source:
+          - aws.health
+        detail-type:
+          - AWS Health Event
+      Targets:
+        - Arn: !Ref HealthTopic
+          Id: statusmon-aws-health
+          DeadLetterConfig:
+            Arn: !GetAtt HealthDeadLetterQueue.Arn
+          RetryPolicy:
+            MaximumEventAgeInSeconds: 86400
+            MaximumRetryAttempts: 185
+
+  HealthTopicPolicy:
+    Type: AWS::SNS::TopicPolicy
+    Properties:
+      Topics:
+        - !Ref HealthTopic
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sns:Publish
+            Resource: !Ref HealthTopic
+            Condition:
+              ArnLike:
+                aws:SourceArn: !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/*"
+
+  HealthDeadLetterQueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref HealthDeadLetterQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: events.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt HealthDeadLetterQueue.Arn
+            Condition:
+              ArnLike:
+                aws:SourceArn: !Sub "arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:rule/*"
+          - Effect: Allow
+            Principal:
+              Service: sns.amazonaws.com
+            Action: sqs:SendMessage
+            Resource: !GetAtt HealthDeadLetterQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref HealthTopic
+
+  HealthHTTPSSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      TopicArn: !Ref HealthTopic
+      Protocol: https
+      Endpoint: !Sub "${IngressBaseURL}/v1/connectors/aws-health/${ConnectorID}"
+      RawMessageDelivery: false
+      RedrivePolicy:
+        deadLetterTargetArn: !GetAtt HealthDeadLetterQueue.Arn
+
+Outputs:
+  SNSTopicARN:
+    Value: !Ref HealthTopic
+  IngressURL:
+    Value: !Sub "${IngressBaseURL}/v1/connectors/aws-health/${ConnectorID}"
+  DeadLetterQueueURL:
+    Value: !Ref HealthDeadLetterQueue

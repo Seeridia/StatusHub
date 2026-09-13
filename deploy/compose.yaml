@@ -1,0 +1,41 @@
+name: vendor-status-monitoring
+
+services:
+  mailpit:
+    image: axllent/mailpit:v1.27
+    ports:
+      - "127.0.0.1:51025:1025"
+      - "127.0.0.1:58025:8025"
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-statusmon}
+      POSTGRES_USER: ${POSTGRES_USER:-statusmon}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-statusmon_local_only}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-55432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+  nats:
+    image: nats:2.11-alpine
+    command: ["--jetstream", "--store_dir=/data", "--http_port=8222"]
+    ports:
+      - "127.0.0.1:${NATS_CLIENT_PORT:-54222}:4222"
+      - "127.0.0.1:${NATS_MONITOR_PORT:-58222}:8222"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://127.0.0.1:8222/healthz"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+    volumes:
+      - nats-data:/data
+
+volumes:
+  postgres-data:
+  nats-data:

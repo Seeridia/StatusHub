@@ -1,0 +1,7 @@
+[
+  {"name": "API", "group": "core", "key": "core_api", "results": [
+    {"status": 500, "hostname": "api.internal", "success": false, "timestamp": "2026-09-10T00:03:00Z"},
+    {"status": 500, "hostname": "api.internal", "success": false, "timestamp": "2026-09-10T00:02:00Z"},
+    {"status": 200, "hostname": "api.internal", "success": true, "timestamp": "2026-09-10T00:01:00Z"}
+  ]}
+]

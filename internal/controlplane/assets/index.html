@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>StatusMon Control Plane</title>
+  <link rel="stylesheet" href="/ui/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/ui/" aria-label="StatusMon home">
+      <span class="brand-mark" aria-hidden="true">S</span>
+      <span><strong>StatusMon</strong><small>Control plane</small></span>
+    </a>
+    <div class="connection">
+      <span id="live-dot" class="dot idle"></span>
+      <span id="live-label">Not connected</span>
+      <button id="logout" class="ghost" type="button">Log out</button>
+    </div>
+  </header>
+
+  <main>
+    <section id="login-panel" class="login-panel">
+      <p class="eyebrow">OPERATIONS CONSOLE</p>
+      <h1>所有供应商状态，<br>一条可靠时间线。</h1>
+      <p class="lede">输入租户 slug，通过 OIDC 登录；本地开发也可使用 service account token。</p>
+      <form id="connect-form" class="connect-form">
+        <label>Tenant slug or ID<input id="tenant" name="tenant" autocomplete="organization" required placeholder="acme"></label>
+        <label>Service account token <span>optional</span><input id="token" name="token" type="password" autocomplete="off" placeholder="sa.…"></label>
+        <div class="actions">
+          <button class="primary" type="submit">Connect with token</button>
+          <button id="oidc-login" class="secondary" type="button">Continue with OIDC</button>
+        </div>
+      </form>
+      <p id="login-error" class="error" role="alert"></p>
+    </section>
+
+    <section id="app" class="app hidden">
+      <aside>
+        <p class="eyebrow" id="tenant-name">TENANT</p>
+        <nav aria-label="Control plane sections">
+          <button data-view="overview" class="active">Overview</button>
+          <button data-view="incidents">Incidents</button>
+          <button data-view="sources">Sources</button>
+          <button data-view="subscriptions">Subscriptions</button>
+          <button data-view="endpoints">Endpoints</button>
+          <button data-view="deliveries">Deliveries</button>
+          <button data-view="audit">Audit trail</button>
+        </nav>
+      </aside>
+      <section class="workspace">
+        <div class="workspace-head">
+          <div><p class="eyebrow" id="view-kicker">LIVE STATUS</p><h2 id="view-title">Overview</h2></div>
+          <button id="refresh" class="secondary" type="button">Refresh</button>
+        </div>
+        <div id="notice" class="notice hidden" role="status"></div>
+        <div id="content" aria-live="polite"></div>
+      </section>
+    </section>
+  </main>
+
+  <dialog id="endpoint-dialog">
+    <form id="endpoint-form" method="dialog">
+      <header><h3>Add endpoint</h3><button value="cancel" class="icon" aria-label="Close">×</button></header>
+      <label>Name<input name="name" required maxlength="200" placeholder="Incident channel"></label>
+      <label>Channel<select name="channel"><option value="slack">Slack incoming webhook</option><option value="generic_webhook">Generic webhook</option></select></label>
+      <label>HTTPS URL<input name="url" type="url" required placeholder="https://hooks.slack.com/services/…"></label>
+      <label class="webhook-only hidden">Signing key ID<input name="signing_key_id" value="primary"></label>
+      <label class="webhook-only hidden">Signing secret<input name="secret" type="password"></label>
+      <footer><button value="cancel" class="ghost">Cancel</button><button id="save-endpoint" value="default" class="primary">Save endpoint</button></footer>
+    </form>
+  </dialog>
+
+  <dialog id="subscription-dialog">
+    <form id="subscription-form" method="dialog">
+      <header><h3>Add subscription</h3><button value="cancel" class="icon" aria-label="Close">×</button></header>
+      <label>Name<input name="name" required maxlength="200" placeholder="Production dependencies"></label>
+      <label>Endpoint<select name="endpoint_id" required></select></label>
+      <label>Vendor ID <span>optional; blank means all</span><input name="vendor_id" placeholder="UUID"></label>
+      <label>Minimum impact<select name="minimum_impact"><option value="unknown">Any</option><option value="minor">Minor</option><option value="major">Major</option><option value="critical">Critical</option></select></label>
+      <footer><button value="cancel" class="ghost">Cancel</button><button id="save-subscription" value="default" class="primary">Save subscription</button></footer>
+    </form>
+  </dialog>
+  <dialog id="source-dialog">
+    <form id="source-form" method="dialog">
+      <header><h3>Add source</h3><button value="cancel" class="icon" aria-label="Close">×</button></header>
+      <label>Status page URL<input name="url" type="url" required placeholder="https://status.example.com"></label>
+      <label>Vendor ID<input name="vendor_id" required placeholder="UUID from Overview"></label>
+      <label>Provider hint <span>optional</span><input name="provider" placeholder="instatus, cachet, gatus…"></label>
+      <footer><button value="cancel" class="ghost">Cancel</button><button value="default" class="primary">Probe and add</button></footer>
+    </form>
+  </dialog>
+  <dialog id="rollout-dialog">
+    <form id="rollout-form" method="dialog">
+      <header><h3>Start shadow rollout</h3><button value="cancel" class="icon" aria-label="Close">×</button></header>
+      <p class="muted">The candidate runs outside the primary response path. Promotion remains blocked until every quality gate passes.</p>
+      <label>Candidate adapter name<input name="candidate_adapter_name" required placeholder="atlassian-statuspage"></label>
+      <label>Candidate adapter version<input name="candidate_adapter_version" required placeholder="statuspage-v2/1"></label>
+      <label>Sample rate<input name="sample_rate" type="number" min="0.01" max="1" step="0.01" value="0.1" required></label>
+      <label>Minimum samples<input name="minimum_samples" type="number" min="1" step="1" value="500" required></label>
+      <label>Maximum mismatch rate<input name="maximum_mismatch_rate" type="number" min="0" max="1" step="0.001" value="0" required></label>
+      <label>Maximum candidate error rate<input name="maximum_error_rate" type="number" min="0" max="1" step="0.001" value="0.01" required></label>
+      <footer><button value="cancel" class="ghost">Cancel</button><button value="default" class="primary">Start shadow</button></footer>
+    </form>
+  </dialog>
+  <dialog id="rollout-status-dialog">
+    <form method="dialog">
+      <header><h3 id="rollout-title">Adapter rollout</h3><button value="cancel" class="icon" aria-label="Close">×</button></header>
+      <div id="rollout-content"></div>
+      <label id="rollout-reason">Decision reason<input placeholder="Evidence or incident reference"></label>
+      <footer><button value="cancel" class="ghost">Close</button><button id="rollback-rollout" value="default" type="button" class="secondary">Rollback</button><button id="promote-rollout" value="default" type="button" class="primary">Promote</button></footer>
+    </form>
+  </dialog>
+  <dialog id="detail-dialog">
+    <form method="dialog">
+      <header><h3 id="detail-title">Details</h3><button value="cancel" class="icon" aria-label="Close">×</button></header>
+      <pre id="detail-content"></pre>
+      <footer><button value="cancel" class="primary">Close</button></footer>
+    </form>
+  </dialog>
+  <script src="/ui/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,8 @@
+{
+  "result": {
+    "status_overall": {"updated": "2026-09-10T00:10:00Z", "status": "Degraded Performance", "status_code": 200},
+    "status": [{"id": "api", "name": "API", "status": "Degraded Performance", "status_code": 200, "updated": "2026-09-10T00:10:00Z", "containers": []}],
+    "incidents": [{"_id": "inc-1", "name": "API latency", "datetime_open": "2026-09-10T00:00:00Z", "current_status": 100, "current_state": 300, "messages": [{"details": "Investigating", "datetime": "2026-09-10T00:01:00Z", "status": 100, "state": 300}], "components_affected": [{"_id": "api", "name": "API"}]}],
+    "maintenance": {"active": [], "upcoming": [{"_id": "maint-1", "name": "Upgrade", "datetime_open": "2026-09-09T00:00:00Z", "datetime_planned_start": "2026-09-11T00:00:00Z", "datetime_planned_end": "2026-09-11T01:00:00Z", "messages": [], "components_affected": [{"_id": "api", "name": "API"}]}]}
+  }
+}

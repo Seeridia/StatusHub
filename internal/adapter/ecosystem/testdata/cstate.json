@@ -1,0 +1,5 @@
+{
+  "is": "index", "cStateVersion": "6.0.1", "apiVersion": "2.0", "title": "Example Status",
+  "baseURL": "https://status.example.test/", "summaryStatus": "disrupted", "buildDate": "2026-09-10",
+  "systems": [{"name": "API", "description": "Public API", "category": "Core", "status": "disrupted", "unresolvedIssues": [{"is": "issue", "title": "API latency", "createdAt": "2026-09-10 00:00:00 +0000 UTC", "lastMod": "2026-09-10 00:05:00 +0000 UTC", "permalink": "https://status.example.test/issues/api-latency/", "filename": "api-latency.md", "severity": "major", "status": "investigating"}]}]
+}
