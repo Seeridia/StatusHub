@@ -26,7 +26,7 @@ import {
 } from "../components";
 import { useAPI, useList, usePermissions, useWriter } from "../lib/hooks";
 import { collectionLabel, fmt, label } from "../lib/model";
-import type { Audit, Delivery, RolloutView, Source } from "../lib/types";
+import type { Audit, Delivery, Source } from "../lib/types";
 function Deliveries() {
   const [params, setParams] = useSearchParams();
   const status = params.get("status") || "";
@@ -250,256 +250,11 @@ function Deliveries() {
     </>
   );
 }
-function Rollout({
-  source,
-  onClose,
-}: {
-  source: Source | null;
-  onClose: () => void;
-}) {
-  const query = useAPI<RolloutView>(
-    `/sources/${source?.id}/adapter-rollout`,
-    !!source,
-  );
-  const write = useWriter();
-  const permission = usePermissions();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [reason, setReason] = useState("");
-  const [fields, setFields] = useState({
-    candidate_adapter_name: "",
-    candidate_adapter_version: "",
-    sample_rate: "0.1",
-    minimum_samples: "500",
-    maximum_mismatch_rate: "0",
-    maximum_error_rate: "0.01",
-  });
-  const exists = !!query.data;
-  const notFound =
-    query.error && "status" in query.error && query.error.status === 404;
-  async function submit(action?: string) {
-    if (!source || busy) return;
-    if (action && !reason.trim()) {
-      setError(tr("\u8BF7\u586B\u5199\u64CD\u4F5C\u539F\u56E0\u3002"));
-      return;
-    }
-    if (
-      !action &&
-      (!fields.candidate_adapter_name.trim() ||
-        !fields.candidate_adapter_version.trim())
-    ) {
-      setError(
-        tr(
-          "\u8BF7\u586B\u5199\u5019\u9009\u9002\u914D\u5668\u540D\u79F0\u548C\u7248\u672C\u3002",
-        ),
-      );
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      if (action)
-        await write(`/adapter-rollouts/${query.data!.rollout.id}/${action}`, {
-          reason: reason.trim(),
-        });
-      else
-        await write(`/sources/${source.id}/adapter-rollouts`, {
-          ...fields,
-          sample_rate: Number(fields.sample_rate),
-          minimum_samples: Number(fields.minimum_samples),
-          maximum_mismatch_rate: Number(fields.maximum_mismatch_rate),
-          maximum_error_rate: Number(fields.maximum_error_rate),
-        });
-      setReason("");
-      await query.refetch();
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-  const rollout = query.data?.rollout;
-  const stats = query.data?.statistics;
-  const ready =
-    !!rollout &&
-    !!stats &&
-    rollout.state === "shadow" &&
-    stats.total >= rollout.minimum_samples &&
-    stats.mismatch_rate <= rollout.maximum_mismatch_rate &&
-    stats.error_rate <= rollout.maximum_error_rate;
-  return (
-    <Drawer
-      header={tr("\u9002\u914D\u5668\u53D1\u5E03")}
-      visible={!!source}
-      onClose={() => !busy && onClose()}
-      size="620px"
-      footer={null}
-    >
-      <div className="drawer-body">
-        <h2>{source?.vendor_name}</h2>
-        <p className="muted">
-          {tr(
-            "\u5019\u9009\u9002\u914D\u5668\u5728\u540E\u53F0\u91C7\u6837\u3002\u664B\u7EA7\u524D\u5FC5\u987B\u901A\u8FC7\u5168\u90E8\u8D28\u91CF\u95E8\u7981\u3002",
-          )}
-        </p>
-        {error && <Alert theme="error" message={error} />}
-        {query.isError && !notFound && (
-          <Alert theme="error" message={query.error.message} />
-        )}
-        {exists && rollout && stats ? (
-          <>
-            <div className="detail-line">
-              <strong>
-                {rollout.candidate_adapter_name} ·{" "}
-                {rollout.candidate_adapter_version}
-              </strong>
-              <StatusBadge value={rollout.state} />
-            </div>
-            <div className="rollout-stats">
-              {[
-                {
-                  title: tr("\u91C7\u6837\u6570"),
-                  value: stats.total,
-                  hint: tr("\u6700\u4F4E {{value0}}", {
-                    value0: rollout.minimum_samples,
-                  }),
-                },
-                {
-                  title: tr("\u4E0D\u4E00\u81F4\u7387"),
-                  value: `${(stats.mismatch_rate * 100).toFixed(2)}%`,
-                  hint: tr("\u4E0A\u9650 {{value0}}%", {
-                    value0: (rollout.maximum_mismatch_rate * 100).toFixed(2),
-                  }),
-                },
-                {
-                  title: tr("\u9519\u8BEF\u7387"),
-                  value: `${(stats.error_rate * 100).toFixed(2)}%`,
-                  hint: tr("\u4E0A\u9650 {{value0}}%", {
-                    value0: (rollout.maximum_error_rate * 100).toFixed(2),
-                  }),
-                },
-                {
-                  title: tr("\u5019\u9009 p95"),
-                  value: `${stats.candidate_p95_ms.toFixed(0)} ms`,
-                  hint: tr("\u4E3B\u7248\u672C {{value0}} ms", {
-                    value0: stats.primary_p95_ms.toFixed(0),
-                  }),
-                },
-              ].map((metric) => (
-                <div className="panel" key={metric.title}>
-                  <small>{metric.title}</small>
-                  <h2>{metric.value}</h2>
-                  <small className="muted">{metric.hint}</small>
-                </div>
-              ))}
-            </div>
-            {rollout.decision_reason && (
-              <p>
-                {tr("\u6700\u8FD1\u51B3\u7B56\uFF1A")}
-                {rollout.decision_reason}
-              </p>
-            )}
-            <Button
-              variant="outline"
-              icon={<RefreshIcon />}
-              onClick={() => void query.refetch()}
-            >
-              {tr("\u5237\u65B0\u7EDF\u8BA1")}
-            </Button>
-            {permission.admin && rollout.state !== "rolled_back" && (
-              <Form labelAlign="top" layout="vertical" className="rollout-form">
-                <FormField label={tr("\u64CD\u4F5C\u539F\u56E0")} name="reason">
-                  <Input
-                    aria-label={tr("\u64CD\u4F5C\u539F\u56E0")}
-                    value={reason}
-                    onChange={setReason}
-                    placeholder={tr(
-                      "\u586B\u5199\u53D8\u66F4\u4F9D\u636E\u6216\u5173\u8054\u4E8B\u4EF6",
-                    )}
-                  />
-                </FormField>
-                <div className="form-actions">
-                  <Button
-                    theme="danger"
-                    variant="outline"
-                    disabled={busy}
-                    onClick={() => void submit("rollback")}
-                  >
-                    {tr("\u56DE\u6EDA")}
-                  </Button>
-                  {rollout.state === "shadow" && (
-                    <Button
-                      disabled={!ready}
-                      loading={busy}
-                      onClick={() => void submit("promote")}
-                    >
-                      {tr("\u901A\u8FC7\u95E8\u7981\u5E76\u664B\u7EA7")}
-                    </Button>
-                  )}
-                </div>
-              </Form>
-            )}
-          </>
-        ) : notFound && permission.admin ? (
-          <Form
-            labelAlign="top"
-            layout="vertical"
-            onSubmit={() => void submit()}
-          >
-            {Object.entries(fields).map(([key, value]) => (
-              <FormField
-                key={key}
-                label={
-                  {
-                    candidate_adapter_name: tr(
-                      "\u5019\u9009\u9002\u914D\u5668\u540D\u79F0",
-                    ),
-                    candidate_adapter_version: tr(
-                      "\u5019\u9009\u9002\u914D\u5668\u7248\u672C",
-                    ),
-                    sample_rate: tr(
-                      "\u91C7\u6837\u6BD4\u4F8B\uFF080\u20131\uFF09",
-                    ),
-                    minimum_samples: tr("\u6700\u4F4E\u6837\u672C\u6570"),
-                    maximum_mismatch_rate: tr(
-                      "\u6700\u5927\u4E0D\u4E00\u81F4\u7387\uFF080\u20131\uFF09",
-                    ),
-                    maximum_error_rate: tr(
-                      "\u6700\u5927\u9519\u8BEF\u7387\uFF080\u20131\uFF09",
-                    ),
-                  }[key]
-                }
-                name={key}
-              >
-                <Input
-                  aria-label={key}
-                  value={value}
-                  onChange={(v) => setFields((prev) => ({ ...prev, [key]: v }))}
-                />
-              </FormField>
-            ))}
-            <Button type="submit" loading={busy}>
-              {tr("\u542F\u52A8\u5F71\u5B50\u8FD0\u884C")}
-            </Button>
-          </Form>
-        ) : notFound ? (
-          <EmptyState
-            title={tr("\u5C1A\u672A\u542F\u52A8\u9002\u914D\u5668\u53D1\u5E03")}
-            description={tr(
-              "\u7BA1\u7406\u5458\u53EF\u542F\u52A8\u5019\u9009\u9002\u914D\u5668\u7684\u5F71\u5B50\u8FD0\u884C\u3002",
-            )}
-          />
-        ) : null}
-      </div>
-    </Drawer>
-  );
-}
 function Sources() {
   const query = useList<Source>("/sources");
   const permission = usePermissions();
   const write = useWriter();
   const [adding, setAdding] = useState(false);
-  const [source, setSource] = useState<Source | null>(null);
   const [scheduleID, setScheduleID] = useState<string | null>(null);
   const schedule = query.rows.find((row) => row.id === scheduleID);
   const [url, setURL] = useState("");
@@ -623,17 +378,6 @@ function Sources() {
               ellipsis: true,
             },
             {
-              colKey: "adapter_name",
-              title: tr("\u9002\u914D\u5668"),
-              minWidth: 170,
-              cell: ({ row }) => (
-                <>
-                  {row.adapter_name}
-                  <small className="cell-subtitle">{row.adapter_version}</small>
-                </>
-              ),
-            },
-            {
               colKey: "health_state",
               title: tr("\u91C7\u96C6\u5065\u5EB7"),
               width: 135,
@@ -660,21 +404,6 @@ function Sources() {
                   </small>
                 </>
               ),
-            },
-            {
-              colKey: "action",
-              title: tr("\u9002\u914D\u5668\u53D1\u5E03"),
-              width: 130,
-              cell: ({ row }) =>
-                row.tenant_id ? (
-                  <Button variant="text" onClick={() => setSource(row)}>
-                    {tr("\u67E5\u770B\u53D1\u5E03")}
-                  </Button>
-                ) : (
-                  <span className="muted">
-                    {tr("\u5E73\u53F0\u7BA1\u7406")}
-                  </span>
-                ),
             },
           ]}
         />
@@ -725,6 +454,13 @@ function Sources() {
                 "新鲜度期限是资源成功采集后计划的下次时间，加上 2 分钟执行宽限。失败重试不会延长此期限。旧检查点会在各资源下次成功采集后补齐；尚无记录不代表厂商故障。",
               )}
             />
+            <details>
+              <summary>{tr("技术详情")}</summary>
+              <p>
+                {tr("适配器：")} {schedule.adapter_name} ·{" "}
+                {schedule.adapter_version}
+              </p>
+            </details>
             <Table
               rowKey="kind"
               data={schedule.collection?.resources || []}
@@ -885,11 +621,6 @@ function Sources() {
           </Form>
         </div>
       </Drawer>
-      <Rollout
-        key={source?.id || "none"}
-        source={source}
-        onClose={() => setSource(null)}
-      />
     </>
   );
 }
