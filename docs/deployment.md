@@ -6,6 +6,10 @@ The root `compose.yaml` runs PostgreSQL, NATS JetStream, a one-shot migration jo
 
 ## Publish an image
 
+The image name is `ghcr.io/seeridia/statusmon` (registry paths use lowercase). Older packages under `vendor-status-monitoring` are not renamed automatically.
+
+The frontend is built once on the native build platform. Go cross-compiles the same source for each target architecture; only runtime image setup may use emulation. BuildKit caches dependency and build layers between workflow runs. Initial cache population and registry uploads still add time.
+
 The `Publish container` GitHub Actions workflow runs the shared test suite before publishing `linux/amd64` and `linux/arm64` images to GHCR. It uses `GITHUB_TOKEN` with `packages: write`; do not create or commit a registry password.
 
 - Push a version tag such as `v0.1.0` to publish that tag and `sha-<full-commit-sha>`.
