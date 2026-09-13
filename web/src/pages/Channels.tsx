@@ -1,3 +1,4 @@
+import { Panel } from "../components";
 import { DeleteResource } from "../components/DeleteResource";
 import { tr } from "../lib/i18n";
 import { FormField } from "../components";
@@ -313,7 +314,7 @@ export default function Channels() {
           }
         />
       )}
-      <section className="panel">
+      <Panel className="panel">
         <QueryState query={query}>
           <Table
             tableLayout="fixed"
@@ -408,7 +409,7 @@ export default function Channels() {
           />
           <LoadMore query={query} />
         </QueryState>
-      </section>
+      </Panel>
       <ChannelEditor
         visible={adding}
         onClose={() => setAdding(false)}

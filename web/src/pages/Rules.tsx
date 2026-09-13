@@ -1,3 +1,4 @@
+import { Panel } from "../components";
 import { DeleteResource } from "../components/DeleteResource";
 import { formatList, tr } from "../lib/i18n";
 import { FormField } from "../components";
@@ -213,7 +214,7 @@ function Editor({ id }: { id: string }) {
           className="rule-form"
           onSubmit={() => void save()}
         >
-          <section className="panel">
+          <Panel className="panel">
             <div className="form-section-title">
               <Tag theme="primary" variant="light">
                 01
@@ -256,8 +257,8 @@ function Editor({ id }: { id: string }) {
                 disabled={locked}
               />
             </div>
-          </section>
-          <section className="panel">
+          </Panel>
+          <Panel className="panel">
             <div className="form-section-title">
               <Tag theme="primary" variant="light">
                 02
@@ -343,8 +344,8 @@ function Editor({ id }: { id: string }) {
                   )}
                 />
               )}
-          </section>
-          <section className="panel">
+          </Panel>
+          <Panel className="panel">
             <div className="form-section-title">
               <Tag theme="primary" variant="light">
                 03
@@ -399,7 +400,7 @@ function Editor({ id }: { id: string }) {
                 )}
               </p>
             )}
-          </section>
+          </Panel>
           {error && <Alert theme="error" message={error} />}
           <div className="editor-actions">
             <Button
@@ -514,7 +515,7 @@ export default function Rules() {
           message={tr("\u901A\u77E5\u89C4\u5219\u5DF2\u4FDD\u5B58\u3002")}
         />
       )}
-      <section className="panel">
+      <Panel className="panel">
         <QueryState query={query}>
           <Table
             tableLayout="fixed"
@@ -609,7 +610,7 @@ export default function Rules() {
           />
           <LoadMore query={query} />
         </QueryState>
-      </section>
+      </Panel>
     </>
   );
 }

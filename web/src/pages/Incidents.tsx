@@ -1,3 +1,4 @@
+import { Panel } from "../components";
 import { tr } from "../lib/i18n";
 import { Drawer } from "../overlays";
 import { useSearchParams } from "react-router-dom";
@@ -48,7 +49,7 @@ export default function Incidents() {
           </Button>
         }
       />
-      <section className="panel">
+      <Panel className="panel">
         <div className="filter-row">
           <Select
             aria-label={tr("\u7B5B\u9009\u5382\u5546")}
@@ -137,7 +138,7 @@ export default function Incidents() {
           />
           <LoadMore query={query} />
         </QueryState>
-      </section>
+      </Panel>
       <Drawer
         header={tr("\u4E8B\u4EF6\u8BE6\u60C5")}
         size="640px"

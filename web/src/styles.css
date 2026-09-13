@@ -1907,7 +1907,7 @@ a {
   overflow: hidden;
 }
 .vendor-icon:has(img) {
-  background: var(--td-bg-color-container);
+  background: var(--td-gray-color-1);
   border: 1px solid var(--td-border-level-1-color);
 }
 .stat-card {
@@ -1958,4 +1958,93 @@ a {
   .topbar-right > .t-tag {
     display: none;
   }
+}
+
+/* Starter surfaces share the library's default theme and spacing scale. */
+.resource-panel.panel {
+  padding: var(--td-comp-paddingTB-xl) var(--td-comp-paddingLR-xl);
+  border: 0;
+  border-radius: var(--td-radius-medium);
+}
+.metric-card {
+  min-width: 0;
+}
+.metric-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--td-comp-margin-s);
+}
+.metric-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--td-comp-size-xxl);
+  height: var(--td-comp-size-xxl);
+  font-size: var(--td-font-size-headline-small);
+  border-radius: var(--td-radius-circle);
+  color: var(--td-brand-color);
+  background: var(--td-brand-color-light);
+}
+.metric-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--td-comp-margin-s);
+  margin-top: var(--td-comp-margin-l);
+  padding-top: var(--td-comp-paddingTB-m);
+  border-top: 1px solid var(--td-component-stroke);
+  color: var(--td-text-color-secondary);
+  font: var(--td-font-body-small);
+}
+.metric-link:hover {
+  color: var(--td-brand-color);
+}
+.page-heading h1 {
+  font: var(--td-font-title-extraLarge);
+}
+.page-heading p {
+  font: var(--td-font-body-medium);
+  color: var(--td-text-color-secondary);
+}
+.section-head {
+  gap: var(--td-comp-margin-m);
+  flex-wrap: wrap;
+}
+.filter-row {
+  padding-bottom: var(--td-comp-paddingTB-l);
+  border-bottom: 1px solid var(--td-component-stroke);
+}
+@media (max-width: 760px) {
+  .resource-panel.panel {
+    padding: var(--td-comp-paddingTB-m) var(--td-comp-paddingLR-m);
+  }
+  .metric-main {
+    align-items: flex-start;
+  }
+  .metric-icon {
+    width: var(--td-comp-size-m);
+    height: var(--td-comp-size-m);
+    font-size: var(--td-font-size-title-large);
+  }
+  .metric-link {
+    min-height: var(--td-comp-size-xl);
+  }
+}
+
+.metric-body {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.metric-title {
+  display: block;
+  min-height: calc(2 * var(--td-line-height-body-medium));
+}
+.metric-link > svg {
+  flex-shrink: 0;
+}
+.metric-link {
+  flex: 1;
 }

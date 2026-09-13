@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 import {
   Alert,
   Button,
+  Card,
+  Space,
   Empty,
   Form,
   Skeleton,
@@ -42,7 +44,9 @@ export function PageHeading({
         <h1>{title}</h1>
         <p>{description}</p>
       </div>
-      <div className="heading-actions">{actions}</div>
+      <Space className="heading-actions" size="small" breakLine>
+        {actions}
+      </Space>
     </div>
   );
 }
@@ -233,5 +237,24 @@ export function FormField({
     <Form.FormItem {...props}>
       <div className="field-control">{children}</div>
     </Form.FormItem>
+  );
+}
+
+/** Shared Starter-style surface for resource lists and configuration sections. */
+export function Panel({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <Card
+      className={`resource-panel ${className}`}
+      bordered={false}
+      bodyStyle={{ padding: 0 }}
+    >
+      {children}
+    </Card>
   );
 }

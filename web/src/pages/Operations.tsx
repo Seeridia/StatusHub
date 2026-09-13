@@ -1,3 +1,4 @@
+import { Panel } from "../components";
 import { DeleteResource } from "../components/DeleteResource";
 import { ServiceNameInput } from "../components/ServiceNameInput";
 import { formatList, tr } from "../lib/i18n";
@@ -79,7 +80,7 @@ function Deliveries() {
       {notice && (
         <Alert className="query-error" theme="success" message={notice} />
       )}
-      <section className="panel">
+      <Panel className="panel">
         <div className="filter-row">
           <Select
             aria-label={tr("\u6295\u9012\u72B6\u6001\u7B5B\u9009")}
@@ -174,7 +175,7 @@ function Deliveries() {
           />
           <LoadMore query={query} />
         </QueryState>
-      </section>
+      </Panel>
       <Drawer
         header={tr("\u6295\u9012\u8BE6\u60C5")}
         visible={!!id}
@@ -726,7 +727,7 @@ export default function Operations({
           "\u7BA1\u7406\u6570\u636E\u63A5\u5165\u548C\u9AD8\u7EA7\u8FD0\u884C\u914D\u7F6E\uFF0C\u67E5\u770B\u5DE5\u4F5C\u533A\u5BA1\u8BA1\u8BB0\u5F55\u3002",
         )}
       />
-      <section className="panel settings-panel">
+      <Panel className="panel settings-panel">
         <Tabs value={tab} onChange={(v) => setTab(String(v))}>
           <Tabs.TabPanel value="account" label={tr("个人账号")} />
           {permission.admin && (
@@ -760,7 +761,7 @@ export default function Operations({
             <Sources />
           )}
         </div>
-      </section>
+      </Panel>
     </>
   );
 }

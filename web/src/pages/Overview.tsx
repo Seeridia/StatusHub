@@ -1,8 +1,18 @@
+import { Panel } from "../components";
 import { tr } from "../lib/i18n";
 import { Drawer } from "../overlays";
 import { useMemo, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { Button, Card, Input, Radio, Select, Table, Tag } from "tdesign-react";
+import {
+  Button,
+  Card,
+  Statistic,
+  Input,
+  Radio,
+  Select,
+  Table,
+  Tag,
+} from "tdesign-react";
 import {
   ArrowRightIcon,
   CheckCircleIcon,
@@ -146,24 +156,32 @@ export default function Overview({
         {!vendorsOnly && (
           <div className="stats-grid">
             {stats.map((stat) => (
-              <button
-                className={`stat-card ${stat.className}`}
+              <Card
                 key={stat.title}
-                onClick={() => navigate(stat.path)}
+                className="metric-card"
+                bodyClassName="metric-body"
+                bordered={false}
               >
-                <div className="stat-title">
-                  {stat.title}
-                  <span>{stat.icon}</span>
+                <div className="metric-main">
+                  <Statistic
+                    title={<span className="metric-title">{stat.title}</span>}
+                    value={stat.value}
+                    unit={tr("个")}
+                    color={
+                      stat.className
+                        ? "var(--td-brand-color)"
+                        : "var(--td-text-color-primary)"
+                    }
+                  />
+                  <span className="metric-icon" aria-hidden="true">
+                    {stat.icon}
+                  </span>
                 </div>
-                <div className="stat-value">
-                  {stat.value}
-                  <small>{tr("\u4E2A")}</small>
-                </div>
-                <div className="stat-foot">
-                  {stat.hint}
-                  <ArrowRightIcon />
-                </div>
-              </button>
+                <a className="metric-link" href={`#${stat.path}`}>
+                  <span>{stat.hint}</span>
+                  <ArrowRightIcon aria-hidden="true" />
+                </a>
+              </Card>
             ))}
           </div>
         )}
@@ -216,7 +234,7 @@ export default function Overview({
           </div>
         )}
         <div className={vendorsOnly ? "" : "overview-grid"}>
-          <section className="panel vendors-panel">
+          <Panel className="panel vendors-panel">
             <div className="section-head">
               <div>
                 <h2>
@@ -359,10 +377,10 @@ export default function Overview({
                 ]}
               />
             )}
-          </section>
+          </Panel>
           {!vendorsOnly && (
             <aside className="overview-aside">
-              <section className="panel">
+              <Panel className="panel">
                 <div className="section-head">
                   <h2>{tr("\u6700\u8FD1\u4E8B\u4EF6")}</h2>
                   <Button variant="text" onClick={() => navigate("/incidents")}>
@@ -397,8 +415,8 @@ export default function Overview({
                     />
                   )}
                 </QueryState>
-              </section>
-              <section className="panel notification-summary">
+              </Panel>
+              <Panel className="panel notification-summary">
                 <span className="feature-icon">
                   <NotificationIcon />
                 </span>
@@ -426,7 +444,7 @@ export default function Overview({
                   {tr("\u7BA1\u7406\u901A\u77E5\u6E20\u9053")}
                   <ArrowRightIcon />
                 </Button>
-              </section>
+              </Panel>
             </aside>
           )}
         </div>
