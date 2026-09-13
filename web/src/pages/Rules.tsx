@@ -1,3 +1,4 @@
+import { DeleteResource } from "../components/DeleteResource";
 import { formatList, tr } from "../lib/i18n";
 import { FormField } from "../components";
 import { useEffect, useRef, useState } from "react";
@@ -596,6 +597,18 @@ export default function Rules() {
                   >
                     {permission.write ? tr("\u7F16\u8F91") : tr("\u67E5\u770B")}
                   </Button>
+                ),
+              },
+              {
+                colKey: "delete",
+                title: tr("操作"),
+                width: 90,
+                cell: ({ row }) => (
+                  <DeleteResource
+                    path={`/subscriptions/${row.id}`}
+                    name={row.name}
+                    disabled={!permission.write}
+                  />
                 ),
               },
             ]}

@@ -193,7 +193,7 @@ func (s *Store) SetSourceEnabled(ctx context.Context, tenantID, sourceID string,
 		return SourceView{}, fmt.Errorf("postgres store: update source: begin: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	tag, err := tx.Exec(ctx, `UPDATE sources SET enabled=$3,updated_at=statement_timestamp() WHERE id=$2 AND tenant_id=$1`, tenantID, sourceID, enabled)
+	tag, err := tx.Exec(ctx, `UPDATE sources SET enabled=$3,updated_at=statement_timestamp() WHERE id=$2 AND tenant_id=$1 AND deleted_at IS NULL`, tenantID, sourceID, enabled)
 	if err != nil {
 		return SourceView{}, fmt.Errorf("postgres store: update source: %w", err)
 	}
@@ -269,11 +269,11 @@ func (s *Store) UpdateSubscription(ctx context.Context, params UpdateSubscriptio
 	var version int
 	err = tx.QueryRow(ctx, `
 UPDATE subscriptions SET name=$3,enabled=$4,rule=$5,rule_version=rule_version+1,updated_at=statement_timestamp()
-WHERE id=$1 AND tenant_id=$2 AND rule_version=$6 RETURNING rule_version`,
+WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL AND rule_version=$6 RETURNING rule_version`,
 		params.ID, params.TenantID, params.Name, params.Enabled, params.Rule, params.ExpectedRuleVersion).Scan(&version)
 	if errors.Is(err, pgx.ErrNoRows) {
 		var exists bool
-		_ = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM subscriptions WHERE id=$1 AND tenant_id=$2)`, params.ID, params.TenantID).Scan(&exists)
+		_ = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM subscriptions WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL)`, params.ID, params.TenantID).Scan(&exists)
 		if exists {
 			return SubscriptionView{}, ErrConflict
 		}
@@ -307,7 +307,7 @@ func (s *Store) SetSubscriptionEnabled(ctx context.Context, tenantID, subscripti
 		return SubscriptionView{}, fmt.Errorf("postgres store: disable subscription: begin: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	tag, err := tx.Exec(ctx, `UPDATE subscriptions SET enabled=$3,updated_at=statement_timestamp() WHERE tenant_id=$1 AND id=$2`, tenantID, subscriptionID, enabled)
+	tag, err := tx.Exec(ctx, `UPDATE subscriptions SET enabled=$3,updated_at=statement_timestamp() WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL`, tenantID, subscriptionID, enabled)
 	if err != nil {
 		return SubscriptionView{}, fmt.Errorf("postgres store: disable subscription: %w", err)
 	}
@@ -377,7 +377,7 @@ VALUES(gen_random_uuid(),$1,NULLIF($2,'')::uuid,NULLIF($3,'')::uuid,NULLIF($4,''
 	for _, endpointID := range params.EndpointIDs {
 		tag, err := tx.Exec(ctx, `
 INSERT INTO subscription_endpoints(subscription_id,endpoint_id)
-SELECT $1,e.id FROM endpoints e WHERE e.id=$2 AND e.tenant_id=$3
+SELECT $1,e.id FROM endpoints e WHERE e.id=$2 AND e.tenant_id=$3 AND e.deleted_at IS NULL FOR SHARE OF e
 ON CONFLICT DO NOTHING`, params.ID, endpointID, params.TenantID)
 		if err != nil {
 			return fmt.Errorf("postgres store: insert subscription endpoint: %w", err)
@@ -448,7 +448,7 @@ func (s *Store) UpdateEndpoint(ctx context.Context, params CreateEndpointParams,
 	err = tx.QueryRow(ctx, `
 UPDATE endpoints SET channel=$3,name=$4,enabled=$5,encrypted_config=$6,key_id=$7,
     secret_version=$8,rate_limit_config=$9,health_state='unknown',updated_at=statement_timestamp()
-WHERE id=$1 AND tenant_id=$2 AND secret_version=$10
+WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL AND secret_version=$10
 RETURNING id,tenant_id,channel,name,enabled,key_id,secret_version,health_state,rate_limit_config,created_at,updated_at`,
 		params.ID, params.TenantID, params.Channel, params.Name, params.Enabled, params.EncryptedConfig,
 		params.KeyID, params.SecretVersion, params.RateLimits, expectedSecretVersion).Scan(
@@ -456,7 +456,7 @@ RETURNING id,tenant_id,channel,name,enabled,key_id,secret_version,health_state,r
 		&item.SecretVersion, &item.HealthState, &item.RateLimits, &item.CreatedAt, &item.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		var exists bool
-		_ = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM endpoints WHERE id=$1 AND tenant_id=$2)`, params.ID, params.TenantID).Scan(&exists)
+		_ = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM endpoints WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL)`, params.ID, params.TenantID).Scan(&exists)
 		if exists {
 			return EndpointView{}, ErrConflict
 		}
@@ -481,7 +481,7 @@ func (s *Store) SetEndpointEnabled(ctx context.Context, tenantID, endpointID str
 		return EndpointView{}, fmt.Errorf("postgres store: enable endpoint: begin: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	tag, err := tx.Exec(ctx, `UPDATE endpoints SET enabled=$3,updated_at=statement_timestamp() WHERE tenant_id=$1 AND id=$2`, tenantID, endpointID, enabled)
+	tag, err := tx.Exec(ctx, `UPDATE endpoints SET enabled=$3,updated_at=statement_timestamp() WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL`, tenantID, endpointID, enabled)
 	if err != nil {
 		return EndpointView{}, fmt.Errorf("postgres store: enable endpoint: %w", err)
 	}

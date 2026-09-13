@@ -151,3 +151,18 @@ admin/owner 可查看审计记录。适配器升级、影子验证和回滚由�
 保存后在渠道列表发送测试通知，确认飞书群收到消息，再在通知规则中选择该渠道。保存操作本身不发送消息。签名密钥加密存储，不会在普通响应中回显。若还配置了关键词或 IP 白名单，测试和正式消息都必须满足对应规则；签名校验失败时检查密钥和服务器时钟。
 
 Choose **Feishu / Lark** under Notification channels, enter the custom bot webhook URL and its signing secret, then save and send a test notification. Enable signature verification in the bot security settings. Attach the channel to a notification rule to receive event notifications. The signing-key ID used by Generic Webhook is not required for Feishu.
+
+
+## Delete configuration / 删除配置
+
+The **Delete** action is available in notification channels, notification rules, and workspace data sources. A confirmation dialog describes the impact. Deletion hides the configuration and stops future collection or notification work; historical events, delivery records, and audit records remain available. Work already in progress may finish. There is no restore action; create a new configuration if needed.
+
+Deleting a channel also removes it from linked rules. Rules with no remaining channels are disabled; other rules keep their remaining channels. Workspace users cannot delete platform shared data sources. Deletion uses the same role permissions as editing the corresponding resource.
+
+在通知渠道、通知规则和工作区数据源列表中点击**删除**，确认后配置会从列表移除，停止后续采集或通知。历史事件、投递记录和审计记录保留；已开始执行的任务仍可能完成。目前不提供恢复入口，需要时可重新创建配置。
+
+删除渠道会同时解除通知规则中的引用；没有剩余渠道的规则会自动停用，其他规则保留其剩余渠道。平台共享数据源由平台维护，工作区不能删除。删除权限与对应配置的编辑权限一致。
+
+Upgrade with database migration **000014** before running this application version. The migration adds tombstone fields without removing existing data. Downgrade is refused if a deleted source URL has been re-added and would violate the older unique constraint; resolve those duplicates explicitly before attempting a downgrade. A successful downgrade removes tombstones but keeps the affected configurations disabled.
+
+升级时需先执行数据库迁移 **000014**。迁移仅新增软删除字段，不删除已有数据。若删除的数据源地址已被重新添加，回退迁移会因旧版唯一约束而失败，需要先明确处理重复记录；成功回退后软删除标记移除，但相关配置仍保持停用。

@@ -4,6 +4,13 @@ import { initReactI18next } from "react-i18next";
 export type AppLanguage = "en" | "zh";
 
 const english: Record<string, string> = {
+  删除: "Delete",
+  删除配置: "Delete configuration",
+  确认删除: "Confirm deletion",
+  "确认删除“{{name}}”？配置将从列表移除，历史事件和投递记录保留。已开始执行的任务可能仍会完成。":
+    "Delete “{{name}}”? This removes the configuration from the list and preserves historical events and deliveries. Tasks already in progress may still finish.",
+  "该渠道将从通知规则中移除；失去全部接收渠道的规则会自动停用。":
+    "This channel will be removed from notification rules. Rules with no remaining channels will be disabled.",
   飞书: "Feishu / Lark",
   "请填写飞书机器人的签名密钥。": "Enter the bot signing secret.",
   "使用飞书群自定义机器人的 Webhook 地址，并开启签名校验。签名密钥填写机器人安全设置中的密钥。保存后可发送测试通知。":

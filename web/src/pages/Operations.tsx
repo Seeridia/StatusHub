@@ -1,3 +1,4 @@
+import { DeleteResource } from "../components/DeleteResource";
 import { ServiceNameInput } from "../components/ServiceNameInput";
 import { formatList, tr } from "../lib/i18n";
 import { Team, PersonalAccount } from "./Team";
@@ -404,6 +405,21 @@ function Sources() {
                   </small>
                 </>
               ),
+            },
+            {
+              colKey: "delete",
+              title: tr("操作"),
+              width: 120,
+              cell: ({ row }) =>
+                row.tenant_id ? (
+                  <DeleteResource
+                    path={`/sources/${row.id}`}
+                    name={row.vendor_name}
+                    disabled={!permission.write}
+                  />
+                ) : (
+                  <span className="muted">{tr("平台管理")}</span>
+                ),
             },
           ]}
         />

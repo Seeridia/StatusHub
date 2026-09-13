@@ -317,6 +317,10 @@ paths:
       parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Source'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
       requestBody: {required: true, content: {application/json: {schema: {type: object, required: [enabled], properties: {enabled: {type: boolean}}}}}}
       responses: {'200': {description: "Updated source"}}
+    delete:
+      operationId: deleteSource
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Source'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      responses: {'200': {description: "Workspace source soft-deleted; history retained. Returns id and deleted=true"}, '404': {description: "Source not owned by workspace"}}
   /v1/tenants/{tenant}/sources/{source}/adapter-rollouts:
     post:
       operationId: createAdapterRollout
@@ -401,9 +405,9 @@ paths:
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SubscriptionInput'}}}}
       responses: {'200': {description: "Subscription updated"}, '409': {$ref: '#/components/responses/Problem'}}
     delete:
-      operationId: disableSubscription
+      operationId: deleteSubscription
       parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Subscription'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
-      responses: {'200': {description: "Subscription disabled; history retained"}}
+      responses: {'200': {description: "Subscription soft-deleted; history retained. Returns id and deleted=true"}}
   /v1/tenants/{tenant}/endpoints:
     get:
       operationId: listEndpoints
@@ -425,9 +429,9 @@ paths:
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/EndpointInput'}}}}
       responses: {'200': {description: "Endpoint configuration rotated"}, '409': {$ref: '#/components/responses/Problem'}}
     delete:
-      operationId: disableEndpoint
+      operationId: deleteEndpoint
       parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Endpoint'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
-      responses: {'200': {description: "Endpoint disabled; delivery history retained"}}
+      responses: {'200': {description: "Endpoint soft-deleted; rule references removed; empty rules disabled; history retained. Returns id and deleted=true"}}
   /v1/tenants/{tenant}/endpoints/{endpoint}/test:
     post:
       operationId: testEndpoint

@@ -24,6 +24,7 @@ import (
 const maximumRequestBody = 1 << 20
 
 type Repository interface {
+	DeleteResource(context.Context, string, string, string, store.AuditActor) error
 	Ping(context.Context) error
 	ResolveTenant(context.Context, string) (store.Tenant, error)
 	ListVendorStatuses(context.Context, string) ([]store.VendorStatus, error)
@@ -139,6 +140,7 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /readyz", s.handleReady)
 	s.mux.HandleFunc("GET /openapi.yaml", s.handleOpenAPI)
 	s.mux.HandleFunc("GET /ui/", s.handleUI)
+	s.mux.Handle("DELETE /v1/tenants/{tenant}/sources/{source}", s.authorize(auth.PermissionSubscriptionWrite, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { s.handleDeleteResource(w, r, "source") })))
 	s.mux.HandleFunc("GET /auth/{tenant}/login", s.handleOIDCStart)
 	s.mux.HandleFunc("GET /auth/callback", s.handleOIDCCallback)
 	s.mux.Handle("GET /auth/session", s.authorize(auth.PermissionRead, http.HandlerFunc(s.handleSession)))
@@ -168,13 +170,13 @@ func (s *Server) routes() {
 	s.mux.Handle("POST /v1/tenants/{tenant}/subscriptions", s.authorize(auth.PermissionSubscriptionWrite, http.HandlerFunc(s.handleCreateSubscription)))
 	s.mux.Handle("GET /v1/tenants/{tenant}/subscriptions/{subscription}", s.authorize(auth.PermissionRead, http.HandlerFunc(s.handleSubscription)))
 	s.mux.Handle("PUT /v1/tenants/{tenant}/subscriptions/{subscription}", s.authorize(auth.PermissionSubscriptionWrite, http.HandlerFunc(s.handleUpdateSubscription)))
-	s.mux.Handle("DELETE /v1/tenants/{tenant}/subscriptions/{subscription}", s.authorize(auth.PermissionSubscriptionWrite, http.HandlerFunc(s.handleDisableSubscription)))
+	s.mux.Handle("DELETE /v1/tenants/{tenant}/subscriptions/{subscription}", s.authorize(auth.PermissionSubscriptionWrite, http.HandlerFunc(s.handleDeleteSubscription)))
 
 	s.mux.Handle("GET /v1/tenants/{tenant}/endpoints", s.authorize(auth.PermissionRead, http.HandlerFunc(s.handleEndpoints)))
 	s.mux.Handle("POST /v1/tenants/{tenant}/endpoints", s.authorize(auth.PermissionEndpointWrite, http.HandlerFunc(s.handleCreateEndpoint)))
 	s.mux.Handle("GET /v1/tenants/{tenant}/endpoints/{endpoint}", s.authorize(auth.PermissionRead, http.HandlerFunc(s.handleEndpoint)))
 	s.mux.Handle("PUT /v1/tenants/{tenant}/endpoints/{endpoint}", s.authorize(auth.PermissionEndpointWrite, http.HandlerFunc(s.handleUpdateEndpoint)))
-	s.mux.Handle("DELETE /v1/tenants/{tenant}/endpoints/{endpoint}", s.authorize(auth.PermissionEndpointWrite, http.HandlerFunc(s.handleDisableEndpoint)))
+	s.mux.Handle("DELETE /v1/tenants/{tenant}/endpoints/{endpoint}", s.authorize(auth.PermissionEndpointWrite, http.HandlerFunc(s.handleDeleteEndpoint)))
 	s.mux.Handle("POST /v1/tenants/{tenant}/endpoints/{endpoint}/test", s.authorize(auth.PermissionEndpointWrite, http.HandlerFunc(s.handleTestEndpoint)))
 	s.mux.Handle("GET /v1/tenants/{tenant}/endpoint-tests/{test}", s.authorize(auth.PermissionRead, http.HandlerFunc(s.handleEndpointTest)))
 

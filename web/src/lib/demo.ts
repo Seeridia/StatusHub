@@ -237,6 +237,34 @@ export async function demoRequest(raw: string, init: RequestInit) {
   const path = parsed.pathname.replace(/^\/v1\/tenants\/[^/]+/, "");
   const method = init.method || "GET";
   const input = init.body ? JSON.parse(String(init.body)) : {};
+  if (method === "DELETE") {
+    const [, resource, id] = path.split("/");
+    const items =
+      resource === "sources"
+        ? sources
+        : resource === "subscriptions"
+          ? subscriptions
+          : resource === "endpoints"
+            ? endpoints
+            : undefined;
+    if (items) {
+      const index = items.findIndex((item) => item.id === id);
+      if (index >= 0) items.splice(index, 1);
+      if (resource === "endpoints") {
+        for (const rule of subscriptions) {
+          if (rule.endpoint_ids.includes(id)) {
+            rule.endpoint_ids = rule.endpoint_ids.filter(
+              (endpoint) => endpoint !== id,
+            );
+            rule.rule_version += 1;
+            if (!rule.endpoint_ids.length) rule.enabled = false;
+          }
+        }
+      }
+      return { id, deleted: true };
+    }
+  }
+
   if (path === "/auth/session" || path === "/session")
     return {
       tenant: { id: "demo", slug: "demo", name: tr("Acme \u5DE5\u4F5C\u533A") },

@@ -484,13 +484,8 @@ func (s *Server) handleUpdateSubscription(response http.ResponseWriter, request 
 	})
 }
 
-func (s *Server) handleDisableSubscription(response http.ResponseWriter, request *http.Request) {
-	body := []byte(`{"enabled":false}`)
-	details := requestDetails(request)
-	s.executeIdempotent(response, request, body, request.PathValue("subscription"), func(resourceID string) (int, any, error) {
-		item, err := s.repository.SetSubscriptionEnabled(request.Context(), details.Tenant.ID, resourceID, false, actor(request))
-		return http.StatusOK, item, err
-	})
+func (s *Server) handleDeleteSubscription(response http.ResponseWriter, request *http.Request) {
+	s.handleDeleteResource(response, request, "subscription")
 }
 
 func marshalAndValidateRule(rule subscription.Rule) (json.RawMessage, error) {
@@ -595,13 +590,8 @@ func (s *Server) handleUpdateEndpoint(response http.ResponseWriter, request *htt
 	})
 }
 
-func (s *Server) handleDisableEndpoint(response http.ResponseWriter, request *http.Request) {
-	body := []byte(`{"enabled":false}`)
-	details := requestDetails(request)
-	s.executeIdempotent(response, request, body, request.PathValue("endpoint"), func(resourceID string) (int, any, error) {
-		item, err := s.repository.SetEndpointEnabled(request.Context(), details.Tenant.ID, resourceID, false, actor(request))
-		return http.StatusOK, item, err
-	})
+func (s *Server) handleDeleteEndpoint(response http.ResponseWriter, request *http.Request) {
+	s.handleDeleteResource(response, request, "endpoint")
 }
 
 func (s *Server) endpointParams(ctx context.Context, tenantID, endpointID string, version int, input endpointRequest) (store.CreateEndpointParams, error) {
@@ -761,4 +751,14 @@ func parsePositiveInt(value string, fallback int) (int, error) {
 		return 0, errors.New("expected a positive integer")
 	}
 	return parsed, nil
+}
+
+func (s *Server) handleDeleteResource(w http.ResponseWriter, r *http.Request, kind string) {
+	details := requestDetails(r)
+	s.executeIdempotent(w, r, []byte(`{"deleted":true}`), r.PathValue(kind), func(id string) (int, any, error) {
+		if err := s.repository.DeleteResource(r.Context(), details.Tenant.ID, id, kind, actor(r)); err != nil {
+			return 0, nil, err
+		}
+		return http.StatusOK, map[string]any{"id": id, "deleted": true}, nil
+	})
 }

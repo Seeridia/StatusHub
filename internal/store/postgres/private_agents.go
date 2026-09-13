@@ -121,6 +121,7 @@ WITH candidates AS (
     JOIN private_agent_endpoints pae ON pae.endpoint_id=d.endpoint_id AND pae.agent_id=$1
     JOIN private_agents pa ON pa.id=pae.agent_id AND pa.enabled
     JOIN endpoints ep ON ep.id=d.endpoint_id AND ep.enabled AND ep.channel='private_agent'
+    JOIN subscriptions active_rule ON active_rule.id=d.subscription_id AND active_rule.deleted_at IS NULL
     WHERE (
         (d.status IN ('queued','retry_wait') AND d.next_attempt_at <= statement_timestamp()
          AND (d.lease_until IS NULL OR d.lease_until <= statement_timestamp()))
@@ -129,6 +130,7 @@ WITH candidates AS (
       AND NOT EXISTS (
           SELECT 1 FROM deliveries earlier
           WHERE earlier.endpoint_id=d.endpoint_id
+                AND EXISTS (SELECT 1 FROM subscriptions earlier_rule WHERE earlier_rule.id=earlier.subscription_id AND earlier_rule.deleted_at IS NULL)
             AND earlier.status IN ('queued','retry_wait','sending')
             AND (earlier.created_at,earlier.id) < (d.created_at,d.id)
       )

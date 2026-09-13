@@ -1,3 +1,4 @@
+import { DeleteResource } from "../components/DeleteResource";
 import { tr } from "../lib/i18n";
 import { FormField } from "../components";
 import { Drawer } from "../overlays";
@@ -380,17 +381,26 @@ export default function Channels() {
               {
                 colKey: "actions",
                 title: tr("\u64CD\u4F5C"),
-                width: 120,
+                width: 190,
                 cell: ({ row }) => (
-                  <Button
-                    variant="text"
-                    disabled={
-                      !permission.write || !row.enabled || testing || pending
-                    }
-                    onClick={() => void test(row)}
-                  >
-                    {tr("\u53D1\u9001\u6D4B\u8BD5")}
-                  </Button>
+                  <>
+                    {" "}
+                    <Button
+                      variant="text"
+                      disabled={
+                        !permission.write || !row.enabled || testing || pending
+                      }
+                      onClick={() => void test(row)}
+                    >
+                      {tr("\u53D1\u9001\u6D4B\u8BD5")}
+                    </Button>
+                    <DeleteResource
+                      path={`/endpoints/${row.id}`}
+                      name={row.name}
+                      channel
+                      disabled={!permission.write || testing || pending}
+                    />
+                  </>
                 ),
               },
             ]}

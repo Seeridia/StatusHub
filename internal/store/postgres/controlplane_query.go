@@ -191,7 +191,7 @@ SELECT s.id,s.tenant_id,s.vendor_id,v.slug,v.name,s.requested_url,COALESCE(s.fin
        s.source_type,COALESCE(s.adapter_name,''),COALESCE(s.adapter_version,''),s.enabled,s.health_state,
        s.failure_streak,s.last_attempt_at,s.last_success_at,s.next_poll_at,s.updated_at
 FROM sources s JOIN vendors v ON v.id=s.vendor_id
-WHERE (s.tenant_id IS NULL OR s.tenant_id=$1)
+WHERE s.deleted_at IS NULL AND (s.tenant_id IS NULL OR s.tenant_id=$1)
   AND ($2::timestamptz IS NULL OR (s.updated_at,s.id)<($2,$3::uuid))
 ORDER BY s.updated_at DESC,s.id DESC LIMIT $4`, tenantID, cursorTime, cursorID, limit)
 	if err != nil {
@@ -244,7 +244,7 @@ SELECT s.id,s.tenant_id,s.vendor_id,v.slug,v.name,s.requested_url,COALESCE(s.fin
        s.source_type,COALESCE(s.adapter_name,''),COALESCE(s.adapter_version,''),s.enabled,s.health_state,
        s.failure_streak,s.last_attempt_at,s.last_success_at,s.next_poll_at,s.updated_at
 FROM sources s JOIN vendors v ON v.id=s.vendor_id
-WHERE s.id=$2 AND (s.tenant_id IS NULL OR s.tenant_id=$1)`, tenantID, sourceID))
+WHERE s.deleted_at IS NULL AND s.id=$2 AND (s.tenant_id IS NULL OR s.tenant_id=$1)`, tenantID, sourceID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return SourceView{}, ErrNotFound
 	}
@@ -388,7 +388,7 @@ func (s *Store) ListSubscriptions(ctx context.Context, tenantID string, cursor *
 	cursorTime, cursorID := cursorValues(cursor)
 	rows, err := tx.Query(ctx, `
 SELECT id,tenant_id,name,enabled,rule_version,rule,created_at,updated_at
-FROM subscriptions WHERE tenant_id=$1
+FROM subscriptions WHERE deleted_at IS NULL AND tenant_id=$1
   AND ($2::timestamptz IS NULL OR (updated_at,id)<($2,$3::uuid))
 ORDER BY updated_at DESC,id DESC LIMIT $4`, tenantID, cursorTime, cursorID, limit)
 	if err != nil {
@@ -430,7 +430,7 @@ func (s *Store) Subscription(ctx context.Context, tenantID, subscriptionID strin
 	var item SubscriptionView
 	err = tx.QueryRow(ctx, `
 SELECT id,tenant_id,name,enabled,rule_version,rule,created_at,updated_at
-FROM subscriptions WHERE tenant_id=$1 AND id=$2`, tenantID, subscriptionID).Scan(
+FROM subscriptions WHERE deleted_at IS NULL AND tenant_id=$1 AND id=$2`, tenantID, subscriptionID).Scan(
 		&item.ID, &item.TenantID, &item.Name, &item.Enabled, &item.RuleVersion,
 		&item.Rule, &item.CreatedAt, &item.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -497,7 +497,7 @@ func (s *Store) ListEndpoints(ctx context.Context, tenantID string, cursor *Time
 	cursorTime, cursorID := cursorValues(cursor)
 	rows, err := tx.Query(ctx, `
 SELECT id,tenant_id,channel,name,enabled,key_id,secret_version,health_state,rate_limit_config,created_at,updated_at
-FROM endpoints WHERE tenant_id=$1
+FROM endpoints WHERE deleted_at IS NULL AND tenant_id=$1
   AND ($2::timestamptz IS NULL OR (updated_at,id)<($2,$3::uuid))
 ORDER BY updated_at DESC,id DESC LIMIT $4`, tenantID, cursorTime, cursorID, limit)
 	if err != nil {
@@ -534,7 +534,7 @@ func (s *Store) Endpoint(ctx context.Context, tenantID, endpointID string, inclu
 	if includeSecret {
 		columns += `,encrypted_config`
 	}
-	row := tx.QueryRow(ctx, `SELECT `+columns+` FROM endpoints WHERE tenant_id=$1 AND id=$2`, tenantID, endpointID)
+	row := tx.QueryRow(ctx, `SELECT `+columns+` FROM endpoints WHERE deleted_at IS NULL AND tenant_id=$1 AND id=$2`, tenantID, endpointID)
 	var item EndpointSecret
 	if includeSecret {
 		err = row.Scan(&item.ID, &item.TenantID, &item.Channel, &item.Name, &item.Enabled, &item.KeyID,

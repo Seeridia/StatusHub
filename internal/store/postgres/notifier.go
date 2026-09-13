@@ -43,7 +43,7 @@ WITH tenant_candidates AS (
              AND (d.lease_until IS NULL OR d.lease_until <= statement_timestamp()))
             OR (d.status='sending' AND d.lease_until <= statement_timestamp())
         ))
-      ) AND ep.enabled AND ep.channel <> 'private_agent'
+      ) AND ep.enabled AND ep.channel <> 'private_agent' AND EXISTS (SELECT 1 FROM subscriptions active_rule WHERE active_rule.id=d.subscription_id AND active_rule.deleted_at IS NULL)
     GROUP BY ep.tenant_id ORDER BY oldest LIMIT $2
 ), candidates AS (
     SELECT picked.id
@@ -51,7 +51,7 @@ WITH tenant_candidates AS (
     CROSS JOIN LATERAL (
         SELECT d.id
         FROM deliveries d JOIN endpoints ep ON ep.id=d.endpoint_id
-        WHERE ep.tenant_id=tenant.tenant_id AND ep.enabled AND ep.channel <> 'private_agent'
+        WHERE ep.tenant_id=tenant.tenant_id AND ep.enabled AND ep.channel <> 'private_agent' AND EXISTS (SELECT 1 FROM subscriptions active_rule WHERE active_rule.id=d.subscription_id AND active_rule.deleted_at IS NULL)
           AND (
             ($5='critical' AND d.queue_class='critical' AND d.status='queued'
              AND d.next_attempt_at <= statement_timestamp()
@@ -68,6 +68,7 @@ WITH tenant_candidates AS (
           AND NOT EXISTS (
               SELECT 1 FROM deliveries earlier
               WHERE earlier.endpoint_id=d.endpoint_id
+                AND EXISTS (SELECT 1 FROM subscriptions earlier_rule WHERE earlier_rule.id=earlier.subscription_id AND earlier_rule.deleted_at IS NULL)
                 AND earlier.status IN ('queued','retry_wait','sending')
                 AND (earlier.created_at, earlier.id) < (d.created_at, d.id)
           )

@@ -343,3 +343,38 @@ func TestLarkEndpointCreation(t *testing.T) {
 		})
 	}
 }
+
+func (r *repositoryStub) DeleteResource(context.Context, string, string, string, store.AuditActor) error {
+	return nil
+}
+
+type deletionVerifier struct{ role auth.Role }
+
+func (v deletionVerifier) Authenticate(context.Context, string, string) (auth.Identity, error) {
+	return auth.Identity{TenantID: testTenantID, ActorType: "service_account", ActorID: "tester", Role: v.role}, nil
+}
+func TestDeleteResourcePermissions(t *testing.T) {
+	for _, resource := range []string{"sources", "subscriptions", "endpoints"} {
+		for _, role := range []auth.Role{auth.RoleViewer, auth.RoleOperator, auth.RoleAdmin, auth.RoleOwner} {
+			t.Run(resource+"/"+string(role), func(t *testing.T) {
+				repository := &repositoryStub{}
+				server := newTestServer(t, repository, deletionVerifier{role}, nil)
+				request := httptest.NewRequest(http.MethodDelete, "/v1/tenants/acme/"+resource+"/"+testEndpointID, nil)
+				request.Header.Set("Authorization", "Bearer valid")
+				request.Header.Set("Idempotency-Key", "delete-test")
+				response := httptest.NewRecorder()
+				server.Handler().ServeHTTP(response, request)
+				want := http.StatusOK
+				if role == auth.RoleViewer {
+					want = http.StatusForbidden
+				}
+				if response.Code != want {
+					t.Fatalf("status=%d want=%d body=%s", response.Code, want, response.Body.String())
+				}
+				if want == http.StatusOK && !strings.Contains(response.Body.String(), `"deleted":true`) {
+					t.Fatal(response.Body.String())
+				}
+			})
+		}
+	}
+}
