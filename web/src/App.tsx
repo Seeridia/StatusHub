@@ -15,6 +15,7 @@ import {
   Alert,
   Breadcrumb,
   Button,
+  Dropdown,
   Form,
   Input,
   Layout,
@@ -25,6 +26,8 @@ import {
   Tooltip,
 } from "tdesign-react";
 import {
+  TranslateIcon,
+  ModeLightIcon,
   AppIcon,
   ChartBarIcon,
   ChevronRightIcon,
@@ -56,6 +59,26 @@ const Rules = lazy(() => import("./pages/Rules"));
 const Channels = lazy(() => import("./pages/Channels"));
 const Operations = lazy(() => import("./pages/Operations"));
 function LanguageSelect({ compact = false }: { compact?: boolean }) {
+  if (compact)
+    return (
+      <Dropdown
+        trigger="click"
+        options={[
+          { value: "en", content: "English" },
+          { value: "zh", content: tr("简体中文") },
+        ]}
+        onClick={(item) => setLanguage(String(item.value) as "en" | "zh")}
+      >
+        <Button
+          variant="text"
+          theme="default"
+          shape="square"
+          aria-label={tr("界面语言")}
+          title={tr("界面语言")}
+          icon={<TranslateIcon />}
+        />
+      </Dropdown>
+    );
   return (
     <Select
       className={compact ? "language-select is-compact" : "language-select"}
@@ -439,18 +462,11 @@ function Workspace({
           {tr("\u8DF3\u5230\u4E3B\u8981\u5185\u5BB9")}
         </a>
         <aside className="sidebar">
-          <a className="brand" href="#/overview">
+          <a className="brand" href="#/overview" aria-label="StatusMon">
             <span className="brand-icon">
               <ChartBarIcon />
             </span>
-            {!collapsed && (
-              <span>
-                StatusMon
-                <small>
-                  {tr("\u5382\u5546\u72B6\u6001\u5DE5\u4F5C\u53F0")}
-                </small>
-              </span>
-            )}
+            {!collapsed && <span>StatusMon</span>}
           </a>
           <div className="workspace-chip">
             <UserIcon />
@@ -461,7 +477,7 @@ function Workspace({
               </span>
             )}
           </div>
-          <div className="nav-caption">{tr("\u5DE5\u4F5C\u53F0")}</div>
+
           <Menu
             width={["100%", "100%"]}
             value={active.path}
@@ -482,14 +498,6 @@ function Workspace({
               </Menu.MenuItem>
             ))}
           </Menu>
-          <div className="sidebar-foot">
-            <span className="sidebar-status">
-              <CloudIcon />
-              {!collapsed &&
-                tr("\u7EDF\u4E00\u76D1\u63A7\uFF0C\u53CA\u65F6\u54CD\u5E94")}
-            </span>
-            {!collapsed && <small>StatusMon Console</small>}
-          </div>
         </aside>
         {mobileOpen && (
           <button
@@ -523,38 +531,46 @@ function Workspace({
             </div>
             <div className="topbar-right">
               <LanguageSelect compact />
-              <Tag
-                variant="light"
-                theme={
-                  live === "live"
-                    ? "success"
-                    : live === "demo"
-                      ? "primary"
-                      : "warning"
-                }
-              >
-                {
+              {live !== "demo" && (
+                <Tag
+                  variant="light"
+                  theme={
+                    live === "live"
+                      ? "success"
+                      : live === "demo"
+                        ? "primary"
+                        : "warning"
+                  }
+                >
                   {
-                    live: tr("\u5B9E\u65F6\u8FDE\u63A5\u6B63\u5E38"),
-                    demo: tr("\u8BBE\u8BA1\u6F14\u793A"),
-                    connecting: tr("\u6B63\u5728\u8FDE\u63A5"),
-                    reconnecting: tr("\u6B63\u5728\u91CD\u8FDE"),
-                    unauthorized: tr("\u9700\u8981\u91CD\u65B0\u767B\u5F55"),
-                  }[live]
-                }
-              </Tag>
-              <Select
-                aria-label={tr("\u5916\u89C2\u4E3B\u9898")}
-                placeholder={tr("外观主题")}
-                className="theme-select"
-                value={theme}
-                onChange={(value) => setTheme(String(value))}
+                    {
+                      live: tr("\u5B9E\u65F6\u8FDE\u63A5\u6B63\u5E38"),
+                      demo: tr("\u8BBE\u8BA1\u6F14\u793A"),
+                      connecting: tr("\u6B63\u5728\u8FDE\u63A5"),
+                      reconnecting: tr("\u6B63\u5728\u91CD\u8FDE"),
+                      unauthorized: tr("\u9700\u8981\u91CD\u65B0\u767B\u5F55"),
+                    }[live]
+                  }
+                </Tag>
+              )}
+              <Dropdown
+                trigger="click"
                 options={[
-                  { value: "system", label: tr("\u8DDF\u968F\u7CFB\u7EDF") },
-                  { value: "light", label: tr("\u6D45\u8272\u6A21\u5F0F") },
-                  { value: "dark", label: tr("\u6DF1\u8272\u6A21\u5F0F") },
+                  { value: "system", content: tr("跟随系统") },
+                  { value: "light", content: tr("浅色模式") },
+                  { value: "dark", content: tr("深色模式") },
                 ]}
-              />
+                onClick={(item) => setTheme(String(item.value))}
+              >
+                <Button
+                  variant="text"
+                  theme="default"
+                  shape="square"
+                  aria-label={tr("外观主题")}
+                  title={`${tr("外观主题")}: ${{ system: tr("跟随系统"), light: tr("浅色模式"), dark: tr("深色模式") }[theme as "system" | "light" | "dark"]}`}
+                  icon={<ModeLightIcon />}
+                />
+              </Dropdown>
               <Tooltip content={tr("\u9000\u51FA\u767B\u5F55")}>
                 <Button
                   aria-label={tr("\u9000\u51FA\u767B\u5F55")}

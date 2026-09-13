@@ -2048,3 +2048,43 @@ a {
 .metric-link {
   flex: 1;
 }
+
+/* Compact application chrome and consistent action hit areas. */
+.sidebar .brand {
+  padding-inline: var(--td-comp-paddingLR-l);
+  gap: var(--td-comp-margin-s);
+  font: var(--td-font-title-extraLarge);
+  font-weight: 600;
+}
+.sidebar .brand-icon {
+  background: transparent;
+  color: var(--td-brand-color);
+  border-radius: 0;
+}
+.sidebar .workspace-chip {
+  margin: var(--td-comp-margin-s) var(--td-comp-margin-s);
+  padding: var(--td-comp-paddingTB-s) var(--td-comp-paddingLR-s);
+  gap: var(--td-comp-margin-s);
+}
+.sidebar .workspace-chip small {
+  margin-top: 0;
+  line-height: var(--td-line-height-body-small);
+}
+.heading-actions {
+  display: flex;
+  gap: var(--td-comp-margin-s);
+  align-items: center;
+  flex-shrink: 0;
+}
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--td-comp-margin-s);
+}
+.topbar-right .t-button {
+  width: var(--td-comp-size-m);
+  height: var(--td-comp-size-m);
+}
+.topbar-right > .t-tag {
+  height: var(--td-comp-size-m);
+}

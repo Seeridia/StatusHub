@@ -248,7 +248,8 @@ export default function Overview({
                 </p>
               </div>
               <Radio.Group
-                variant="default-filled"
+                theme="button"
+                variant="outline"
                 value={mode}
                 onChange={(value) => setMode(String(value))}
                 options={[

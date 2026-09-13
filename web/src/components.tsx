@@ -6,7 +6,6 @@ import {
   Alert,
   Button,
   Card,
-  Space,
   Empty,
   Form,
   Skeleton,
@@ -44,9 +43,7 @@ export function PageHeading({
         <h1>{title}</h1>
         <p>{description}</p>
       </div>
-      <Space className="heading-actions" size="small" breakLine>
-        {actions}
-      </Space>
+      <div className="heading-actions">{actions}</div>
     </div>
   );
 }
