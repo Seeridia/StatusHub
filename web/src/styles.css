@@ -1678,6 +1678,7 @@ a {
   height: 100%;
   object-fit: cover;
   object-position: right center;
+  mask-image: linear-gradient(to right, transparent, rgba(0, 0, 0, .12) 42%, #000 75%);
   z-index: -1;
   pointer-events: none;
 }
