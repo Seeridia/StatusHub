@@ -58,7 +58,7 @@ const incidents: Incident[] = [
         id: uuid(111),
         phase: "monitoring",
         body: tr(
-          "\u793A\u4F8B\u66F4\u65B0\uFF1A\u7F13\u89E3\u63AA\u65BD\u5DF2\u751F\u6548\uFF0C\u6B63\u5728\u6301\u7EED\u89C2\u5BDF\u8BF7\u6C42\u5EF6\u8FDF\u3002\u6B64\u5185\u5BB9\u4E3A\u8BBE\u8BA1\u6F14\u793A\uFF0C\u4E0D\u4EE3\u8868\u5382\u5546\u771F\u5B9E\u72B6\u6001\u3002",
+          "示例更新：缓解措施已生效，正在持续观察请求延迟。此内容为设计演示，不代表服务真实状态。",
         ),
         source_updated_at: ago(5),
         observed_at: ago(4),

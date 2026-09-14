@@ -38,7 +38,7 @@ export default function Incidents() {
         <ListToolbar
           title={tr("\u4E8B\u4EF6\u4E2D\u5FC3")}
           description={tr(
-            "\u8FFD\u8E2A\u5382\u5546\u4E8B\u4EF6\u7684\u5B8C\u6574\u8FDB\u5C55\uFF0C\u4FDD\u7559\u6BCF\u4E00\u6B21\u5B98\u65B9\u66F4\u65B0\u3002",
+            "追踪服务事件的完整进展，保留每一次官方更新。",
           )}
           actions={
             <Button
@@ -53,10 +53,10 @@ export default function Incidents() {
         />
         <div className="filter-row">
           <Select
-            aria-label={tr("\u7B5B\u9009\u5382\u5546")}
+            aria-label={tr("筛选服务")}
             filterable
             clearable
-            placeholder={tr("\u5168\u90E8\u5382\u5546")}
+            placeholder={tr("全部服务")}
             value={vendor}
             onChange={(value) => change("vendor", String(value || ""))}
             options={(vendors.data?.data || []).map((v) => ({
@@ -92,14 +92,14 @@ export default function Incidents() {
               <EmptyState
                 title={tr("\u6682\u65E0\u5339\u914D\u4E8B\u4EF6")}
                 description={tr(
-                  "\u8C03\u6574\u7B5B\u9009\u6761\u4EF6\uFF0C\u6216\u7B49\u5F85\u5382\u5546\u53D1\u5E03\u65B0\u7684\u4E8B\u4EF6\u3002",
+                  "调整筛选条件，或等待服务发布新的事件。",
                 )}
               />
             }
             columns={[
               {
                 colKey: "vendor_name",
-                title: tr("\u5382\u5546"),
+                title: tr("服务"),
                 width: 160,
                 ellipsis: true,
               },
@@ -157,7 +157,7 @@ export default function Incidents() {
                 <StatusBadge value={detail.data.phase} />
               </div>
               <div className="detail-line">
-                <span>{tr("\u5382\u5546\u66F4\u65B0\u65F6\u95F4")}</span>
+                <span>{tr("服务更新时间")}</span>
                 {fmt(detail.data.source_updated_at)}
               </div>
               <div className="detail-line">

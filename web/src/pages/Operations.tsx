@@ -380,7 +380,7 @@ function Sources() {
           hover
           empty={<EmptyState title={tr('\u6682\u65E0\u6570\u636E\u6E90')} />}
           columns={[
-            { colKey: 'vendor_name', title: tr('\u5382\u5546'), width: 140 },
+            { colKey: 'vendor_name', title: tr("服务"), width: 140 },
             {
               colKey: 'canonical_url',
               title: tr('\u72B6\u6001\u9875\u5730\u5740'),
@@ -603,7 +603,7 @@ function Sources() {
                   <span>
                     {detected.vendor.new
                       ? tr('\u7AD9\u70B9\u540D\u79F0')
-                      : tr('\u8BC6\u522B\u5382\u5546')}
+                      : tr("识别服务")}
                   </span>
                   {detected.vendor.name}
                 </div>

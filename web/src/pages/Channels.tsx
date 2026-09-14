@@ -122,7 +122,7 @@ export function ChannelEditor({
       <div className="drawer-body">
         <p className="muted">
           {tr(
-            "\u8FDE\u63A5\u56E2\u961F\u7684\u63A5\u6536\u6E20\u9053\uFF0C\u518D\u901A\u8FC7\u901A\u77E5\u89C4\u5219\u5173\u8054\u5382\u5546\u3002",
+            "连接团队的接收渠道，再通过通知规则关联服务。",
           )}
         </p>
         <ValidatedForm
@@ -341,7 +341,7 @@ export default function Channels() {
               <EmptyState
                 title={tr("\u8FD8\u6CA1\u6709\u901A\u77E5\u6E20\u9053")}
                 description={tr(
-                  "\u6DFB\u52A0 Slack \u6216 Webhook\uFF0C\u5F00\u59CB\u63A5\u6536\u5382\u5546\u72B6\u6001\u53D8\u5316\u3002",
+                  "添加 Slack 或 Webhook，开始接收服务状态变化。",
                 )}
                 action={
                   permission.write && (

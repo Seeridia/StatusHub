@@ -191,7 +191,7 @@ function Editor({ id }: { id: string }) {
           className="query-error"
           theme="error"
           message={tr(
-            "\u65E0\u6CD5\u52A0\u8F7D\u5382\u5546\u6216\u6E20\u9053\u9009\u9879\uFF0C\u8BF7\u91CD\u8BD5\u540E\u4FDD\u5B58\u3002",
+            "无法加载服务或渠道选项，请重试后保存。",
           )}
           operation={
             <Button
@@ -277,21 +277,21 @@ function Editor({ id }: { id: string }) {
               </div>
             </div>
             <FormField
-              label={tr("\u5173\u6CE8\u5382\u5546")}
+              label={tr("关注服务")}
               name="vendors"
               help={tr(
-                "\u7559\u7A7A\u8868\u793A\u5F53\u524D\u5DE5\u4F5C\u533A\u53EF\u89C1\u7684\u5168\u90E8\u5382\u5546\uFF0C\u4E5F\u5305\u542B\u540E\u7EED\u65B0\u589E\u5382\u5546\u3002",
+                "留空表示当前工作区可见的全部服务，也包含后续新增服务。",
               )}
             >
               <Select
-                aria-label={tr("\u5173\u6CE8\u5382\u5546")}
+                aria-label={tr("关注服务")}
                 multiple
                 filterable
                 clearable
                 value={vendorIDs}
                 onChange={(v) => setVendorIDs(v as string[])}
                 placeholder={tr(
-                  "\u9009\u62E9\u5382\u5546\uFF0C\u7559\u7A7A\u8868\u793A\u5168\u90E8",
+                  "选择服务，留空表示全部",
                 )}
                 options={(vendors.data?.data || []).map((v) => ({
                   value: v.id,
@@ -431,11 +431,11 @@ function Editor({ id }: { id: string }) {
             {tr("\u4F60\u7684\u914D\u7F6E\u5C06\u5982\u4F55\u5DE5\u4F5C")}
           </p>
           <div className="summary-step">
-            <small>{tr("\u5173\u6CE8\u8FD9\u4E9B\u5382\u5546")}</small>
+            <small>{tr("关注这些服务")}</small>
             <strong>
               {vendorNames.length
                 ? formatList(vendorNames)
-                : tr("\u5168\u90E8\u53EF\u89C1\u5382\u5546")}
+                : tr("全部可见服务")}
             </strong>
           </div>
           <ArrowRightIcon className="summary-arrow" />
@@ -582,7 +582,7 @@ export default function Rules() {
                     "\u521B\u5EFA\u4F60\u7684\u7B2C\u4E00\u6761\u901A\u77E5\u89C4\u5219",
                   )}
                   description={tr(
-                    "\u9009\u62E9\u5382\u5546\u4E0E\u6E20\u9053\uFF0C\u8BA9\u91CD\u8981\u7684\u72B6\u6001\u53D8\u5316\u53CA\u65F6\u5230\u8FBE\u3002",
+                    "选择服务与渠道，让重要的状态变化及时到达。",
                   )}
                   action={
                     permission.write && (

@@ -82,9 +82,9 @@ export default function Overview({
   const activeCount = vendors.reduce((sum, v) => sum + v.active_incidents, 0);
   const stats = [
     {
-      title: tr("\u76D1\u63A7\u5382\u5546"),
+      title: tr("监控服务"),
       value: vendors.length,
-      hint: tr("\u5F53\u524D\u5DE5\u4F5C\u533A\u53EF\u89C1\u7684\u5382\u5546"),
+      hint: tr("当前工作区可见的服务"),
       icon: <CloudIcon />,
       path: "/vendors",
       className: "primary-stat",
@@ -92,13 +92,13 @@ export default function Overview({
     {
       title: tr("\u6D3B\u8DC3\u4E8B\u4EF6"),
       value: activeCount,
-      hint: tr("\u5382\u5546\u5C1A\u672A\u7ED3\u675F\u7684\u4E8B\u4EF6"),
+      hint: tr("服务尚未结束的事件"),
       icon: <NotificationIcon />,
       path: "/incidents",
       className: "",
     },
     {
-      title: tr("\u53D7\u5F71\u54CD\u5382\u5546"),
+      title: tr("受影响服务"),
       value: impacted.length,
       hint: tr("\u964D\u7EA7\u3001\u4E2D\u65AD\u6216\u7EF4\u62A4\u4E2D"),
       icon: <ErrorCircleIcon />,
@@ -120,7 +120,7 @@ export default function Overview({
         <PageHeading
           title={
             vendorsOnly
-              ? tr("\u5382\u5546\u72B6\u6001")
+              ? tr("服务状态")
               : tr("\u76D1\u63A7\u603B\u89C8")
           }
           description={
@@ -218,7 +218,7 @@ export default function Overview({
                 {expired.length
                   ? tr("staleVendorNotice", { count: expired.length })
                   : tr(
-                      "\u72B6\u6001\u6765\u81EA\u5382\u5546\u5B98\u65B9\u9875\u9762\uFF0C\u5B9E\u9645\u4E1A\u52A1\u53EF\u7528\u6027\u8BF7\u7ED3\u5408\u81EA\u8EAB\u76D1\u63A7\u5224\u65AD\u3002",
+                      "状态来自服务官方页面，实际业务可用性请结合自身监控判断。",
                     )}
               </p>
             </div>
@@ -240,7 +240,7 @@ export default function Overview({
             <div className="section-head">
               <div>
                 <h2>
-                  {tr("\u5382\u5546\u72B6\u6001")}
+                  {tr("服务状态")}
                   <span className="count">{vendors.length}</span>
                 </h2>
                 <p>
@@ -281,15 +281,15 @@ export default function Overview({
             </div>
             <div className="filter-row">
               <Input
-                aria-label={tr("\u641C\u7D22\u5382\u5546")}
+                aria-label={tr("搜索服务")}
                 prefixIcon={<SearchIcon />}
-                placeholder={tr("\u641C\u7D22\u5382\u5546\u540D\u79F0")}
+                placeholder={tr("搜索服务名称")}
                 clearable
                 value={search}
                 onChange={setSearch}
               />
               <Select
-                aria-label={tr("\u5382\u5546\u72B6\u6001\u7B5B\u9009")}
+                aria-label={tr("服务状态筛选")}
                 value={filter}
                 onChange={(value) =>
                   setParams(value === "all" ? {} : { status: String(value) })
@@ -309,8 +309,8 @@ export default function Overview({
               <EmptyState
                 title={
                   vendors.length
-                    ? tr("\u6CA1\u6709\u5339\u914D\u7684\u5382\u5546")
-                    : tr("\u6682\u65E0\u76D1\u63A7\u5382\u5546")
+                    ? tr("没有匹配的服务")
+                    : tr("暂无监控服务")
                 }
                 description={
                   vendors.length
@@ -318,7 +318,7 @@ export default function Overview({
                         "\u8BD5\u8BD5\u5176\u4ED6\u540D\u79F0\u6216\u72B6\u6001\u7B5B\u9009\u3002",
                       )
                     : tr(
-                        "\u8BF7\u7531\u7BA1\u7406\u5458\u63A5\u5165\u5382\u5546\u6570\u636E\u6E90\u3002",
+                        "请由管理员接入服务数据源。",
                       )
                 }
               />
@@ -368,7 +368,7 @@ export default function Overview({
                 columns={[
                   {
                     colKey: "name",
-                    title: tr("\u5382\u5546"),
+                    title: tr("服务"),
                     minWidth: 180,
                     cell: ({ row }) => (
                       <button
@@ -432,7 +432,7 @@ export default function Overview({
                     <EmptyState
                       title={tr("\u6682\u65E0\u4E8B\u4EF6")}
                       description={tr(
-                        "\u5382\u5546\u4E8B\u4EF6\u66F4\u65B0\u4F1A\u51FA\u73B0\u5728\u8FD9\u91CC\u3002",
+                        "服务事件更新会出现在这里。",
                       )}
                     />
                   )}
@@ -472,7 +472,7 @@ export default function Overview({
         </div>
       </QueryState>
       <Drawer
-        header={selected?.name || tr("\u5382\u5546\u8BE6\u60C5")}
+        header={selected?.name || tr("服务详情")}
         visible={!!selected}
         onClose={() => setSelected(null)}
         footer={null}

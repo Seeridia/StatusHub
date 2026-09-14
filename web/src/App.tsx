@@ -120,7 +120,7 @@ const navigation = [
   { path: "/overview", label: tr("\u603B\u89C8"), icon: <DashboardIcon /> },
   {
     path: "/vendors",
-    label: tr("\u5382\u5546\u72B6\u6001"),
+    label: tr("服务状态"),
     icon: <CloudIcon />,
   },
   {
@@ -409,7 +409,7 @@ function Workspace({
             </Suspense>
             <footer className="workspace-footer">
               {tr(
-                "StatusHub \u00B7 \u5382\u5546\u516C\u5F00\u72B6\u6001\u4E0E\u91C7\u96C6\u5065\u5EB7\u5206\u5F00\u5448\u73B0",
+                "StatusHub · 服务公开状态与采集健康分开呈现",
               )}
             </footer>
           </main>
