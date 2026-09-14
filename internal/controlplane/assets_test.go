@@ -27,6 +27,9 @@ func TestReactConsoleAssetsAndPolicy(t *testing.T) {
 	if !strings.Contains(csp, "script-src 'self';") || !strings.Contains(csp, "style-src 'self';") || strings.Contains(csp, "unsafe-eval") {
 		t.Fatalf("CSP changed unexpectedly: %s", csp)
 	}
+	if !strings.Contains(csp, "img-src 'self' data: https://cdn.jsdelivr.net https://cdn.simpleicons.org;") {
+		t.Fatalf("remote brand icon sources missing from CSP: %s", csp)
+	}
 	scripts := regexp.MustCompile(`src="(/ui/assets/[^" ]+\.js)"`).FindStringSubmatch(page.Body.String())
 	if len(scripts) != 2 {
 		t.Fatal("built entry script missing")

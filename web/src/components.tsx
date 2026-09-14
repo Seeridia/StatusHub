@@ -1,7 +1,7 @@
 import { serviceCatalog } from "./lib/service-catalog";
-import { ecosystemBrands } from "./lib/brands";
+import { brandIconSourcesForName } from "./lib/brands";
 import { tr } from "./lib/i18n";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   Alert,
   Button,
@@ -80,19 +80,12 @@ export function VendorIdentity({
     );
   });
   const name = service?.name || vendor.name;
-  const brand = ecosystemBrands.find(
-    (item) => item.name.toLowerCase() === name.toLowerCase(),
-  );
+  const iconSources = brandIconSourcesForName(name);
   return (
     <div className="vendor-identity">
       <span className="vendor-icon">
-        {brand ? (
-          <img
-            src={`${import.meta.env.BASE_URL}brands/${brand.slug}.svg`}
-            width="22"
-            height="22"
-            alt=""
-          />
+        {iconSources.length ? (
+          <RemoteBrandIcon key={name} sources={iconSources} />
         ) : (
           <CloudIcon size="22px" aria-hidden="true" />
         )}
@@ -102,6 +95,25 @@ export function VendorIdentity({
         {service && <small>{new URL(service.url).hostname}</small>}
       </span>
     </div>
+  );
+}
+
+function RemoteBrandIcon({ sources }: { sources: string[] }) {
+  const [sourceIndex, setSourceIndex] = useState(0);
+  if (sourceIndex >= sources.length) {
+    return <CloudIcon size="22px" aria-hidden="true" />;
+  }
+  return (
+    <img
+      src={sources[sourceIndex]}
+      width="22"
+      height="22"
+      alt=""
+      loading="lazy"
+      decoding="async"
+      referrerPolicy="no-referrer"
+      onError={() => setSourceIndex((current) => current + 1)}
+    />
   );
 }
 export function Freshness({ vendor }: { vendor: Vendor }) {

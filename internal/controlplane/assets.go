@@ -57,7 +57,7 @@ func (s *Server) handleUI(response http.ResponseWriter, request *http.Request) {
 	if name == "index.html" && root == "assets/console/" {
 		// TDesign positions popups with style attributes; scripts and stylesheets
 		// remain same-origin only. Icon CSS and modal scroll locking are external.
-		response.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' data:; style-src 'self'; style-src-attr 'unsafe-inline'; script-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+		response.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' data: https://cdn.jsdelivr.net https://cdn.simpleicons.org; style-src 'self'; style-src-attr 'unsafe-inline'; script-src 'self'; base-uri 'none'; frame-ancestors 'none'")
 	}
 	if path.Ext(name) == ".js" || path.Ext(name) == ".css" {
 		response.Header().Set("Vary", "Accept-Encoding")

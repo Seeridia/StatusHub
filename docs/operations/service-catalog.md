@@ -1,50 +1,38 @@
 # Service address suggestions / 服务地址目录
 
-The Add source form uses TDesign SelectInput to search by service name, alias or status-page hostname. Selecting an entry fills its URL; unlisted services remain supported through manual URL entry and live adapter discovery. The name is an optional display label for a new vendor, never an identity key or a rename operation for existing vendors.
+The Add source form uses TDesign SelectInput to search by service name, alias,
+or status-page hostname. Selecting an entry fills its URL. Unlisted services
+remain supported through manual URL entry and live adapter discovery. The name
+is an optional display label, never an identity key.
 
-添加来源时可搜索名称、别名或域名。选择目录项自动填写地址；自定义服务手动填写地址后实时检测。目录不是完整支持名单，也不保证上游持续可用。
+添加数据源时可按服务名、别名或状态页域名搜索。选择目录项会自动填写地址；
+未收录的服务仍可手动填写地址并由系统实时探测适配器。服务名称只是展示名称，
+不作为厂商身份标识。
 
-These 35 Statuspage-compatible summary endpoints returned structured page and component data on 2026-09-13. AWS uses the existing dedicated public-health adapter. A live probe remains mandatory before connecting; endpoint availability is not an end-to-end collection guarantee.
+The built-in directory currently contains **67 services**. Of these, 65 exposed
+valid Atlassian Statuspage summary data in checks completed through 2026-09-14, Better Stack
+was recognized by the existing Better Stack adapter, and AWS uses the dedicated
+public-health adapter. A live probe is still mandatory before a source is saved,
+because status pages and upstream availability can change.
 
-| Service | Status page |
-| --- | --- |
-| Airtable | https://status.airtable.com/ |
-| Anthropic | https://status.claude.com/ |
-| Asana | https://status.asana.com/ |
-| AWS | https://health.aws.amazon.com/ |
-| Box | https://status.box.com/ |
-| Canva | https://www.canvastatus.com/ |
-| CircleCI | https://status.circleci.com/ |
-| Cloudflare | https://www.cloudflarestatus.com/ |
-| Confluence | https://confluence.status.atlassian.com/ |
-| Datadog | https://status.datadoghq.com/ |
-| DigitalOcean | https://status.digitalocean.com/ |
-| Discord | https://discordstatus.com/ |
-| Docker | https://www.dockerstatus.com/ |
-| Dropbox | https://status.dropbox.com/ |
-| Figma | https://status.figma.com/ |
-| GitHub | https://www.githubstatus.com/ |
-| Grafana Cloud | https://status.grafana.com/ |
-| HubSpot | https://status.hubspot.com/ |
-| Jira | https://jira-software.status.atlassian.com/ |
-| Linear | https://linearstatus.com/ |
-| Mailgun | https://status.mailgun.com/ |
-| Miro | https://status.miro.com/ |
-| MongoDB | https://status.mongodb.com/ |
-| Netlify | https://www.netlifystatus.com/ |
-| New Relic | https://status.newrelic.com/ |
-| OpenAI | https://status.openai.com/ |
-| Reddit | https://www.redditstatus.com/ |
-| Render | https://status.render.com/ |
-| SendGrid | https://status.sendgrid.com/ |
-| Sentry | https://status.sentry.io/ |
-| Supabase | https://status.supabase.com/ |
-| Trello | https://trello.status.atlassian.com/ |
-| Twilio | https://status.twilio.com/ |
-| Vercel | https://www.vercel-status.com/ |
-| Webflow | https://status.webflow.com/ |
-| Zoom | https://status.zoom.us/ |
+目录当前覆盖 **67 个服务**：其中 65 个截至 2026-09-14 已验证 Statuspage 结构化
+摘要，Better Stack 使用现有专用适配器，AWS 使用公共健康专用适配器。保存前仍会
+实时探测，目录只负责地址补全，不代表上游未来始终可用。
+
+The catalog includes common infrastructure, developer tooling, SaaS, commerce,
+and communications services, including AWS, OpenAI, Anthropic, Cloudflare,
+GitHub, Atlassian, Bitbucket, Clerk, Elastic, HashiCorp, LaunchDarkly, npm,
+Postman, Shopify, Snowflake, Tailscale, Twilio, Vercel, WorkOS, and Zoom. The
+canonical, alphabetized list and URLs live in
+`web/src/lib/service-catalog.ts` so the UI and tests share one source of truth.
 
 ## Maintaining the directory
 
-Edit `web/src/lib/service-catalog.ts`. Verify the official URL and its structured endpoints against an existing adapter before adding a suggestion. Add useful aliases where appropriate (for example, Claude → Anthropic). Run `npm --prefix web test` and `npm --prefix web run build`. Do not derive this list from landing-page logos: those illustrate the ecosystem and are not a verified support registry.
+1. Confirm the service's official status-page URL.
+2. Run the StatusHub probe against that URL and require a recognized adapter.
+3. Add the name, canonical URL, and useful aliases to
+   `web/src/lib/service-catalog.ts`.
+4. Run `npm --prefix web test` and `npm --prefix web run build`.
+
+Do not derive this list from a logo catalog. Logos identify brands; they do not
+prove adapter compatibility.

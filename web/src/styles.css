@@ -1140,7 +1140,7 @@ a {
   transform: translateY(0);
 }
 
-/* Public entry: TDesign surfaces, local brand assets, no animated logo ticker. */
+/* Public entry: TDesign surfaces and no animated logo ticker. */
 .login-page {
   background:
     radial-gradient(
