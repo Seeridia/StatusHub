@@ -33,13 +33,28 @@ def deployment_state(rows, title, expected_sha=None, known_ids=()):
     return matches[0].get('status') if matches else None
 
 
+def replace_environment_value(environment, key, value):
+    if not isinstance(environment, str):
+        raise ValueError('Unexpected Compose environment')
+    if not value or '\n' in value or '\r' in value:
+        raise ValueError('Invalid environment value')
+    prefix = key + '='
+    lines = environment.splitlines()
+    matches = [index for index, line in enumerate(lines) if line.startswith(prefix)]
+    if len(matches) != 1:
+        raise ValueError('Expected exactly one ' + key + ' entry')
+    lines[matches[0]] = prefix + value
+    return '\n'.join(lines) + ('\n' if environment.endswith('\n') else '')
+
+
 def main():
     base = https_origin(os.environ['DOKPLOY_URL'])
     public = https_origin(os.environ['STATUSHUB_PUBLIC_URL'])
     key = os.environ['DOKPLOY_API_KEY']
     compose = os.environ['DOKPLOY_COMPOSE_ID']
-    if not key or not compose:
-        raise ValueError('Dokploy API key and Compose ID are required')
+    image = os.environ['STATUSHUB_IMAGE']
+    if not key or not compose or not image:
+        raise ValueError('Dokploy API key, Compose ID, and image are required')
     opener = urllib.request.build_opener(NoRedirect)
 
     def request(url, payload=None, authenticated=True):
@@ -60,6 +75,15 @@ def main():
     if not isinstance(previous, list) or any(r.get('status') == 'running' for r in previous):
         raise ValueError('Another deployment is running or deployment history is unavailable')
     known_ids = {r.get('deploymentId') for r in previous}
+    compose_config = request(base + '/api/compose.one?' + urllib.parse.urlencode({'composeId': compose}))
+    if not isinstance(compose_config, dict):
+        raise ValueError('Unexpected Compose response')
+    updated_environment = replace_environment_value(compose_config.get('env'), 'STATUSHUB_IMAGE', image)
+    request(base + '/api/compose.saveEnvironment', {
+        'composeId': compose,
+        'env': updated_environment,
+        'createEnvFile': True,
+    })
     # Do not retry POST: a lost response can still mean a deployment was queued.
     request(base + '/api/compose.deploy', {
         'composeId': compose, 'title': title,

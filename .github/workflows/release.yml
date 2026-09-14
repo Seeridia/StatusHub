@@ -22,6 +22,9 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    outputs:
+      image: ${{ steps.image.outputs.name }}
+      digest: ${{ steps.build.outputs.digest }}
     permissions:
       contents: read
       packages: write
@@ -65,7 +68,7 @@ jobs:
 
   deploy:
     needs: publish
-    if: github.ref == 'refs/heads/main' && vars.DOKPLOY_DEPLOY_ENABLED == 'true'
+    if: vars.DOKPLOY_DEPLOY_ENABLED == 'true' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -78,4 +81,5 @@ jobs:
           DOKPLOY_COMPOSE_ID: ${{ vars.DOKPLOY_COMPOSE_ID }}
           DOKPLOY_API_KEY: ${{ secrets.DOKPLOY_API_KEY }}
           STATUSHUB_PUBLIC_URL: ${{ vars.STATUSHUB_PUBLIC_URL }}
+          STATUSHUB_IMAGE: ${{ needs.publish.outputs.image }}@${{ needs.publish.outputs.digest }}
         run: python3 scripts/deploy-dokploy.py

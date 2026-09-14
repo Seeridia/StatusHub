@@ -24,6 +24,19 @@ class DeploymentTests(unittest.TestCase):
         self.assertEqual(deploy.deployment_state(rows, 'workflow title', 'abc', {'old'}), 'running')
         self.assertIsNone(deploy.deployment_state(rows, 'workflow title', 'other', {'old'}))
 
+    def test_replace_environment_value(self):
+        environment = 'STATUSHUB_IMAGE=old\nPOSTGRES_PASSWORD=secret\n'
+        self.assertEqual(
+            deploy.replace_environment_value(environment, 'STATUSHUB_IMAGE', 'ghcr.io/example/app@sha256:abc'),
+            'STATUSHUB_IMAGE=ghcr.io/example/app@sha256:abc\nPOSTGRES_PASSWORD=secret\n',
+        )
+        with self.assertRaises(ValueError):
+            deploy.replace_environment_value('', 'STATUSHUB_IMAGE', 'new')
+        with self.assertRaises(ValueError):
+            deploy.replace_environment_value('STATUSHUB_IMAGE=one\nSTATUSHUB_IMAGE=two', 'STATUSHUB_IMAGE', 'new')
+        with self.assertRaises(ValueError):
+            deploy.replace_environment_value('STATUSHUB_IMAGE=old', 'STATUSHUB_IMAGE', 'new\nINJECTED=value')
+
     def test_credentials_not_redirected(self):
         self.assertIsNone(deploy.NoRedirect().redirect_request(None, None, 302, '', {}, 'https://other.example'))
 
