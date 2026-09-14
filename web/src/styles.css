@@ -1052,19 +1052,6 @@ a {
   }
 }
 
-/* Selected Product Design target: centered TDesign entry and borderless ecosystem. */
-.language-select {
-  width: 128px;
-}
-.language-select.is-compact {
-  width: 116px;
-}
-@media (max-width: 600px) {
-  .language-select {
-    width: 112px;
-  }
-}
-
 .team-form {
   display: flex;
   flex-direction: column;

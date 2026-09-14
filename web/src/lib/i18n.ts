@@ -2,8 +2,23 @@ import i18n, { type TOptions } from "i18next";
 import { initReactI18next } from "react-i18next";
 
 export type AppLanguage = "en" | "zh";
+export type LanguagePreference = AppLanguage | "system";
+
+/** Choose the first supported language in the browser's preference order. */
+export function resolveLanguage(
+  preference: string | null,
+  browserLanguages: readonly string[],
+): AppLanguage {
+  if (preference === "zh" || preference === "en") return preference;
+  for (const locale of browserLanguages) {
+    const language = locale.trim().toLowerCase().split(/[-_]/)[0];
+    if (language === "zh" || language === "en") return language;
+  }
+  return "en";
+}
 
 const english: Record<string, string> = {
+  跟随浏览器: "Browser language",
   "登录 StatusHub": "Sign in to StatusHub",
   "登录工作区，掌握服务状态与重要通知。":
     "Monitor service status and important updates in your workspace.",
@@ -620,11 +635,28 @@ const chinese: Record<string, string> = {
 };
 
 const isBrowser = typeof window !== "undefined";
-const storedLanguage = isBrowser
-  ? window.localStorage.getItem("statushub-language")
-  : null;
-export const initialLanguage: AppLanguage =
-  storedLanguage === "zh" || !isBrowser ? "zh" : "en";
+export function languagePreference(): LanguagePreference {
+  try {
+    const stored = isBrowser
+      ? window.localStorage.getItem("statushub-language")
+      : null;
+    return stored === "zh" || stored === "en" ? stored : "system";
+  } catch {
+    return "system";
+  }
+}
+
+function browserLanguages(): readonly string[] {
+  if (!isBrowser) return [];
+  return window.navigator.languages?.length
+    ? window.navigator.languages
+    : [window.navigator.language];
+}
+
+export const initialLanguage = resolveLanguage(
+  languagePreference(),
+  browserLanguages(),
+);
 
 void i18n.use(initReactI18next).init({
   lng: initialLanguage,
@@ -656,10 +688,17 @@ export function formatList(values: string[]): string {
   }).format(values);
 }
 
-export function setLanguage(language: AppLanguage) {
+export function setLanguage(preference: LanguagePreference) {
   if (!isBrowser) return;
+  try {
+    if (preference === "system")
+      window.localStorage.removeItem("statushub-language");
+    else window.localStorage.setItem("statushub-language", preference);
+  } catch {
+    // Storage can be unavailable in restricted browsing environments.
+  }
+  const language = resolveLanguage(preference, browserLanguages());
   if (language === currentLanguage()) return;
-  window.localStorage.setItem("statushub-language", language);
   void i18n.changeLanguage(language).then(() => window.location.reload());
 }
 

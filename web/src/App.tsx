@@ -1,4 +1,4 @@
-import { currentLanguage, setLanguage, tr } from "./lib/i18n";
+import { setLanguage, tr, type LanguagePreference } from "./lib/i18n";
 import AccountFlow, { accountRequest } from "./pages/AccountFlow";
 import { FormField } from "./components";
 import { lazy, Suspense, useEffect, useState } from "react";
@@ -19,7 +19,6 @@ import {
   Input,
   Layout,
   Menu,
-  Select,
   Skeleton,
   Tag,
   Tooltip,
@@ -80,42 +79,29 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function LanguageSelect({ compact = false }: { compact?: boolean }) {
-  if (compact)
-    return (
-      <Dropdown
-        trigger="click"
-        options={[
-          { value: "en", content: "English" },
-          { value: "zh", content: tr("简体中文") },
-        ]}
-        onClick={(item) => setLanguage(String(item.value) as "en" | "zh")}
-      >
-        <Button
-          variant="text"
-          theme="default"
-          shape="square"
-          aria-label={tr("界面语言")}
-          title={tr("界面语言")}
-          icon={<TranslateIcon />}
-        />
-      </Dropdown>
-    );
+function LanguageSelect() {
   return (
-    <Select
-      className={compact ? "language-select is-compact" : "language-select"}
-      aria-label={tr("界面语言")}
-      placeholder={tr("界面语言")}
-      value={currentLanguage()}
-      onChange={(value) => setLanguage(String(value) as "en" | "zh")}
+    <Dropdown
+      trigger="click"
       options={[
-        { value: "en", label: "English" },
-        { value: "zh", label: tr("简体中文") },
+        { value: "system", content: tr("跟随浏览器") },
+        { value: "zh", content: tr("简体中文") },
+        { value: "en", content: "English" },
       ]}
-      size="small"
-    />
+      onClick={(item) => setLanguage(String(item.value) as LanguagePreference)}
+    >
+      <Button
+        variant="text"
+        theme="default"
+        shape="square"
+        aria-label={tr("界面语言")}
+        title={tr("界面语言")}
+        icon={<TranslateIcon />}
+      />
+    </Dropdown>
   );
 }
+
 const navigation = [
   { path: "/overview", label: tr("\u603B\u89C8"), icon: <DashboardIcon /> },
   {
@@ -187,10 +173,10 @@ function Login({ onLogin }: { onLogin: (session: Session) => void }) {
     <div className="signin-page">
       <img
         className="signin-art"
-        src={`${import.meta.env.BASE_URL}landing/login-background.png`}
+        src={`${import.meta.env.BASE_URL}landing/login-background.jpg`}
         alt=""
-        width={1672}
-        height={941}
+        width={3168}
+        height={1344}
         fetchPriority="high"
       />
       <a
@@ -211,7 +197,6 @@ function Login({ onLogin }: { onLogin: (session: Session) => void }) {
           <span className="signin-caption">
             {tr("\u5916\u90E8\u4F9D\u8D56\u72B6\u6001\u76D1\u63A7")}
           </span>
-          <LanguageSelect compact />
         </div>
       </header>
       <main className="signin-main">
@@ -507,7 +492,7 @@ function Workspace({
               </Breadcrumb>
             </div>
             <div className="topbar-right">
-              <LanguageSelect compact />
+              <LanguageSelect />
               {live !== "demo" && (
                 <Tag
                   variant="light"

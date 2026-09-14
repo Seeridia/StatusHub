@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { consumeStream, parseFrame, type StreamMessage } from "./stream";
+import { tr } from "./i18n";
 
 test("SSE parsing preserves resume cursor, multiline data, and ignores heartbeat", () => {
   assert.deepEqual(parseFrame(": heartbeat"), {});
@@ -22,7 +23,7 @@ test("SSE tolerates split UTF-8 and CRLF, and reports normal EOF for reconnect",
   });
   await assert.rejects(
     consumeStream(new Response(stream), (frame) => frames.push(frame)),
-    /事件流已断开/,
+    { message: tr("事件流已断开") },
   );
   assert.deepEqual(frames, [{ id: "cursor-1", data: "中文" }]);
 });

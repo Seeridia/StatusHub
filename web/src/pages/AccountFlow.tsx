@@ -1,7 +1,7 @@
 import { Form } from "tdesign-react";
 import { useState } from "react";
-import { Alert, Button, Card, Input, Select } from "tdesign-react";
-import { currentLanguage, setLanguage, tr } from "../lib/i18n";
+import { Alert, Button, Card, Input } from "tdesign-react";
+import { tr } from "../lib/i18n";
 import { currentTenant, clearSession } from "../lib/api";
 export async function accountRequest(action: string, body: unknown) {
   const response = await fetch("/auth/team/" + action, {
@@ -65,15 +65,6 @@ export default function AccountFlow() {
   return (
     <main className="account-flow">
       <Card title={tr("账号与邀请")}>
-        <Select
-          aria-label={tr("界面语言")}
-          value={currentLanguage()}
-          options={[
-            { value: "en", label: "English" },
-            { value: "zh", label: tr("简体中文") },
-          ]}
-          onChange={(v) => setLanguage(String(v) as "en" | "zh")}
-        />
         <Form className="team-form" labelAlign="top">
           {error && <Alert theme="error" message={error} />}{" "}
           {message && <Alert theme="success" message={message} />}
