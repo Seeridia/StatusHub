@@ -12,20 +12,20 @@
   --color-brand-8: #005f45;
   --color-brand-9: #004330;
   --color-brand-10: #00291c;
-  --color-neutral-1: #f8fbf9;
-  --color-neutral-2: #f0f5f3;
-  --color-neutral-3: #e5ebe8;
-  --color-neutral-4: #d8e0dc;
-  --color-neutral-5: #c7d3cd;
-  --color-neutral-6: #b3c2bb;
-  --color-neutral-7: #9baca5;
-  --color-neutral-8: #81948c;
-  --color-neutral-9: #6a7c74;
-  --color-neutral-10: #55655e;
-  --color-neutral-11: #3e4b45;
-  --color-neutral-12: #29332f;
-  --color-neutral-13: #161c19;
-  --color-neutral-14: #050807;
+  --color-neutral-1: #fafafa;
+  --color-neutral-2: #f3f3f3;
+  --color-neutral-3: #e9e9e9;
+  --color-neutral-4: #dedede;
+  --color-neutral-5: #cfcfcf;
+  --color-neutral-6: #bebebe;
+  --color-neutral-7: #a8a8a8;
+  --color-neutral-8: #8f8f8f;
+  --color-neutral-9: #777777;
+  --color-neutral-10: #606060;
+  --color-neutral-11: #484848;
+  --color-neutral-12: #303030;
+  --color-neutral-13: #1b1b1b;
+  --color-neutral-14: #070707;
 }
 
 :root, :root[theme-mode="light"] {

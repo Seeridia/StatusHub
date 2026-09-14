@@ -20,6 +20,9 @@ ${Object.entries(radii)
 }`;
 const theme = generateColorTheme(brandSeed, {
   mode: "both",
+  // Structural surfaces, borders and text stay achromatic in both modes.
+  // Reserve the seed hue for brand actions and selected states.
+  neutral: { tintStrength: 0 },
   contrastPolicy: "adjust",
 });
 
