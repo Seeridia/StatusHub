@@ -22,7 +22,7 @@ type AccountRepository interface {
 	IdentityRateLimit(context.Context, string, int, time.Duration) error
 	CompleteSetup(context.Context, string, string, string, string, string) (store.User, error)
 	PreviewInvitation(context.Context, string) (store.InvitationPreview, error)
-	AcceptInvitation(context.Context, string, string, string) (store.User, error)
+	AcceptInvitation(context.Context, string, string, string, string) (store.User, error)
 	RequestUserMail(context.Context, string, string, string, store.TeamCipher) error
 	CompleteUserToken(context.Context, string, string, string) error
 	ChangeUserPassword(context.Context, string, string, string) error
@@ -162,15 +162,17 @@ func (s *Server) handleAuth(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case "invitations/accept":
-		uid := ""
+		uid, sessionToken := "", ""
 		if session, err := s.sessions.Read(r); err == nil {
 			if !constantTimeEqual(r.Header.Get("X-CSRF-Token"), session.CSRF) {
 				s.authProblem(w, r, action, 403, "csrf_failed", "Refresh this page and try again")
 				return
 			}
 			uid = session.User.ID
+			cookie, _ := r.Cookie(sessionCookieName)
+			sessionToken = cookie.Value
 		}
-		user, e = repo.AcceptInvitation(r.Context(), b.Token, b.Password, uid)
+		user, e = repo.AcceptInvitation(r.Context(), b.Token, b.Password, uid, sessionToken)
 		if e == nil {
 			e = s.sessions.Set(r.Context(), w, user)
 		}

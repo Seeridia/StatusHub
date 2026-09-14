@@ -119,8 +119,10 @@ func NewServer(repository Repository, verifier auth.Verifier, prober Prober, sea
 	}
 	server := &Server{repository: repository, verifier: verifier, prober: prober, sealer: sealer,
 		sessions: sessions, cursors: cursors, broker: broker, config: config, mux: http.NewServeMux()}
-	if _, err := publicOrigin(config.PublicURL); err != nil {
+	if origin, err := publicOrigin(config.PublicURL); err != nil {
 		return nil, err
+	} else {
+		server.config.PublicURL = origin
 	}
 	server.routes()
 	return server, nil

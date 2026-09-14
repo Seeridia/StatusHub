@@ -331,7 +331,7 @@ func (s *Store) PreviewInvitation(ctx context.Context, token string) (Invitation
 	e = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM users WHERE email=$1)`, i.Email).Scan(&p.ExistingUser)
 	return p, e
 }
-func (s *Store) AcceptInvitation(ctx context.Context, token, password, sessionUser string) (User, error) {
+func (s *Store) AcceptInvitation(ctx context.Context, token, password, sessionUser, sessionToken string) (User, error) {
 	tx, e := s.db.BeginTx(ctx, pgx.TxOptions{})
 	if e != nil {
 		return User{}, e
@@ -369,6 +369,14 @@ func (s *Store) AcceptInvitation(ctx context.Context, token, password, sessionUs
 		}
 		if sessionUser != u.ID {
 			return User{}, ErrEmailMismatch
+		}
+		// Password reset locks this user too; do not mint a session from a revoked invitation acceptance request.
+		var active bool
+		if err := tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM browser_sessions WHERE token_hash=$1 AND user_id=$2 AND revoked_at IS NULL AND expires_at>now() AND last_active_at>now()-interval '24 hours')`, tokenDigest(sessionToken), u.ID).Scan(&active); err != nil {
+			return User{}, err
+		}
+		if !active {
+			return User{}, auth.ErrUnauthenticated
 		}
 	}
 	if e != nil {
