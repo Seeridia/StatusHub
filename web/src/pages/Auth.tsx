@@ -27,7 +27,7 @@ function Frame({ title, children }: { title: string; children: ReactNode }) {
         alt=""
       />
       <header className="signin-header">
-        <a href="/ui/" aria-label="StatusHub">
+        <a className="signin-brand" href="/ui/" aria-label="StatusHub">
           <BrandMark />
         </a>
         <LanguageSelect />

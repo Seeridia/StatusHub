@@ -1691,8 +1691,19 @@ a {
   display: flex;
   align-items: center;
   gap: var(--td-comp-margin-s);
-  font: var(--td-font-title-extraLarge);
+  font: var(--td-font-headline-small);
   font-weight: 600;
+}
+.signin-brand .brand-mark__logo {
+  width: var(--td-comp-size-xl);
+  height: var(--td-comp-size-xl);
+}
+.signin-header .t-button {
+  width: var(--td-comp-size-xl);
+  height: var(--td-comp-size-xl);
+}
+.signin-header .t-button .t-icon {
+  font-size: var(--td-font-size-headline-small);
 }
 .signin-header-actions {
   display: flex;
