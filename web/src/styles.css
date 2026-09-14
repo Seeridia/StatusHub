@@ -4,7 +4,7 @@
   background: var(--td-bg-color-page);
   font-synthesis: none;
   --console-sidebar: 232px;
-  --statushub-accent: var(--td-text-color-brand);
+  --statushub-accent: #25CD9D;
 }
 * {
   box-sizing: border-box;
@@ -354,7 +354,6 @@ p {
 }
 .vendor-identity small {
   display: block;
-  margin-top: var(--td-size-2);
   color: var(--td-text-color-placeholder);
   font-size: var(--td-font-size-body-small);
 }

@@ -283,7 +283,7 @@ const english: Record<string, string> = {
   '服务事件更新会出现在这里。': 'Vendor incident updates will appear here.',
   服务尚未结束的事件: 'Unresolved vendor incidents',
   服务更新时间: 'Vendor updated',
-  服务状态: 'Vendor status',
+  厂商状态: 'Vendor status',
   服务状态工作台: 'Vendor status console',
   服务状态筛选: 'Filter vendor status',
   服务详情: 'Vendor details',

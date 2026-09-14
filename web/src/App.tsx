@@ -45,6 +45,7 @@ import {
   MenuFoldIcon,
   NotificationIcon,
   SettingIcon,
+  ServerIcon,
   UserIcon,
 } from "tdesign-icons-react";
 import {
@@ -127,6 +128,7 @@ const navigation = [
     label: tr("\u4E8B\u4EF6\u4E2D\u5FC3"),
     icon: <NotificationIcon />,
   },
+  { path: "/sources", label: tr("数据源"), icon: <ServerIcon /> },
   { path: "/rules", label: tr("\u901A\u77E5\u89C4\u5219"), icon: <AppIcon /> },
   {
     path: "/channels",
@@ -380,6 +382,7 @@ function Workspace({
                 <Route path="/incidents" element={<Incidents />} />
                 <Route path="/rules/*" element={<Rules />} />
                 <Route path="/channels" element={<Channels />} />
+                <Route path="/sources" element={<Operations view="sources" />} />
                 <Route
                   path="/deliveries"
                   element={<Operations view="deliveries" />}

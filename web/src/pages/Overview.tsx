@@ -225,7 +225,7 @@ export default function Overview({
             <Button
               variant="text"
               onClick={() =>
-                navigate(expired.length ? "/settings" : "/incidents")
+                navigate(expired.length ? "/sources" : "/incidents")
               }
             >
               {expired.length

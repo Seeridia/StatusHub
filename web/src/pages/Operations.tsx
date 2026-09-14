@@ -722,11 +722,12 @@ function AuditLog() {
 export default function Operations({
   view,
 }: {
-  view: 'deliveries' | 'settings';
+  view: 'deliveries' | 'sources' | 'settings';
 }) {
   const permission = usePermissions();
-  const [tab, setTab] = useState('sources');
+  const [tab, setTab] = useState('account');
   if (view === 'deliveries') return <Deliveries />;
+  if (view === 'sources') return <Panel><Sources /></Panel>;
   return (
     <>
       <Panel className="panel settings-panel">
@@ -741,7 +742,6 @@ export default function Operations({
           {permission.admin && (
             <Tabs.TabPanel value="service-accounts" label={tr('服务账号')} />
           )}
-          <Tabs.TabPanel value="sources" label={tr('\u6570\u636E\u6E90')} />
           {permission.admin && (
             <Tabs.TabPanel
               value="audit"
@@ -760,7 +760,7 @@ export default function Operations({
           ) : tab === 'audit' && permission.admin ? (
             <AuditLog />
           ) : (
-            <Sources />
+            <PersonalAccount />
           )}
         </div>
       </Panel>
