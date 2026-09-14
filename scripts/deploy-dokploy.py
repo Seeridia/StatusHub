@@ -85,14 +85,25 @@ def main():
         'createEnvFile': True,
     })
     # Do not retry POST: a lost response can still mean a deployment was queued.
-    request(base + '/api/compose.deploy', {
-        'composeId': compose, 'title': title,
-        'description': 'Published commit ' + os.environ['GITHUB_SHA'],
-    })
-    print('Deployment queued; waiting for this run to finish.', flush=True)
+    try:
+        request(base + '/api/compose.deploy', {
+            'composeId': compose, 'title': title,
+            'description': 'Published commit ' + os.environ['GITHUB_SHA'],
+        })
+        print('Deployment queued; waiting for this run to finish.', flush=True)
+    except urllib.error.HTTPError:
+        raise
+    except (TimeoutError, urllib.error.URLError):
+        print('Deployment response unavailable; checking deployment history.', flush=True)
     deadline = time.monotonic() + 900
     while time.monotonic() < deadline:
-        rows = request(list_url)
+        try:
+            rows = request(list_url)
+        except urllib.error.HTTPError:
+            raise
+        except (TimeoutError, urllib.error.URLError):
+            time.sleep(10)
+            continue
         state = deployment_state(rows, title, os.environ['GITHUB_SHA'], known_ids)
         if state == 'done':
             break
@@ -107,7 +118,7 @@ def main():
                 request(public + path, authenticated=False)
             print('Dokploy deployment completed; health and readiness checks passed.')
             return
-        except (urllib.error.URLError, ValueError):
+        except (TimeoutError, urllib.error.URLError, ValueError):
             if attempt == 11:
                 raise ValueError('Deployment completed but public health checks failed') from None
             time.sleep(5)
