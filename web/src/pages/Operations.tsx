@@ -4,7 +4,7 @@ import { DeleteResource } from "../components/DeleteResource";
 import { ServiceNameInput } from "../components/ServiceNameInput";
 import { formatList, tr } from "../lib/i18n";
 import { Team, PersonalAccount } from "./Team";
-import { FormField } from "../components";
+import { FormField, ValidatedForm } from "../components";
 import { Drawer, Dialog } from "../overlays";
 import { useState } from "react";
 import { api } from "../lib/api";
@@ -12,7 +12,6 @@ import { useSearchParams } from "react-router-dom";
 import {
   Alert,
   Button,
-  Form,
   Input,
   Select,
   Table,
@@ -542,7 +541,11 @@ function Sources() {
         size="520px"
       >
         <div className="drawer-body">
-          <Form
+          <ValidatedForm
+            key={String(adding)}
+            validate={(): Record<string, string> =>
+              url.trim() ? {} : { url: tr("请填写状态页地址。") }
+            }
             labelAlign="top"
             layout="vertical"
             onSubmit={() => void (detected ? save() : detect())}
@@ -564,7 +567,11 @@ function Sources() {
                 "选择服务可自动填写状态页；未收录的服务请自行填写地址。接入前仍会检测是否支持。",
               )}
             </p>
-            <FormField label={tr("\u72B6\u6001\u9875\u5730\u5740")} name="url">
+            <FormField
+              label={tr("\u72B6\u6001\u9875\u5730\u5740")}
+              name="url"
+              required
+            >
               <Input
                 aria-label={tr("\u72B6\u6001\u9875\u5730\u5740")}
                 value={url}
@@ -646,7 +653,7 @@ function Sources() {
                 </Button>
               )}
             </div>
-          </Form>
+          </ValidatedForm>
         </div>
       </Drawer>
     </>

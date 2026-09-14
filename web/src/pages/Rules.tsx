@@ -1,7 +1,7 @@
 import { Panel } from "../components";
 import { DeleteResource } from "../components/DeleteResource";
 import { formatList, tr } from "../lib/i18n";
-import { FormField } from "../components";
+import { FormField, ValidatedForm } from "../components";
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
@@ -9,7 +9,6 @@ import {
   Alert,
   Button,
   Checkbox,
-  Form,
   Input,
   Select,
   Switch,
@@ -113,20 +112,18 @@ function Editor({ id }: { id: string }) {
   const channelNames = endpointIDs.map(
     (key) => endpoints.data?.find((e) => e.id === key)?.name || key,
   );
+  function validate() {
+    const errors: Record<string, string> = {};
+    if (!name.trim())
+      errors.name = tr("\u8BF7\u8F93\u5165\u89C4\u5219\u540D\u79F0\u3002");
+    if (!endpointIDs.length)
+      errors.endpoints = tr(
+        "\u8BF7\u81F3\u5C11\u9009\u62E9\u4E00\u4E2A\u901A\u77E5\u6E20\u9053\u3002",
+      );
+    return errors;
+  }
   async function save() {
     if (locked || busy) return;
-    if (!name.trim()) {
-      setError(tr("\u8BF7\u8F93\u5165\u89C4\u5219\u540D\u79F0\u3002"));
-      return;
-    }
-    if (!endpointIDs.length) {
-      setError(
-        tr(
-          "\u8BF7\u81F3\u5C11\u9009\u62E9\u4E00\u4E2A\u901A\u77E5\u6E20\u9053\u3002",
-        ),
-      );
-      return;
-    }
     setBusy(true);
     setError("");
     try {
@@ -210,7 +207,8 @@ function Editor({ id }: { id: string }) {
         />
       )}
       <div className="editor-grid">
-        <Form
+        <ValidatedForm
+          validate={validate}
           labelAlign="top"
           layout="vertical"
           className="rule-form"
@@ -230,7 +228,11 @@ function Editor({ id }: { id: string }) {
                 </p>
               </div>
             </div>
-            <FormField label={tr("\u89C4\u5219\u540D\u79F0")} name="name">
+            <FormField
+              label={tr("\u89C4\u5219\u540D\u79F0")}
+              name="name"
+              required
+            >
               <Input
                 aria-label={tr("\u89C4\u5219\u540D\u79F0")}
                 value={name}
@@ -364,6 +366,7 @@ function Editor({ id }: { id: string }) {
             <FormField
               label={tr("\u901A\u77E5\u53D1\u9001\u81F3")}
               name="endpoints"
+              required
             >
               <Select
                 aria-label={tr("\u901A\u77E5\u53D1\u9001\u81F3")}
@@ -418,7 +421,7 @@ function Editor({ id }: { id: string }) {
                 : tr("\u521B\u5EFA\u89C4\u5219")}
             </Button>
           </div>
-        </Form>
+        </ValidatedForm>
         <aside className="rule-summary panel">
           <span className="feature-icon">
             <NotificationIcon />

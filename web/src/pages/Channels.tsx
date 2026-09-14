@@ -2,11 +2,11 @@ import { ListToolbar } from "../components";
 import { Panel } from "../components";
 import { DeleteResource } from "../components/DeleteResource";
 import { tr } from "../lib/i18n";
-import { FormField } from "../components";
+import { FormField, ValidatedForm } from "../components";
 import { Drawer } from "../overlays";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Button, Form, Input, Select, Table } from "tdesign-react";
+import { Alert, Button, Input, Select, Table } from "tdesign-react";
 import { AddIcon, RefreshIcon } from "tdesign-icons-react";
 import {
   EmptyState,
@@ -47,40 +47,40 @@ export function ChannelEditor({
       setKey("primary");
     }
   }, [visible]);
-  async function save() {
-    if (busy) return;
-    if (!name.trim()) {
-      setError(tr("\u8BF7\u4E3A\u901A\u77E5\u6E20\u9053\u547D\u540D\u3002"));
-      return;
-    }
+  function validate() {
+    const errors: Record<string, string> = {};
+    if (!name.trim())
+      errors.name = tr(
+        "\u8BF7\u4E3A\u901A\u77E5\u6E20\u9053\u547D\u540D\u3002",
+      );
     let valid = false;
     try {
       const parsed = new URL(url);
       valid =
         parsed.protocol === "https:" && !parsed.username && !parsed.password;
     } catch {
-      /* shown below */
+      /* invalid URL */
     }
-    if (!valid) {
-      setError(
-        tr(
-          "\u8BF7\u8F93\u5165\u6709\u6548\u7684 HTTPS \u5730\u5740\uFF0C\u4E14\u4E0D\u8981\u5728\u5730\u5740\u4E2D\u5305\u542B\u7528\u6237\u540D\u548C\u5BC6\u7801\u3002",
-        ),
+    if (!valid)
+      errors.url = tr(
+        "\u8BF7\u8F93\u5165\u6709\u6548\u7684 HTTPS \u5730\u5740\uFF0C\u4E14\u4E0D\u8981\u5728\u5730\u5740\u4E2D\u5305\u542B\u7528\u6237\u540D\u548C\u5BC6\u7801\u3002",
       );
-      return;
-    }
-    if (channel === "generic_webhook" && (!secret.trim() || !key.trim())) {
-      setError(
-        tr(
+    if (channel === "generic_webhook") {
+      if (!key.trim())
+        errors.key = tr(
           "Webhook \u9700\u8981\u7B7E\u540D\u6807\u8BC6\u4E0E\u7B7E\u540D\u5BC6\u94A5\u3002",
-        ),
-      );
-      return;
+        );
+      if (!secret.trim())
+        errors.secret = tr(
+          "Webhook \u9700\u8981\u7B7E\u540D\u6807\u8BC6\u4E0E\u7B7E\u540D\u5BC6\u94A5\u3002",
+        );
     }
-    if (channel === "lark" && !secret.trim()) {
-      setError(tr("请填写飞书机器人的签名密钥。"));
-      return;
-    }
+    if (channel === "lark" && !secret.trim())
+      errors.secret = tr("请填写飞书机器人的签名密钥。");
+    return errors;
+  }
+  async function save() {
+    if (busy) return;
     setBusy(true);
     setError("");
     try {
@@ -125,8 +125,18 @@ export function ChannelEditor({
             "\u8FDE\u63A5\u56E2\u961F\u7684\u63A5\u6536\u6E20\u9053\uFF0C\u518D\u901A\u8FC7\u901A\u77E5\u89C4\u5219\u5173\u8054\u5382\u5546\u3002",
           )}
         </p>
-        <Form labelAlign="top" layout="vertical" onSubmit={() => void save()}>
-          <FormField label={tr("\u6E20\u9053\u540D\u79F0")} name="name">
+        <ValidatedForm
+          key={String(visible)}
+          validate={validate}
+          labelAlign="top"
+          layout="vertical"
+          onSubmit={() => void save()}
+        >
+          <FormField
+            label={tr("\u6E20\u9053\u540D\u79F0")}
+            name="name"
+            required
+          >
             <Input
               aria-label={tr("\u6E20\u9053\u540D\u79F0")}
               placeholder={tr("\u4F8B\u5982 \u751F\u4EA7\u544A\u8B66")}
@@ -147,7 +157,7 @@ export function ChannelEditor({
               ]}
             />
           </FormField>
-          <FormField label={tr("HTTPS \u5730\u5740")} name="url">
+          <FormField label={tr("HTTPS \u5730\u5740")} name="url" required>
             <Input
               aria-label={tr("HTTPS \u5730\u5740")}
               placeholder={
@@ -165,6 +175,7 @@ export function ChannelEditor({
                 <FormField
                   label={tr("\u7B7E\u540D\u5BC6\u94A5\u6807\u8BC6")}
                   name="key"
+                  required
                 >
                   <Input
                     aria-label={tr("\u7B7E\u540D\u5BC6\u94A5\u6807\u8BC6")}
@@ -173,7 +184,11 @@ export function ChannelEditor({
                   />
                 </FormField>
               )}
-              <FormField label={tr("\u7B7E\u540D\u5BC6\u94A5")} name="secret">
+              <FormField
+                label={tr("\u7B7E\u540D\u5BC6\u94A5")}
+                name="secret"
+                required
+              >
                 <Input
                   aria-label={tr("\u7B7E\u540D\u5BC6\u94A5")}
                   type="password"
@@ -207,7 +222,7 @@ export function ChannelEditor({
               {tr("\u4FDD\u5B58\u6E20\u9053")}
             </Button>
           </div>
-        </Form>
+        </ValidatedForm>
       </div>
     </Drawer>
   );

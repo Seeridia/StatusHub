@@ -1,7 +1,16 @@
 import { serviceCatalog } from "./lib/service-catalog";
 import { brandIconSourcesForName } from "./lib/brands";
 import { tr } from "./lib/i18n";
-import { useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
+import type { FormProps } from "tdesign-react";
 import {
   Alert,
   Button,
@@ -232,19 +241,95 @@ export function Field({
     </div>
   );
 }
-// Controlled React state is the single source of truth; FormItem supplies layout.
+type FieldErrors = Record<string, string>;
+const ValidationContext = createContext<FieldErrors>({});
+
+/** Keep controlled values in React, and render feedback through TDesign FormItem. */
+export function ValidatedForm({
+  validate,
+  onSubmit,
+  children,
+  ...props
+}: Omit<FormProps, "onSubmit"> & {
+  validate: () => FieldErrors;
+  onSubmit: () => void;
+}) {
+  const [submitted, setSubmitted] = useState(false);
+  const [attempt, setAttempt] = useState(0);
+  const root = useRef<HTMLDivElement>(null);
+  const errors = submitted ? validate() : {};
+  useEffect(() => {
+    if (!attempt) return;
+    const field = root.current?.querySelector<HTMLElement>(
+      '[data-field-error="true"]',
+    );
+    field
+      ?.querySelector<HTMLElement>(
+        'input:not([disabled]), textarea:not([disabled]), button:not([disabled]), [tabindex="0"]',
+      )
+      ?.focus();
+  }, [attempt]);
+  return (
+    <ValidationContext.Provider value={errors}>
+      <div ref={root} className="validated-form">
+        <Form
+          {...props}
+          onSubmit={() => {
+            setSubmitted(true);
+            setAttempt((value) => value + 1);
+            if (!Object.keys(validate()).length) onSubmit();
+          }}
+        >
+          {children}
+        </Form>
+      </div>
+    </ValidationContext.Provider>
+  );
+}
+
 export function FormField({
   children,
+  required,
   ...props
 }: {
   children: ReactNode;
   label: ReactNode;
   name?: string;
   help?: ReactNode;
+  required?: boolean;
 }) {
+  const id = useId();
+  const root = useRef<HTMLDivElement>(null);
+  const errors = useContext(ValidationContext);
+  const error = props.name ? errors[props.name] : undefined;
+  useEffect(() => {
+    const input = root.current?.querySelector(
+      'input, textarea, select, [role="combobox"]',
+    );
+    if (!input) return;
+    input.id = id;
+    input.setAttribute("aria-invalid", String(!!error));
+    input.setAttribute("aria-required", String(!!required));
+    if (error) input.setAttribute("aria-errormessage", `${id}-error`);
+    else input.removeAttribute("aria-errormessage");
+  }, [id, error, required, children]);
   return (
-    <Form.FormItem {...props}>
-      <div className="field-control">{children}</div>
+    <Form.FormItem
+      {...props}
+      for={id}
+      requiredMark={required}
+      status={error ? "error" : undefined}
+      tips={
+        error ? (
+          <span id={`${id}-error`} role="alert">
+            {error}
+          </span>
+        ) : undefined
+      }
+    >
+      <div ref={root} className="field-control" data-field-error={!!error}>
+        {children}
+      </div>
     </Form.FormItem>
   );
 }
@@ -270,6 +355,7 @@ export function Panel({
 
 export function ListToolbar({
   title,
+  description,
   actions,
 }: {
   title: string;
@@ -277,8 +363,11 @@ export function ListToolbar({
   actions?: ReactNode;
 }) {
   return (
-    <div className="starter-list-toolbar">
-      <h1 className="sr-only">{title}</h1>
+    <div className="starter-list-toolbar page-heading">
+      <div>
+        <h1>{title}</h1>
+        {description && <p>{description}</p>}
+      </div>
       <div className="heading-actions">{actions}</div>
     </div>
   );

@@ -4,6 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "theme:generate": "node scripts/generate-theme.mjs",
+    "predev": "npm run theme:generate",
+    "prebuild": "npm run theme:generate",
     "dev": "vite --host 127.0.0.1",
     "build": "npm run check:i18n && tsc -b && vite build && node scripts/compress.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
@@ -13,6 +16,8 @@
     "format": "prettier --write src vite.config.ts"
   },
   "dependencies": {
+    "@okramp/core": "0.3.0",
+    "@okramp/tdesign": "0.1.0",
     "@tanstack/react-query": "^5.90.0",
     "i18next": "^26.4.2",
     "react": "^19.1.0",

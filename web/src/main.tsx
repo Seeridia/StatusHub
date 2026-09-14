@@ -7,6 +7,7 @@ import { ConfigProvider } from "tdesign-react";
 import enUS from "tdesign-react/es/locale/en_US";
 import zhCN from "tdesign-react/es/locale/zh_CN";
 import "tdesign-react/es/style/index.css";
+import "./theme.css";
 import "./styles.css";
 import App from "./App";
 const client = new QueryClient({
