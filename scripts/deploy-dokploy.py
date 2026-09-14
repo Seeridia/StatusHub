@@ -79,6 +79,7 @@ def main():
     if not isinstance(compose_config, dict):
         raise ValueError('Unexpected Compose response')
     updated_environment = replace_environment_value(compose_config.get('env'), 'STATUSHUB_IMAGE', image)
+    updated_environment = replace_environment_value(updated_environment, 'STATUSHUB_PUBLIC_URL', public)
     request(base + '/api/compose.saveEnvironment', {
         'composeId': compose,
         'env': updated_environment,

@@ -1,6 +1,6 @@
 import { Dialog, Drawer } from "../overlays";
 import { Form } from "tdesign-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Alert,
   Button,
@@ -12,7 +12,7 @@ import {
 } from "tdesign-react";
 import { useList, useSession, useWriter } from "../lib/hooks";
 import { tr } from "../lib/i18n";
-import { currentTenant, clearSession } from "../lib/api";
+import { accountRequest, accountSession, clearSession, demo } from "../lib/api";
 import { fmt } from "../lib/model";
 
 type Entry = {
@@ -22,6 +22,7 @@ type Entry = {
   role: string;
   enabled?: boolean;
   method?: string;
+  mail_status?:string;
   last_used_at?: string;
   expires_at?: string;
   accepted_at?: string;
@@ -32,6 +33,8 @@ export function Team({
 }: {
   kind: "members" | "invitations" | "service-accounts";
 }) {
+  const [mailReady,setMailReady]=useState(demo);
+ useEffect(()=>{if(!demo)accountSession().then(s=>setMailReady(s.mail_configured)).catch(()=>{});},[]);
   const query = useList<Entry>("/" + kind);
   const { identity } = useSession();
   const write = useWriter();
@@ -71,17 +74,13 @@ export function Team({
     try {
       const out = await write<{
         token?: string;
-        invitation_token?: string;
+
         secret_unavailable?: boolean;
       }>(path, body, method);
       if (out.token) setResult(out.token);
-      if (out.invitation_token)
-        setResult(
-          `${location.origin}/ui/?tenant=${encodeURIComponent(currentTenant())}#/account-flow?mode=invite&token=${out.invitation_token}`,
-        );
       if (out.secret_unavailable)
         setError(
-          tr("操作已完成，但凭据已无法再次显示。请重新轮换或生成邀请。"),
+          tr("操作已完成，但令牌无法再次显示，请重新轮换。"),
         );
       setEditing(null);
       setConfirm(null);
@@ -118,13 +117,14 @@ export function Team({
   }
   return (
     <div className="team-panel">
+{kind==="invitations"&&!mailReady&&<Alert theme="warning" message={tr("邮件服务未配置或不可用，请联系管理员。")}/>}
       {error && <Alert theme="error" message={error} />}
       <div className="toolbar">
         <Button onClick={() => query.refetch()} loading={query.isFetching}>
           {tr("刷新")}
         </Button>
         {kind !== "members" && (
-          <Button theme="primary" onClick={() => edit()}>
+          <Button theme="primary" disabled={kind==="invitations"&&!mailReady} onClick={() => edit()}>
             {kind === "invitations" ? tr("创建邀请") : tr("创建服务账号")}
           </Button>
         )}
@@ -178,7 +178,7 @@ export function Team({
                       ? tr("已撤销")
                       : Date.parse(row.expires_at || "") < Date.now()
                         ? tr("已过期")
-                        : tr("等待接受")
+                        : ({pending:tr("等待发送"),submitted:tr("已提交邮件服务器"),failed:tr("发送失败")}[row.mail_status as string]||tr("等待接受"))
                   : row.enabled
                     ? tr("已启用")
                     : tr("已停用")}
@@ -196,9 +196,7 @@ export function Team({
             minWidth: 160,
             cell: ({ row }) =>
               kind === "members"
-                ? row.method === "password"
-                  ? tr("邮箱密码")
-                  : tr("单点登录")
+                ? tr("邮箱密码")
                 : fmt(row.expires_at || row.last_used_at),
           },
           {
@@ -226,6 +224,7 @@ export function Team({
                 >
                   {kind === "invitations" ? tr("撤销邀请") : tr("编辑")}
                 </Button>
+                {kind === "invitations" && !row.accepted_at && <Button variant="text" disabled={!allowed(row)} onClick={()=>confirmAction(()=>mutate("/invitations",{email:row.email,role:row.role}),row.email||row.id)}>{tr("重新发送")}</Button>}
                 {kind === "service-accounts" && (
                   <Button
                     variant="text"
@@ -310,10 +309,10 @@ export function Team({
       >
         <Alert
           message={tr(
-            "此内容仅在本次结果中显示，请安全保存。邀请链接需要由你分享给受邀者。",
+            "令牌仅在本次结果中显示，请安全保存。",
           )}
         />
-        <Input aria-label={tr("凭据或邀请链接")} value={result} readonly />
+        <Input aria-label={tr("服务账号令牌")} value={result} readonly />
       </Dialog>
     </div>
   );
@@ -329,7 +328,7 @@ export function PersonalAccount() {
   async function run() {
     setBusy(true);
     try {
-      await write("/account/" + action, { old_password: old, password });
+      await accountRequest(action === "password" ? "password/change" : "logout-all", action==="password"?{ old_password: old, password }:{});
       clearSession();
       location.reload();
     } catch (e) {
@@ -346,7 +345,7 @@ export function PersonalAccount() {
         <Alert message={tr("服务账号请通过服务账号管理轮换令牌。")} />
       ) : (
         <>
-          {identity.issuer === "local" && (
+          {identity.actor_type === "user" && (
             <>
               <Form.FormItem label={tr("原密码")}>
                 <Input

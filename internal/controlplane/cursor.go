@@ -1,5 +1,5 @@
 // Package controlplane implements the tenant-scoped management API, SSE
-// stream, OIDC browser session, and the minimal operations UI.
+// stream, browser session, and the minimal operations UI.
 package controlplane
 
 import (

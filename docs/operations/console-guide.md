@@ -4,7 +4,7 @@
 
 ## 登录与导航
 
-打开 `/ui/?tenant=工作区标识`，使用服务账号令牌或已配置的 SSO 登录。侧栏显示当前工作区及角色。看不到“添加”“创建”或“重试”按钮时，先检查是否登录了只读账号，不要把界面隐藏理解为功能故障。
+打开 `/ui/`，使用邮箱密码登录，然后选择工作区。侧栏显示当前工作区及角色。看不到“添加”“创建”或“重试”按钮时，先检查是否登录了只读账号，不要把界面隐藏理解为功能故障。
 
 界面首次打开时默认使用英文。登录页和登录后的顶部栏都可以切换 English／简体中文，选择会保存在当前浏览器中，刷新和再次访问后仍然有效。语言切换会重新载入当前页面，不会退出会话或改变工作区数据。
 
@@ -140,7 +140,6 @@ Generic Webhook 的签名密钥用于接收端校验通知，与服务端 `.env`
 
 历史失败不回填原因；无法可靠分类时显示「未分类错误」。多个资源同时失败时按固定优先级显示一个代表原因（限流、访问拒绝、服务错误、其他 HTTP 错误、超时、网络、解析、不支持、取消），完整详情查看日志。接口只返回分类代码，不回显原始错误或上游响应。
 
-升级已有部署时，先应用 `migrations/000012_collection_failure.up.sql`，再更新 API 和 worker。该迁移只新增可空列，兼容旧版进程；回滚数据库前先停止新版进程，降级应用。回滚会移除最近失败分类，不影响成功采集检查点。
 
 admin/owner 可查看审计记录。适配器升级、影子验证和回滚由平台维护者通过可信运维工具处理，不作为工作区用户的操作步骤，见 [高级运维](../advanced-operations.md)。
 
@@ -162,7 +161,3 @@ Deleting a channel also removes it from linked rules. Rules with no remaining ch
 在通知渠道、通知规则和工作区数据源列表中点击**删除**，确认后配置会从列表移除，停止后续采集或通知。历史事件、投递记录和审计记录保留；已开始执行的任务仍可能完成。目前不提供恢复入口，需要时可重新创建配置。
 
 删除渠道会同时解除通知规则中的引用；没有剩余渠道的规则会自动停用，其他规则保留其剩余渠道。平台共享数据源由平台维护，工作区不能删除。删除权限与对应配置的编辑权限一致。
-
-Upgrade with database migration **000014** before running this application version. The migration adds tombstone fields without removing existing data. Downgrade is refused if a deleted source URL has been re-added and would violate the older unique constraint; resolve those duplicates explicitly before attempting a downgrade. A successful downgrade removes tombstones but keeps the affected configurations disabled.
-
-升级时需先执行数据库迁移 **000014**。迁移仅新增软删除字段，不删除已有数据。若删除的数据源地址已被重新添加，回退迁移会因旧版唯一约束而失败，需要先明确处理重复记录；成功回退后软删除标记移除，但相关配置仍保持停用。

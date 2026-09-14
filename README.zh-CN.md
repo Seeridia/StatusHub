@@ -12,7 +12,7 @@ StatusHub 是可自托管的厂商状态监控与通知平台。输入公开状�
 - **查看事件**：统一事件与组件影响，区分厂商更新时间和系统采集时间。
 - **解释采集状态**：展示最近成功、下次采集、失败原因和退避；采集失败不等于厂商故障。
 - **配置通知**：网页创建 Slack 和签名 Webhook 渠道，按订阅规则投递，查看重试与死信记录。
-- **管理团队**：邀请注册、邮箱密码、OIDC SSO、四级角色，以及服务账号创建、停用和令牌轮换。
+- **管理团队**：邀请注册、邮箱密码、四级角色，以及服务账号创建、停用和令牌轮换。
 
 ## 适配范围
 
@@ -40,10 +40,10 @@ cd StatusHub
 | 文档 | 内容 |
 | --- | --- |
 | [网页操作](docs/operations/console-guide.md) | 状态页接入、事件、规则、渠道与投递 |
-| [团队账号](docs/operations/team-accounts.md) | 邀请、角色、密码恢复、SSO 与服务账号 |
+| [团队账号](docs/operations/team-accounts.md) | 邀请、角色、密码恢复与服务账号 |
 | [配置](docs/operations/configuration.md) | 环境变量、采集频率和接口约定 |
 | [运行维护](docs/operations/maintenance.md) / [故障排查](docs/operations/troubleshooting.md) | 升级、备份、恢复和排查 |
-| [管理 API 与 OIDC](docs/api-guide.md) | 登录集成、幂等写入、SSE |
+| [管理 API](docs/api-guide.md) | 登录集成、幂等写入、SSE |
 | [采集](docs/collection.md) / [通知](docs/notifications.md) / [高级运维](docs/advanced-operations.md) | 数据一致性、投递语义及 CLI 操作 |
 | [前端开发](docs/react-console.md) | TDesign、构建与国际化 |
 

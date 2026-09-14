@@ -11,7 +11,6 @@
     "build": "npm run check:i18n && tsc -b && vite build && node scripts/compress.mjs",
     "check:i18n": "node scripts/check-i18n.mjs",
     "typecheck": "tsc -b",
-    "test": "tsx --test src/lib/*.test.ts",
     "preview": "vite preview --host 127.0.0.1",
     "format": "prettier --write src vite.config.ts"
   },

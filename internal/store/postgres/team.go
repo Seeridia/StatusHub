@@ -22,12 +22,13 @@ type TeamCipher interface {
 	Decode(string) (json.RawMessage, error)
 }
 type TeamCommand struct {
-	Action  string    `json:"action"`
-	ID      string    `json:"id,omitempty"`
-	Email   string    `json:"email,omitempty"`
-	Name    string    `json:"name,omitempty"`
-	Role    auth.Role `json:"role,omitempty"`
-	Enabled bool      `json:"enabled"`
+	Action    string    `json:"action"`
+	PublicURL string    `json:"-"`
+	ID        string    `json:"id,omitempty"`
+	Email     string    `json:"email,omitempty"`
+	Name      string    `json:"name,omitempty"`
+	Role      auth.Role `json:"role,omitempty"`
+	Enabled   bool      `json:"enabled"`
 }
 type Member struct {
 	ID      string    `json:"id"`
@@ -39,6 +40,7 @@ type Member struct {
 }
 type Invitation struct {
 	ID         string     `json:"id"`
+	MailStatus string     `json:"mail_status"`
 	Email      string     `json:"email"`
 	Role       auth.Role  `json:"role"`
 	ExpiresAt  time.Time  `json:"expires_at"`
@@ -71,7 +73,7 @@ func currentActor(ctx context.Context, tx pgx.Tx, actor auth.Identity) (auth.Ide
 	if actor.ActorType == "service_account" {
 		e = tx.QueryRow(ctx, `SELECT role FROM service_accounts WHERE id=$1 AND tenant_id=$2 AND enabled`, actor.ActorID, actor.TenantID).Scan(&actor.Role)
 	} else {
-		e = tx.QueryRow(ctx, `SELECT m.role,COALESCE(p.email,''),p.issuer,p.subject FROM tenant_memberships m JOIN principals p ON p.id=m.principal_id WHERE m.principal_id=$1 AND m.tenant_id=$2 AND m.enabled`, actor.ActorID, actor.TenantID).Scan(&actor.Role, &actor.Email, &actor.Issuer, &actor.Subject)
+		e = tx.QueryRow(ctx, `SELECT m.role,p.email FROM memberships m JOIN users p ON p.id=m.user_id WHERE m.user_id=$1 AND m.tenant_id=$2 AND m.enabled`, actor.ActorID, actor.TenantID).Scan(&actor.Role, &actor.Email)
 	}
 	if e != nil {
 		return actor, auth.ErrUnauthenticated
@@ -93,7 +95,7 @@ func (s *Store) TeamList(ctx context.Context, actor auth.Identity, kind string) 
 	}
 	switch kind {
 	case "members":
-		rows, e := tx.Query(ctx, `SELECT p.id,COALESCE(p.email,''),COALESCE(p.display_name,''),m.role,m.enabled,CASE WHEN p.issuer='local' THEN 'password' ELSE 'sso' END FROM tenant_memberships m JOIN principals p ON p.id=m.principal_id WHERE m.tenant_id=$1 ORDER BY p.id LIMIT 1000`, actor.TenantID)
+		rows, e := tx.Query(ctx, `SELECT p.id,COALESCE(p.email,''),COALESCE(p.display_name,''),m.role,m.enabled,'password' FROM memberships m JOIN users p ON p.id=m.user_id WHERE m.tenant_id=$1 ORDER BY p.id LIMIT 1000`, actor.TenantID)
 		if e != nil {
 			return nil, e
 		}
@@ -108,7 +110,10 @@ func (s *Store) TeamList(ctx context.Context, actor auth.Identity, kind string) 
 		}
 		return out, rows.Err()
 	case "invitations":
-		rows, e := tx.Query(ctx, `SELECT id,email,role,expires_at,accepted_at,revoked_at FROM team_invitations WHERE tenant_id=$1 ORDER BY created_at DESC LIMIT 1000`, actor.TenantID)
+		rows, e := tx.Query(ctx, `SELECT i.id,i.email,i.role,i.expires_at,i.accepted_at,i.revoked_at,
+ CASE WHEN i.accepted_at IS NOT NULL THEN 'accepted' WHEN i.revoked_at IS NOT NULL THEN 'revoked' WHEN i.expires_at<=now() THEN 'expired'
+ WHEN j.completed_at IS NOT NULL THEN 'submitted' WHEN j.payload IS NULL OR j.attempts>=6 THEN 'failed' ELSE 'pending' END
+ FROM team_invitations i LEFT JOIN LATERAL (SELECT * FROM identity_mail_jobs WHERE invitation_id=i.id ORDER BY created_at DESC LIMIT 1) j ON true WHERE i.tenant_id=$1 ORDER BY i.created_at DESC LIMIT 1000`, actor.TenantID)
 		if e != nil {
 			return nil, e
 		}
@@ -116,7 +121,7 @@ func (s *Store) TeamList(ctx context.Context, actor auth.Identity, kind string) 
 		out := []Invitation{}
 		for rows.Next() {
 			var x Invitation
-			if e = rows.Scan(&x.ID, &x.Email, &x.Role, &x.ExpiresAt, &x.AcceptedAt, &x.RevokedAt); e != nil {
+			if e = rows.Scan(&x.ID, &x.Email, &x.Role, &x.ExpiresAt, &x.AcceptedAt, &x.RevokedAt, &x.MailStatus); e != nil {
 				return nil, e
 			}
 			out = append(out, x)
@@ -180,6 +185,26 @@ func (s *Store) TeamMutate(ctx context.Context, actor auth.Identity, key string,
 		if string(oldHash) != string(hash) {
 			return nil, ErrConflict
 		}
+		// Replayed secrets remain subject to the target's current role.
+		if strings.HasPrefix(c.Action, "service.") {
+			id := c.ID
+			if id == "" {
+				var saved struct {
+					ID string `json:"id"`
+				}
+				if err := json.Unmarshal(result, &saved); err != nil {
+					return nil, err
+				}
+				id = saved.ID
+			}
+			var role auth.Role
+			if err := tx.QueryRow(ctx, `SELECT role FROM service_accounts WHERE id=$1 AND tenant_id=$2`, id, actor.TenantID).Scan(&role); err != nil {
+				return nil, ErrNotFound
+			}
+			if !auth.CanManage(actor.Role, role, role) {
+				return nil, auth.ErrForbidden
+			}
+		}
 		if until != nil {
 			if sealed == nil || !time.Now().Before(*until) {
 				return json.RawMessage(`{"completed":true,"secret_unavailable":true}`), nil
@@ -197,7 +222,7 @@ func (s *Store) TeamMutate(ctx context.Context, actor auth.Identity, key string,
 	switch c.Action {
 	case "member.update":
 		var enabled bool
-		if e = tx.QueryRow(ctx, `SELECT role,enabled FROM tenant_memberships WHERE tenant_id=$1 AND principal_id=$2`, actor.TenantID, c.ID).Scan(&oldRole, &enabled); e != nil {
+		if e = tx.QueryRow(ctx, `SELECT role,enabled FROM memberships WHERE tenant_id=$1 AND user_id=$2`, actor.TenantID, c.ID).Scan(&oldRole, &enabled); e != nil {
 			return nil, ErrNotFound
 		}
 		if actor.ActorType == "user" && actor.ActorID == c.ID {
@@ -208,17 +233,14 @@ func (s *Store) TeamMutate(ctx context.Context, actor auth.Identity, key string,
 		}
 		if oldRole == auth.RoleOwner && enabled && (c.Role != auth.RoleOwner || !c.Enabled) {
 			var count int
-			if e = tx.QueryRow(ctx, `SELECT count(*) FROM tenant_memberships WHERE tenant_id=$1 AND role='owner' AND enabled`, actor.TenantID).Scan(&count); e != nil {
+			if e = tx.QueryRow(ctx, `SELECT count(*) FROM memberships WHERE tenant_id=$1 AND role='owner' AND enabled`, actor.TenantID).Scan(&count); e != nil {
 				return nil, e
 			}
 			if count <= 1 {
 				return nil, ErrConflict
 			}
 		}
-		_, e = tx.Exec(ctx, `UPDATE tenant_memberships SET role=$3,enabled=$4,updated_at=now() WHERE tenant_id=$1 AND principal_id=$2`, actor.TenantID, c.ID, c.Role, c.Enabled)
-		if e == nil && !c.Enabled {
-			_, e = tx.Exec(ctx, `UPDATE browser_sessions SET revoked_at=now() WHERE tenant_id=$1 AND principal_id=$2`, actor.TenantID, c.ID)
-		}
+		_, e = tx.Exec(ctx, `UPDATE memberships SET role=$3,enabled=$4,updated_at=now() WHERE tenant_id=$1 AND user_id=$2`, actor.TenantID, c.ID, c.Role, c.Enabled)
 	case "invitation.create":
 		if !auth.CanManage(actor.Role, auth.RoleViewer, c.Role) {
 			return nil, auth.ErrForbidden
@@ -241,9 +263,12 @@ func (s *Store) TeamMutate(ctx context.Context, actor auth.Identity, key string,
 			return nil, e
 		}
 		c.ID = uuid.NewString()
-		secret = identityToken()
-		_, e = tx.Exec(ctx, `INSERT INTO team_invitations(id,tenant_id,email,role,token_hash,actor_type,actor_id,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,now()+interval '7 days')`, c.ID, actor.TenantID, c.Email, c.Role, tokenDigest(secret), actor.ActorType, actor.ActorID)
-		out["invitation_token"] = secret
+		inviteToken := identityToken()
+		_, e = tx.Exec(ctx, `INSERT INTO team_invitations(id,tenant_id,email,role,token_hash,actor_type,actor_id,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,now()+interval '7 days')`, c.ID, actor.TenantID, c.Email, c.Role, tokenDigest(inviteToken), actor.ActorType, actor.ActorID)
+		if e == nil {
+			e = queueMail(ctx, tx, c.Email, "invite", c.PublicURL+"/ui/#/invitation?token="+inviteToken, &c.ID, time.Now().Add(7*24*time.Hour), cipher)
+		}
+		out["mail_status"] = "pending"
 	case "invitation.revoke":
 		if e = tx.QueryRow(ctx, `SELECT role FROM team_invitations WHERE tenant_id=$1 AND id=$2`, actor.TenantID, c.ID).Scan(&oldRole); e != nil {
 			return nil, ErrNotFound
@@ -313,70 +338,11 @@ func (s *Store) TeamMutate(ctx context.Context, actor auth.Identity, key string,
 		encrypted = &v
 		t := time.Now().Add(10 * time.Minute)
 		expiry = &t
-		stored = json.RawMessage(`{"completed":true}`)
+		stored, _ = json.Marshal(map[string]any{"completed": true, "id": c.ID})
 	}
 	_, e = tx.Exec(ctx, `INSERT INTO identity_mutations(tenant_id,key,request_hash,result,secret_result,secret_until) VALUES($1,$2,$3,$4,$5,$6)`, actor.TenantID, key, hash, stored, encrypted, expiry)
 	if e != nil {
 		return nil, e
 	}
 	return result, tx.Commit(ctx)
-}
-
-func (s *Store) CreateBrowserSession(ctx context.Context, id string, actor auth.Identity, expires time.Time) error {
-	tx, e := s.db.BeginTx(ctx, pgx.TxOptions{})
-	if e != nil {
-		return e
-	}
-	defer tx.Rollback(ctx)
-	if e = lockTeam(ctx, tx, actor.TenantID); e != nil {
-		return e
-	}
-	if actor.ActorType != "user" {
-		return auth.ErrForbidden
-	}
-	if actor.CredentialVersion != "" {
-		var version string
-		if e = tx.QueryRow(ctx, `SELECT updated_at::text FROM local_credentials WHERE principal_id=$1 FOR SHARE`, actor.ActorID).Scan(&version); e != nil || version != actor.CredentialVersion {
-			return auth.ErrUnauthenticated
-		}
-	}
-	if _, e = currentActor(ctx, tx, actor); e != nil {
-		return e
-	}
-	_, e = tx.Exec(ctx, `INSERT INTO browser_sessions(id,tenant_id,principal_id,expires_at) VALUES($1,$2,$3,$4)`, id, actor.TenantID, actor.ActorID, expires)
-	if e != nil {
-		return e
-	}
-	return tx.Commit(ctx)
-}
-func (s *Store) ResolveBrowserSession(ctx context.Context, id, tenant string) (auth.Identity, error) {
-	tx, e := s.db.BeginTx(ctx, pgx.TxOptions{AccessMode: pgx.ReadOnly})
-	if e != nil {
-		return auth.Identity{}, e
-	}
-	defer tx.Rollback(ctx)
-	actor := auth.Identity{TenantID: tenant, ActorType: "user"}
-	e = tx.QueryRow(ctx, `SELECT principal_id FROM browser_sessions WHERE id=$1 AND tenant_id=$2 AND revoked_at IS NULL AND expires_at>now()`, id, tenant).Scan(&actor.ActorID)
-	if e != nil {
-		return actor, auth.ErrUnauthenticated
-	}
-	return currentActor(ctx, tx, actor)
-}
-func (s *Store) RevokeBrowserSessions(ctx context.Context, actor auth.Identity, id string) error {
-	tx, e := s.db.BeginTx(ctx, pgx.TxOptions{})
-	if e != nil {
-		return e
-	}
-	defer tx.Rollback(ctx)
-	if _, e = tx.Exec(ctx, `UPDATE browser_sessions SET revoked_at=now() WHERE principal_id=$1 AND ($2='' OR id=$2)`, actor.ActorID, id); e != nil {
-		return e
-	}
-	action := "identity.session.logout"
-	if id == "" {
-		action = "identity.session.logout_all"
-	}
-	if _, e = appendAuditTx(ctx, tx, actor.TenantID, auditInput(AuditActor{Type: actor.ActorType, ID: actor.ActorID}, action, "principal", actor.ActorID, json.RawMessage(`{}`))); e != nil {
-		return e
-	}
-	return tx.Commit(ctx)
 }

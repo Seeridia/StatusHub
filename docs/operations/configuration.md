@@ -20,7 +20,7 @@ set +a
 | `STATUSHUB_CONFIG_KEY_ID` | 配置密钥版本标识，本地建议显式设为 `local-v1` |
 | `STATUSHUB_API_KEY` | 独立的 base64 32 字节密钥，用于会话及游标；不是服务账号登录令牌 |
 | `STATUSHUB_API_ADDRESS` | API 监听地址，默认 `127.0.0.1:8080` |
-| `STATUSHUB_PUBLIC_URL` | 外部访问基址及 OIDC 回调基础地址，本地 `http://127.0.0.1:8080` |
+| `STATUSHUB_PUBLIC_URL` | 唯一公开访问地址及邮件链接来源，本地 `http://127.0.0.1:8080` |
 | `STATUSHUB_REGION` | 区域身份，默认 `local`，影响来源 ownership |
 | `STATUSHUB_HTML_RECIPES_FILE` | 可选受控 HTML recipe JSON 文件；API 和 worker 需要相容配置 |
 | `AWS_REGION` | AWS SDK 使用的区域，本地示例 `us-east-1` |
@@ -63,17 +63,9 @@ worker 的 `-metrics-address` 默认 `127.0.0.1:9464`。`-collector-interval` �
 
 创建结果中的 `token` 才是服务账号登录凭据，格式以 `sa.` 开头。租户 slug、服务账号显示名称、`STATUSHUB_API_KEY` 都不是密码。现在支持仅邀请加入的邮箱密码成员、邮件验证/密码找回，以及网页服务账号停用和轮换，详见 [团队账号管理](team-accounts.md)。没有开放自助注册；丢失服务令牌应轮换，不应重置配置加密密钥。
 
-## OIDC 团队登录
+## 团队登录
 
-前提：IdP 支持此流程使用的 public client、Authorization Code 与 PKCE，能够提供 discovery/JWKS。
-
-1. IdP 注册客户端，回调地址精确填写 `https://你的域名/auth/callback`。
-2. 设置对应 `STATUSHUB_PUBLIC_URL`，配置 TLS 入口。
-3. 使用 `statushub-admin oidc-provider-upsert` 登记 issuer、client ID、允许的邮箱域。
-4. 使用 `tenant-member-set` 将不可变 issuer/subject 显式绑定至租户和角色。
-5. 从网页“通过 SSO 登录”进入，核对回到的工作区及角色。
-
-现成参数示例、校验语义和故障演练见 [管理 API](../api-guide.md#配置-oidc)。普通登录不会自动创建成员或提升权限；受邀 SSO 成员可按[邀请流程](team-accounts.md)加入。
+登录、初始化和邀请见 [团队账号](team-accounts.md)。`STATUSHUB_TRUSTED_PROXIES` 为逗号分隔的可信代理 CIDR；只从这些代理解析客户端转发地址。
 
 ## API 调用约定
 

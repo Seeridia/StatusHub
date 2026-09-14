@@ -10,6 +10,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"strings"
 	"time"
 
@@ -80,6 +81,8 @@ type Config struct {
 	ProbeTimeout   time.Duration
 	RequestTimeout time.Duration
 	Logger         *slog.Logger
+	PublicURL      string
+	TrustedProxies []netip.Prefix
 }
 
 type Server struct {
@@ -89,7 +92,6 @@ type Server struct {
 	sealer     secret.Sealer
 	sessions   *SessionManager
 	cursors    *CursorCodec
-	oidc       *OIDCFlow
 	broker     EventBroker
 	config     Config
 	mux        *http.ServeMux
@@ -105,7 +107,7 @@ type requestContext struct {
 }
 
 func NewServer(repository Repository, verifier auth.Verifier, prober Prober, sealer secret.Sealer,
-	sessions *SessionManager, cursors *CursorCodec, oidc *OIDCFlow, broker EventBroker, config Config) (*Server, error) {
+	sessions *SessionManager, cursors *CursorCodec, broker EventBroker, config Config) (*Server, error) {
 	if repository == nil || verifier == nil || prober == nil || sealer == nil || sessions == nil || cursors == nil {
 		return nil, errors.New("controlplane: repository, verifier, prober, sealer, sessions, and cursors are required")
 	}
@@ -116,7 +118,10 @@ func NewServer(repository Repository, verifier auth.Verifier, prober Prober, sea
 		config.Logger = slog.Default()
 	}
 	server := &Server{repository: repository, verifier: verifier, prober: prober, sealer: sealer,
-		sessions: sessions, cursors: cursors, oidc: oidc, broker: broker, config: config, mux: http.NewServeMux()}
+		sessions: sessions, cursors: cursors, broker: broker, config: config, mux: http.NewServeMux()}
+	if _, err := publicOrigin(config.PublicURL); err != nil {
+		return nil, err
+	}
 	server.routes()
 	return server, nil
 }
@@ -141,13 +146,8 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /openapi.yaml", s.handleOpenAPI)
 	s.mux.HandleFunc("GET /ui/", s.handleUI)
 	s.mux.Handle("DELETE /v1/tenants/{tenant}/sources/{source}", s.authorize(auth.PermissionSubscriptionWrite, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { s.handleDeleteResource(w, r, "source") })))
-	s.mux.HandleFunc("GET /auth/{tenant}/login", s.handleOIDCStart)
-	s.mux.HandleFunc("GET /auth/callback", s.handleOIDCCallback)
-	s.mux.Handle("GET /auth/session", s.authorize(auth.PermissionRead, http.HandlerFunc(s.handleSession)))
-	s.mux.Handle("POST /auth/logout", s.authorize(auth.PermissionRead, http.HandlerFunc(s.handleLogout)))
 
 	s.mux.Handle("GET /v1/tenants/{tenant}/session", s.authorize(auth.PermissionRead, http.HandlerFunc(s.handleSession)))
-	s.mux.Handle("POST /v1/tenants/{tenant}/logout", s.authorize(auth.PermissionRead, http.HandlerFunc(s.handleLogout)))
 
 	s.mux.Handle("GET /v1/tenants/{tenant}/vendors", s.authorize(auth.PermissionRead, http.HandlerFunc(s.handleVendors)))
 	s.mux.Handle("GET /v1/tenants/{tenant}/vendors/{vendor}/status", s.authorize(auth.PermissionRead, http.HandlerFunc(s.handleVendorStatus)))
@@ -189,14 +189,7 @@ func (s *Server) routes() {
 func (s *Server) authorize(permission auth.Permission, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
 		tenantKey := request.PathValue("tenant")
-		if tenantKey == "" && (request.URL.Path == "/auth/session" || request.URL.Path == "/auth/logout") {
-			if session, err := s.sessions.Read(request); err == nil {
-				tenantKey = session.TenantKey
-			} else {
-				writeProblemStatus(response, request, http.StatusUnauthorized, "unauthenticated", "Authentication failed")
-				return
-			}
-		}
+
 		tenant, err := s.repository.ResolveTenant(request.Context(), tenantKey)
 		if err != nil {
 			writeProblem(response, request, err)
@@ -207,10 +200,14 @@ func (s *Server) authorize(permission auth.Permission, next http.Handler) http.H
 		if hasBearer {
 			contextValue.Identity, err = s.verifier.Authenticate(request.Context(), tenant.ID, token)
 		} else {
-			var session Session
+			var session store.BrowserSession
 			session, err = s.sessions.Read(request)
-			if err == nil && session.TenantID == tenant.ID {
-				contextValue.Identity = session.Identity
+			if err == nil {
+				contextValue.Identity, err = s.sessions.Store.MemberIdentity(request.Context(), session.User.ID, tenant.ID)
+				if errors.Is(err, auth.ErrForbidden) {
+					writeProblemStatus(response, request, 403, "workspace_forbidden", "Workspace access denied")
+					return
+				}
 				contextValue.CookieAuth = true
 				if isUnsafeMethod(request.Method) && !constantTimeEqual(request.Header.Get("X-CSRF-Token"), session.CSRF) {
 					writeProblemStatus(response, request, http.StatusForbidden, "csrf_failed", "CSRF token is missing or invalid")

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
-  title: Vendor Status Monitoring Control Plane
-  version: 1.0.0-m5
+  title: StatusHub API
+  version: 2.0.0
   description: Tenant-scoped API for vendor status, subscriptions, endpoints, delivery evidence, audit export, and live canonical events.
 servers:
   - url: /
@@ -9,51 +9,292 @@ security:
   - bearerAuth: []
   - browserSession: []
 paths:
-  /auth/team/{action}:
+  /auth/login:
     post:
+      operationId: Login
       security: []
-      operationId: teamAuthentication
-      description: Invite-only password authentication. Origin-checked JSON; shared IP/email rate limits. Login sets a revocable cookie; verification and reset tokens are single-use. Forgot always returns a generic acknowledgement for eligible or unknown emails.
-      parameters:
-        - in: path
-          name: action
-          required: true
-          schema: {type: string, enum: [login, verify-request, forgot, verify, reset, accept]}
+      description: Origin-checked JSON. User sessions are workspace-independent. Authenticated writes require X-CSRF-Token.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              additionalProperties: false
+              required: [email, password]
               properties:
-                tenant: {type: string}
                 email: {type: string, format: email}
                 password: {type: string, writeOnly: true}
-                token: {type: string, writeOnly: true}
-                invitation: {type: string, writeOnly: true}
       responses:
-        '200': {description: "Completed or generic mail acknowledgement; may include target tenant UUID"}
-        '401': {description: "Invalid credential, invitation or single-use token"}
-        '429': {description: "Shared authentication rate limit reached"}
-  /v1/tenants/{tenant}/account/{action}:
+        '200': {description: Completed, invitation preview, or generic email acknowledgement}
+        '400': {description: Invalid fields or password format}
+        '401': {description: Credentials mismatch, expired session or invalid one-time token}
+        '403': {description: Origin, CSRF or invitation email mismatch}
+        '409': {description: Setup unavailable or existing membership}
+        '429': {description: Shared database rate limit}
+        '503': {description: Email service unavailable}
+  /auth/setup:
     post:
-      operationId: personalAccountAction
-      description: Human identities only. Password change requires the original password. Both actions revoke all browser sessions for the identity; cookie requests require CSRF.
-      parameters:
-        - {in: path, name: tenant, required: true, schema: {type: string}}
-        - {in: path, name: action, required: true, schema: {type: string, enum: [password, logout-all]}}
+      operationId: Setup
+      security: []
+      description: Origin-checked JSON. User sessions are workspace-independent. Authenticated writes require X-CSRF-Token.
       requestBody:
         required: true
         content:
           application/json:
             schema:
               type: object
+              additionalProperties: false
+              required: [token, email, password, name, slug]
+              properties:
+                token: {type: string, writeOnly: true}
+                email: {type: string, format: email}
+                password: {type: string, writeOnly: true, minLength: 12, maxLength: 128}
+                name: {type: string}
+                slug: {type: string}
+      responses:
+        '200': {description: Completed, invitation preview, or generic email acknowledgement}
+        '400': {description: Invalid fields or password format}
+        '401': {description: Credentials mismatch, expired session or invalid one-time token}
+        '403': {description: Origin, CSRF or invitation email mismatch}
+        '409': {description: Setup unavailable or existing membership}
+        '429': {description: Shared database rate limit}
+        '503': {description: Email service unavailable}
+  /auth/password/forgot:
+    post:
+      operationId: PasswordForgot
+      security: []
+      description: Origin-checked JSON. User sessions are workspace-independent. Authenticated writes require X-CSRF-Token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [email]
+              properties:
+                email: {type: string, format: email}
+      responses:
+        '200': {description: Completed, invitation preview, or generic email acknowledgement}
+        '400': {description: Invalid fields or password format}
+        '401': {description: Credentials mismatch, expired session or invalid one-time token}
+        '403': {description: Origin, CSRF or invitation email mismatch}
+        '409': {description: Setup unavailable or existing membership}
+        '429': {description: Shared database rate limit}
+        '503': {description: Email service unavailable}
+  /auth/password/reset:
+    post:
+      operationId: PasswordReset
+      security: []
+      description: Origin-checked JSON. User sessions are workspace-independent. Authenticated writes require X-CSRF-Token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [token, password]
+              properties:
+                token: {type: string, writeOnly: true}
+                password: {type: string, writeOnly: true, minLength: 12, maxLength: 128}
+      responses:
+        '200': {description: Completed, invitation preview, or generic email acknowledgement}
+        '400': {description: Invalid fields or password format}
+        '401': {description: Credentials mismatch, expired session or invalid one-time token}
+        '403': {description: Origin, CSRF or invitation email mismatch}
+        '409': {description: Setup unavailable or existing membership}
+        '429': {description: Shared database rate limit}
+        '503': {description: Email service unavailable}
+  /auth/password/change:
+    post:
+      operationId: PasswordChange
+      security: [{browserSession: []}]
+      description: Origin-checked JSON. User sessions are workspace-independent. Authenticated writes require X-CSRF-Token.
+      parameters: [{$ref: '#/components/parameters/CSRF'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [old_password, password]
               properties:
                 old_password: {type: string, writeOnly: true}
                 password: {type: string, writeOnly: true, minLength: 12, maxLength: 128}
       responses:
-        '200': {description: "Completed; sign-in required again"}
-        '401': {description: "Invalid session or password"}
+        '200': {description: Completed, invitation preview, or generic email acknowledgement}
+        '400': {description: Invalid fields or password format}
+        '401': {description: Credentials mismatch, expired session or invalid one-time token}
+        '403': {description: Origin, CSRF or invitation email mismatch}
+        '409': {description: Setup unavailable or existing membership}
+        '429': {description: Shared database rate limit}
+        '503': {description: Email service unavailable}
+  /auth/invitations/preview:
+    post:
+      operationId: InvitationsPreview
+      security: []
+      description: Origin-checked JSON. User sessions are workspace-independent. Authenticated writes require X-CSRF-Token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [token]
+              properties:
+                token: {type: string, writeOnly: true}
+      responses:
+        '200': {description: Completed, invitation preview, or generic email acknowledgement}
+        '400': {description: Invalid fields or password format}
+        '401': {description: Credentials mismatch, expired session or invalid one-time token}
+        '403': {description: Origin, CSRF or invitation email mismatch}
+        '409': {description: Setup unavailable or existing membership}
+        '429': {description: Shared database rate limit}
+        '503': {description: Email service unavailable}
+  /auth/invitations/accept:
+    post:
+      operationId: InvitationsAccept
+      security: []
+      description: Origin-checked JSON. User sessions are workspace-independent. Authenticated writes require X-CSRF-Token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [token]
+              properties:
+                token: {type: string, writeOnly: true}
+                password: {type: string, writeOnly: true, minLength: 12, maxLength: 128}
+      responses:
+        '200': {description: Completed, invitation preview, or generic email acknowledgement}
+        '400': {description: Invalid fields or password format}
+        '401': {description: Credentials mismatch, expired session or invalid one-time token}
+        '403': {description: Origin, CSRF or invitation email mismatch}
+        '409': {description: Setup unavailable or existing membership}
+        '429': {description: Shared database rate limit}
+        '503': {description: Email service unavailable}
+  /auth/logout:
+    post:
+      operationId: Logout
+      security: [{browserSession: []}]
+      description: Origin-checked JSON. User sessions are workspace-independent. Authenticated writes require X-CSRF-Token.
+      parameters: [{$ref: '#/components/parameters/CSRF'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+      responses:
+        '200': {description: Completed, invitation preview, or generic email acknowledgement}
+        '400': {description: Invalid fields or password format}
+        '401': {description: Credentials mismatch, expired session or invalid one-time token}
+        '403': {description: Origin, CSRF or invitation email mismatch}
+        '409': {description: Setup unavailable or existing membership}
+        '429': {description: Shared database rate limit}
+        '503': {description: Email service unavailable}
+  /auth/logout-all:
+    post:
+      operationId: LogoutAll
+      security: [{browserSession: []}]
+      description: Origin-checked JSON. User sessions are workspace-independent. Authenticated writes require X-CSRF-Token.
+      parameters: [{$ref: '#/components/parameters/CSRF'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+      responses:
+        '200': {description: Completed, invitation preview, or generic email acknowledgement}
+        '400': {description: Invalid fields or password format}
+        '401': {description: Credentials mismatch, expired session or invalid one-time token}
+        '403': {description: Origin, CSRF or invitation email mismatch}
+        '409': {description: Setup unavailable or existing membership}
+        '429': {description: Shared database rate limit}
+        '503': {description: Email service unavailable}
+  /auth/email/request:
+    post:
+      operationId: EmailRequest
+      security: [{browserSession: []}]
+      description: Origin-checked JSON. User sessions are workspace-independent. Authenticated writes require X-CSRF-Token.
+      parameters: [{$ref: '#/components/parameters/CSRF'}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+      responses:
+        '200': {description: Completed, invitation preview, or generic email acknowledgement}
+        '400': {description: Invalid fields or password format}
+        '401': {description: Credentials mismatch, expired session or invalid one-time token}
+        '403': {description: Origin, CSRF or invitation email mismatch}
+        '409': {description: Setup unavailable or existing membership}
+        '429': {description: Shared database rate limit}
+        '503': {description: Email service unavailable}
+  /auth/email/verify:
+    post:
+      operationId: EmailVerify
+      security: []
+      description: Origin-checked JSON. User sessions are workspace-independent. Authenticated writes require X-CSRF-Token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [token]
+              properties:
+                token: {type: string, writeOnly: true}
+      responses:
+        '200': {description: Completed, invitation preview, or generic email acknowledgement}
+        '400': {description: Invalid fields or password format}
+        '401': {description: Credentials mismatch, expired session or invalid one-time token}
+        '403': {description: Origin, CSRF or invitation email mismatch}
+        '409': {description: Setup unavailable or existing membership}
+        '429': {description: Shared database rate limit}
+        '503': {description: Email service unavailable}
+  /auth/session:
+    get:
+      operationId: getBrowserSession
+      security: [{browserSession: []}]
+      responses:
+        '200':
+          description: Current user, accessible workspaces, CSRF token and mail configuration status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    type: object
+                    properties:
+                      id: {type: string, format: uuid}
+                      email: {type: string, format: email}
+                      email_verified_at: {type: [string, 'null'], format: date-time}
+                  csrf_token: {type: string}
+                  mail_configured: {type: boolean}
+                  workspaces:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id: {type: string, format: uuid}
+                        slug: {type: string}
+                        name: {type: string}
+                        role: {type: string, enum: [viewer, operator, admin, owner]}
+        '401': {description: Missing or expired browser session}
   /v1/tenants/{tenant}/members:
     get:
       operationId: listTeamMembers
@@ -74,7 +315,7 @@ paths:
         '403': {description: "Role cannot manage team accounts"}
     post:
       operationId: createInvitation
-      description: Creates an invitation bound to email and role; 7 days. Returns invitation_token once. Reissuing revokes older unaccepted invitations to that email. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Secret retry results are encrypted for 10 minutes; later retries return completed and secret_unavailable without repeating the mutation.
+      description: Creates an invitation bound to email and role; 7 days. Queues an encrypted invitation email; returns no invitation token. Reissuing revokes older unaccepted invitations to that email. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Idempotent retries do not send another invitation email.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
         - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
@@ -90,7 +331,7 @@ paths:
                 role: {type: string, enum: [viewer, operator, admin, owner]}
                 enabled: {type: boolean}
       responses:
-        '200': {description: "Completed; may contain one-time token or invitation_token, or secret_unavailable"}
+        '200': {description: "Completed; invitation email queued"}
         '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
         '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
 
@@ -105,7 +346,7 @@ paths:
         '403': {description: "Role cannot manage team accounts"}
     post:
       operationId: createManagedServiceAccount
-      description: Creates a service account and returns token once. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Secret retry results are encrypted for 10 minutes; later retries return completed and secret_unavailable without repeating the mutation.
+      description: Creates a service account and returns token once. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Idempotent retries do not send another invitation email.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
         - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
@@ -121,13 +362,13 @@ paths:
                 role: {type: string, enum: [viewer, operator, admin, owner]}
                 enabled: {type: boolean}
       responses:
-        '200': {description: "Completed; may contain one-time token or invitation_token, or secret_unavailable"}
+        '200': {description: "Completed; invitation email queued"}
         '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
         '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
   /v1/tenants/{tenant}/members/{id}:
     patch:
       operationId: updateTeamMember
-      description: Update role and enabled state. Rejects self changes and removing the final active human owner. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Secret retry results are encrypted for 10 minutes; later retries return completed and secret_unavailable without repeating the mutation.
+      description: Update role and enabled state. Rejects self changes and removing the final active human owner. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Idempotent retries do not send another invitation email.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
         - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
@@ -144,13 +385,13 @@ paths:
                 role: {type: string, enum: [viewer, operator, admin, owner]}
                 enabled: {type: boolean}
       responses:
-        '200': {description: "Completed; may contain one-time token or invitation_token, or secret_unavailable"}
+        '200': {description: "Completed; invitation email queued"}
         '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
         '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
   /v1/tenants/{tenant}/service-accounts/{id}:
     patch:
       operationId: updateManagedServiceAccount
-      description: Update role and enabled state. Checks current and target roles. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Secret retry results are encrypted for 10 minutes; later retries return completed and secret_unavailable without repeating the mutation.
+      description: Update role and enabled state. Checks current and target roles. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Idempotent retries do not send another invitation email.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
         - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
@@ -167,13 +408,13 @@ paths:
                 role: {type: string, enum: [viewer, operator, admin, owner]}
                 enabled: {type: boolean}
       responses:
-        '200': {description: "Completed; may contain one-time token or invitation_token, or secret_unavailable"}
+        '200': {description: "Completed; invitation email queued"}
         '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
         '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
   /v1/tenants/{tenant}/service-accounts/{id}/rotate:
     post:
       operationId: rotateManagedServiceAccount
-      description: Returns a new token and immediately invalidates the old one. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Secret retry results are encrypted for 10 minutes; later retries return completed and secret_unavailable without repeating the mutation.
+      description: Returns a new token and immediately invalidates the old one. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Idempotent retries do not send another invitation email.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
         - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
@@ -190,13 +431,13 @@ paths:
                 role: {type: string, enum: [viewer, operator, admin, owner]}
                 enabled: {type: boolean}
       responses:
-        '200': {description: "Completed; may contain one-time token or invitation_token, or secret_unavailable"}
+        '200': {description: "Completed; invitation email queued"}
         '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
         '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
   /v1/tenants/{tenant}/invitations/{id}/revoke:
     post:
       operationId: revokeInvitation
-      description: Revokes an unaccepted invitation. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Secret retry results are encrypted for 10 minutes; later retries return completed and secret_unavailable without repeating the mutation.
+      description: Revokes an unaccepted invitation. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Idempotent retries do not send another invitation email.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
         - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
@@ -213,7 +454,7 @@ paths:
                 role: {type: string, enum: [viewer, operator, admin, owner]}
                 enabled: {type: boolean}
       responses:
-        '200': {description: "Completed; may contain one-time token or invitation_token, or secret_unavailable"}
+        '200': {description: "Completed; invitation email queued"}
         '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
         '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
   /healthz:
@@ -237,42 +478,6 @@ paths:
         '200': {description: Tenant-scoped identity and browser CSRF token; supports service accounts, content: {application/json: {schema: {type: object}}}}
         '401': {$ref: '#/components/responses/Problem'}
         '403': {$ref: '#/components/responses/Problem'}
-  /v1/tenants/{tenant}/logout:
-    post:
-      operationId: logoutTenantSession
-      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/CSRF'}]
-      responses:
-        '200': {description: "Clears browser session; service-account callers discard their token locally"}
-        '401': {$ref: '#/components/responses/Problem'}
-        '403': {$ref: '#/components/responses/Problem'}
-  /auth/{tenant}/login:
-    get:
-      security: []
-      operationId: startOIDCLogin
-      parameters:
-        - $ref: '#/components/parameters/Tenant'
-        - in: query
-          name: issuer
-          schema: {type: string, format: uri}
-      responses:
-        '302': {description: "Redirect to the configured OIDC authorization endpoint"}
-  /auth/callback:
-    get:
-      security: []
-      operationId: finishOIDCLogin
-      responses:
-        '302': {description: "Sets an encrypted HttpOnly session and redirects to the UI"}
-  /auth/session:
-    get:
-      operationId: getBrowserSession
-      responses:
-        '200': {description: Current browser identity and CSRF token, content: {application/json: {schema: {type: object}}}}
-  /auth/logout:
-    post:
-      operationId: logoutBrowserSession
-      parameters: [{$ref: '#/components/parameters/CSRF'}]
-      responses:
-        '200': {description: "Session cleared"}
   /v1/tenants/{tenant}/vendors:
     get:
       operationId: listVendors

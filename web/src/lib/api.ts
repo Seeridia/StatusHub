@@ -3,12 +3,14 @@ import type { Page, Session } from "./types";
 export const demo =
   import.meta.env?.DEV &&
   new URLSearchParams(location.search).get("demo") === "1";
-let tenant =
-  new URLSearchParams(location.search).get("tenant") ||
-  sessionStorage.getItem("statushub-tenant") ||
-  "";
-let token = sessionStorage.getItem("statushub-token") || "";
+let tenant = new URLSearchParams(location.search).get("tenant") || "";
 let csrf = "";
+export interface AccountSession {
+  user: { id: string; email: string; name: string; email_verified_at?: string };
+  workspaces: { id: string; slug: string; name: string; role: string }[];
+  csrf_token: string;
+  mail_configured: boolean;
+}
 export class APIError extends Error {
   constructor(
     public status: number,
@@ -17,31 +19,38 @@ export class APIError extends Error {
     super(message);
   }
 }
-export function configure(next: {
-  tenant: string;
-  token?: string;
-  csrf?: string;
-}) {
-  tenant = next.tenant;
-  token = next.token ?? token;
-  csrf = next.csrf ?? "";
+export function configure(next: { tenant?: string; csrf?: string }) {
+  if (next.tenant !== undefined) tenant = next.tenant;
+  if (next.csrf !== undefined) csrf = next.csrf;
 }
 export function currentTenant() {
   return tenant;
 }
 export function authHeaders(): Record<string, string> {
-  return token ? { Authorization: `Bearer ${token}` } : {};
-}
-export function persistSession() {
-  sessionStorage.setItem("statushub-tenant", tenant);
-  if (token) sessionStorage.setItem("statushub-token", token);
-  else sessionStorage.removeItem("statushub-token");
+  return {};
 }
 export function clearSession() {
-  token = "";
   csrf = "";
-  sessionStorage.removeItem("statushub-token");
-  sessionStorage.removeItem("statushub-tenant");
+}
+export async function accountSession() {
+  const snapshot = await request<AccountSession>("/auth/session");
+  csrf = snapshot.csrf_token;
+  return snapshot;
+}
+export function accountRequest<T = unknown>(
+  action: string,
+  body: unknown = {},
+) {
+  return request<T>("/auth/" + action, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+export function enterWorkspace(w: AccountSession["workspaces"][number]) {
+  const url = new URL(location.href);
+  url.searchParams.set("tenant", w.slug);
+  url.hash = "/overview";
+  location.assign(url);
 }
 export async function request<T>(
   path: string,
@@ -63,22 +72,37 @@ export async function request<T>(
     },
   });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok)
+  if (!response.ok) {
+    const messages: Record<string, string> = {
+      invalid_credentials: tr("邮箱或密码不正确。"),
+      origin_mismatch: tr("服务公开地址与当前页面不一致，请联系管理员。"),
+      session_expired: tr("会话已过期，请重新登录。"),
+      unauthenticated: tr("会话已过期，请重新登录。"),
+      workspace_forbidden: tr("你没有此工作区的访问权限。"),
+      invitation_invalid: tr("邀请已过期、撤销或接受，请联系管理员重新邀请。"),
+      setup_unavailable: tr("初始化链接已失效，或实例已经初始化。"),
+      invalid_password: tr("密码必须包含 12–128 个字符。"),
+      login_required: tr("请先使用受邀邮箱登录，再接受邀请。"),
+      email_mismatch: tr("当前登录邮箱与邀请邮箱不一致。"),
+      membership_exists: tr("成员关系已存在，请联系管理员调整权限。"),
+      token_invalid: tr("链接已过期或已使用，请重新申请。"),
+      csrf_failed: tr("页面凭据已过期，请刷新后重试。"),
+      rate_limited: tr("请求过于频繁，请稍后重试。"),
+      mail_unavailable: tr("邮件服务未配置或不可用，请联系管理员。"),
+      auth_unavailable: tr("认证服务暂时不可用，请稍后重试。"),
+    };
+    const code =
+      String(body.type || "")
+        .split("/")
+        .pop() || "";
+    if (response.status === 401 && !path.startsWith("/auth/"))
+      window.dispatchEvent(new Event("statushub-session-expired"));
     throw new APIError(
       response.status,
-      response.status === 401
-        ? tr(
-            "\u767B\u5F55\u5DF2\u8FC7\u671F\u6216\u51ED\u636E\u65E0\u6548\uFF0C\u8BF7\u91CD\u65B0\u767B\u5F55\u3002",
-          )
-        : response.status === 403
-          ? tr(
-              "\u5F53\u524D\u89D2\u8272\u65E0\u6743\u6267\u884C\u6B64\u64CD\u4F5C\u3002",
-            )
-          : body.detail ||
-            tr("\u8BF7\u6C42\u5931\u8D25\uFF08HTTP {{value0}}\uFF09", {
-              value0: response.status,
-            }),
+      (messages[code] || body.detail || tr("请求失败")) +
+        (body.request_id ? " (" + body.request_id + ")" : ""),
     );
+  }
   return body;
 }
 export function api<T>(path: string, init?: RequestInit) {
@@ -121,21 +145,6 @@ export function createWriter() {
       throw error;
     }
   };
-}
-export async function login(workspace: string, secret = "") {
-  configure({ tenant: workspace, token: secret });
-  const session = secret
-    ? await api<Session>("/session")
-    : await request<Session>("/auth/session");
-  configure({
-    tenant: session.tenant.slug || session.tenant.key || workspace,
-    csrf: session.csrf_token,
-  });
-  persistSession();
-  return session;
-}
-export async function restore() {
-  return token && tenant ? login(tenant, token) : login(tenant);
 }
 export async function allPages<T>(path: string, signal?: AbortSignal) {
   const result: T[] = [];

@@ -53,25 +53,11 @@ No database, NATS, or metrics ports are exposed on the host. The backend network
 
 Use `docker compose exec api sh`, or the **api container terminal** in Dokploy after deployment. These commands run inside the container, where `DATABASE_URL` is already configured:
 
-```sh
-statushub-admin tenant-create -slug acme -name 'Acme'
+```bash
+statushub-admin setup-link
 ```
 
-Save the returned workspace `id`, then replace the example below with that UUID and your real Owner email:
-
-```sh
-statushub-admin owner-invite -tenant-id '<workspace UUID>' -email 'owner@example.com'
-```
-
-The result contains `invitation_token`. Treat the terminal output as a secret. Do not include it in deployment logs, screenshots, or support requests. Open:
-
-```text
-https://status.example.com/ui/?tenant=acme#/account-flow?mode=invite&token=<invitation_token>
-```
-
-Request the verification email, follow its link, and set a password. Log in at `https://status.example.com/ui/?tenant=acme`. From Settings, invite members and create service accounts as needed. No default account, password, or demonstration data is created.
-
-Add a public status-page URL from Settings to start monitoring. Create a notification channel and rule. Test only a destination you control: a channel test makes a real outbound request.
+在 API 容器内执行上述命令并打开返回的一次性链接，填写管理员与首个工作区。仅空实例允许初始化。管理员日后在网页直接发送邀请邮件。此版本使用全新数据库基线，不支持旧账号或业务数据自动升级。
 
 ## Verify and maintain
 
@@ -86,7 +72,7 @@ Add a public status-page URL from Settings to start monitoring. Create a notific
 
 `statushub-migrate` embeds the up migrations and records each filename and SHA-256 checksum in `statushub_schema_migrations`. A database advisory lock serializes concurrent migration jobs. Each migration and its ledger entry commit in the same transaction. Rerunning an unchanged deployment skips applied migrations.
 
-It rejects edited applied migrations, gaps, a database with newer migrations, and an existing untracked schema. It does **not** automatically adopt a database initialized using the old `make migrate-up` command. For an existing installation, first rehearse an audited migration/import process on a restored copy; do not delete tables or fabricate the ledger to bypass this check.
+It rejects edited applied migrations, gaps, a database with newer migrations, and an existing untracked schema. It does **not** automatically adopt a database initialized using the old `make migrate-up` command. This release has a new identity baseline and requires a fresh installation; it does not migrate previous accounts or business data. Never fabricate a migration ledger to bypass this check.
 
 For upgrades, back up first and arrange a maintenance window. Stop API and worker before deploying schema changes that are incompatible with running code. Compose startup dependencies do not stop old containers before a new migration begins. Ensure the migration job is recreated from the newly pulled image on each deployment; inspect its logs and image version. A manual Compose workflow from the server checkout is:
 
@@ -103,4 +89,4 @@ Do not run these commands with an unrelated project name: that can create differ
 
 ## Validation scope
 
-The migration lifecycle has been tested against disposable PostgreSQL databases for concurrent startup, replay, rollback, changed checksums, and untracked-schema rejection. Compose configuration and Linux Go compilation have been checked. Image publication, proxy routing, and SMTP delivery must be verified from the successful Actions run and your deployment environment.
+Validate builds and Compose configuration before deployment. Verify health, SMTP delivery and account flows in your own environment.

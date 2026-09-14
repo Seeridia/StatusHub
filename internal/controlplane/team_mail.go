@@ -91,6 +91,9 @@ func (s *Server) RunIdentityMail(ctx context.Context) error {
 			return errors.New("identity SMTP data failed")
 		}
 		subject := "Verify your StatusHub email / 验证邮箱"
+		if data.Purpose == "invite" {
+			subject = "Join your StatusHub workspace / 加入工作区"
+		}
 		if data.Purpose == "reset" {
 			subject = "Reset your StatusHub password / 重置密码"
 		}

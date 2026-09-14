@@ -1782,3 +1782,7 @@ a {
 .validated-form {
   min-width: 0;
 }
+
+.auth-workspaces { display: grid; gap: var(--td-size-4); margin-block: var(--td-size-6); }
+.signin-login .t-alert { margin-block: var(--td-size-4); overflow-wrap: anywhere; }
+.signin-login .team-form { max-width: 100%; }

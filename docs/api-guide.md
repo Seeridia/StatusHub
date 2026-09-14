@@ -1,4 +1,4 @@
-# 管理 API 与 OIDC
+# 管理 API
 
 采集、事件、订阅和通知通过以下方式管理：租户隔离的管理 API 与浏览器控制台。控制面由 `statushub-api` 提供；采集和投递 worker 仍由 `statushubd` 承担。
 
@@ -6,7 +6,7 @@
 
 - REST API：vendor 汇总状态、source、incident timeline、subscription、endpoint、delivery/attempt、audit export。
 - 实时事件：PostgreSQL catch-up + NATS live signal 的 SSE；断线后用租户绑定、HMAC 签名的 `Last-Event-ID` 续传。
-- 身份：邀请注册的邮箱密码、OIDC Authorization Code + PKCE，以及服务账号 Token。
+- 身份：人员邮箱密码会话，以及独立的 API 服务账号 Token。
 - 浏览器安全：可撤销的服务端会话、HttpOnly、SameSite、HTTPS Secure Cookie、CSRF 和同源 CSP；请求重新校验成员状态和角色。
 - 写入：所有创建、更新、禁用、测试、重试和 rollout decision 都要求 `Idempotency-Key`；普通结果持久化 24 小时；服务账号 Token 的加密重试结果仅保留秘密 10 分钟，详见 [团队账号](operations/team-accounts.md)。
 - 凭据：endpoint config 使用 AES-256-GCM envelope，AAD 绑定 endpoint ID 与 secret version；API 永不返回明文或密文。
@@ -22,7 +22,7 @@
 - `make migrate-up` 没有迁移版本跟踪，不能在已初始化数据库上反复运行。
 - `.env` 中两把密钥只在首次初始化生成，之后保留原值；API 与 worker 使用同一配置 key/key ID。
 - 同时运行 `statushub-api` 和 `statushubd` 才具备网页、持续采集及正常通知投递。API 内另有渠道测试 worker。
-- 本地 HTTP 显式使用 `-allow-http-oidc`；正式部署使用 HTTPS。
+- 本地 HTTP 显式使用 `-allow-local-http`；正式部署使用 HTTPS。
 - `/healthz` 是存活检查，`/readyz` 联合检查 PostgreSQL 与 NATS live bridge；合同入口 `/openapi.yaml`，网页 `/ui/`。
 
 `STATUSHUB_CONFIG_KEY` 加密渠道配置，`STATUSHUB_API_KEY` 派生会话和游标签名。更换前者会导致已有渠道无法解密；更换后者会使旧会话/游标失效。密钥保存与恢复见 [运行与维护](operations/maintenance.md)。
@@ -31,29 +31,11 @@
 
 按 [首次启动](operations/getting-started.md#6-创建工作区和账号) 创建工作区及首位人员 Owner，随后从网页邀请成员和创建服务账号。完整权限与令牌管理见 [团队账号](operations/team-accounts.md)。
 
-## 配置 OIDC
+## 人员会话
 
-浏览器登录面向支持 PKCE 的 public OIDC client，不持有 client secret。IdP 侧 redirect URI 必须精确配置为：
+`POST /auth/login` 只接收邮箱和密码。`GET /auth/session` 返回用户、可访问工作区、CSRF 和邮件配置状态。浏览器会话属于用户，业务请求按路径工作区校验当前成员权限。`POST /auth/logout` 撤销当前会话，`/auth/logout-all` 撤销全部会话。
 
-```text
-https://status.example.com/auth/callback
-```
-
-先配置 provider，再显式绑定不可变的 `(issuer, subject)` 到租户角色：
-
-```bash
-go run ./cmd/statushub-admin oidc-provider-upsert \
-  -database-url "$DATABASE_URL" -tenant-id "$TENANT_ID" \
-  -issuer 'https://idp.example.com' -client-id 'statushub-console' \
-  -allowed-domains 'example.com'
-
-go run ./cmd/statushub-admin tenant-member-set \
-  -database-url "$DATABASE_URL" -tenant-id "$TENANT_ID" \
-  -issuer 'https://idp.example.com' -subject "$OIDC_SUBJECT" \
-  -email 'operator@example.com' -role admin
-```
-
-登录入口是 `/auth/acme/login`。OIDC discovery 的 issuer 必须精确匹配；ID token 会本地校验签名、issuer、audience、expiry、nonce 和允许的已验证邮箱域。控制面不会因为一次登录自动创建或提升成员。
+初始化使用 `/auth/setup`。邮件邀请使用 `/auth/invitations/preview` 和 `/auth/invitations/accept`。密码接口为 `/auth/password/forgot`、`reset`、`change`。所有写请求检查来源，登录后的写请求携带 `X-CSRF-Token`。机器 Bearer Token 不能兑换浏览器会话。详细参数见 [OpenAPI](../api/openapi.yaml)。
 
 ## 幂等写入
 

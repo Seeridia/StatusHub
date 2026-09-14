@@ -10,6 +10,7 @@ export function resolveLanguage(
   browserLanguages: readonly string[],
 ): AppLanguage {
   if (preference === "zh" || preference === "en") return preference;
+  if (!preference) return "en";
   for (const locale of browserLanguages) {
     const language = locale.trim().toLowerCase().split(/[-_]/)[0];
     if (language === "zh" || language === "en") return language;
@@ -18,6 +19,44 @@ export function resolveLanguage(
 }
 
 const english: Record<string, string> = {
+"切换工作区":"Switch workspace",
+"正在加载账号…":"Loading account\u2026",
+"此链接属于旧版登录系统，请重新申请邀请或密码重置。":"This link belongs to the old login system. Request a new invitation or password reset.",
+"邮箱或密码不正确。":"Email or password is incorrect.",
+"服务公开地址与当前页面不一致，请联系管理员。":"The service public URL does not match this page. Contact your administrator.",
+"会话已过期，请重新登录。":"Your session has expired. Sign in again.",
+"你没有此工作区的访问权限。":"You do not have access to this workspace.",
+"邀请已过期、撤销或接受，请联系管理员重新邀请。":"This invitation has expired, been revoked or already accepted. Ask your administrator for a new invitation.",
+"初始化链接已失效，或实例已经初始化。":"The setup link has expired or this instance is already initialized.",
+"密码必须包含 12–128 个字符。":"Password must contain 12\u2013128 characters.",
+"请先使用受邀邮箱登录，再接受邀请。":"Sign in with the invited email before accepting.",
+"当前登录邮箱与邀请邮箱不一致。":"Your signed-in email does not match the invitation.",
+"成员关系已存在，请联系管理员调整权限。":"Membership already exists. Contact your administrator to change access.",
+"链接已过期或已使用，请重新申请。":"This link has expired or already been used. Request a new one.",
+"页面凭据已过期，请刷新后重试。":"Refresh this page and try again.",
+"邮件服务未配置或不可用，请联系管理员。":"Email service is unavailable or not configured. Contact your administrator.",
+"认证服务暂时不可用，请稍后重试。":"Authentication is temporarily unavailable. Try again later.",
+"请求失败":"Request failed",
+"登录":"Sign in",
+"初始化 StatusHub":"Set up StatusHub",
+"工作区名称":"Workspace name",
+"创建管理员与工作区":"Create administrator and workspace",
+"找回密码":"Forgot password",
+"重置密码":"Reset password",
+"密码已重置，请使用新密码登录。":"Password reset complete. Sign in with your new password.",
+"加入工作区":"Join workspace",
+"接受邀请":"Accept invitation",
+"选择工作区":"Choose workspace",
+"暂无可访问工作区，请联系管理员邀请。":"No workspaces available. Ask an administrator to invite you.",
+"返回工作区":"Back to workspaces",
+"验证邮箱":"Verify email",
+"邮箱已验证。":"Email verified.",
+"操作已完成，但令牌无法再次显示，请重新轮换。":"The operation completed but the token can no longer be retrieved. Rotate it again.",
+"等待发送":"Queued",
+"已提交邮件服务器":"Submitted to SMTP",
+"发送失败":"Delivery failed",
+"重新发送":"Resend",
+"令牌仅在本次结果中显示，请安全保存。":"The token is only shown in this result. Store it securely.",
   跟随浏览器: "Browser language",
   "登录 StatusHub": "Sign in to StatusHub",
   "登录工作区，掌握服务状态与重要通知。":
@@ -57,7 +96,6 @@ const english: Record<string, string> = {
   返回登录: "Back to sign in",
   发送重置邮件: "Send reset email",
   设置密码: "Set password",
-  "通过 SSO 接受邀请": "Accept with SSO",
   登录并接受邀请: "Sign in and accept invitation",
   发送验证邮件: "Send verification email",
   密码: "Password",
@@ -90,7 +128,6 @@ const english: Record<string, string> = {
   账号配置: "Account settings",
   轮换令牌: "Rotate token",
   撤销邀请: "Revoke invitation",
-  单点登录: "SSO",
   邮箱密码: "Email and password",
   最近使用: "Last used",
   登录方式: "Sign-in method",
@@ -506,7 +543,6 @@ const english: Record<string, string> = {
   跳到工作区登录: "Skip to workspace sign-in",
   轻微: "Minor",
   运行正常: "Operational",
-  "返回 SSO 登录": "Back to SSO sign-in",
   返回总览: "Back to overview",
   返回规则列表: "Back to rules",
   "还没有渠道？可直接在这里添加，已填写的规则会保留。":
@@ -538,7 +574,6 @@ const english: Record<string, string> = {
   通知渠道: "Notification channels",
   通知规则: "Notification rules",
   "通知规则已保存。": "Notification rule saved.",
-  "通过 SSO 登录": "Sign in with SSO",
   "通过通用状态页适配器，面向数千个服务扩展。":
     "Scale to thousands of services through universal status-page adapters.",
   通过门禁并晋级: "Promote after passing gates",
@@ -692,7 +727,7 @@ export function setLanguage(preference: LanguagePreference) {
   if (!isBrowser) return;
   try {
     if (preference === "system")
-      window.localStorage.removeItem("statushub-language");
+      window.localStorage.setItem("statushub-language", "system");
     else window.localStorage.setItem("statushub-language", preference);
   } catch {
     // Storage can be unavailable in restricted browsing environments.

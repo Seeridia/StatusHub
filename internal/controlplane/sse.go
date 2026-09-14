@@ -151,7 +151,7 @@ func (s *Server) handleEventStream(response http.ResponseWriter, request *http.R
 				if _, err := s.verifier.Authenticate(request.Context(), details.Tenant.ID, token); err != nil {
 					return
 				}
-			} else if _, err := s.sessions.Read(request); err != nil {
+			} else if _, err := s.checkStreamSession(request, details.Tenant.ID); err != nil {
 				return
 			}
 			if _, err := fmt.Fprintf(response, ": heartbeat %d\n\n", time.Now().Unix()); err != nil {

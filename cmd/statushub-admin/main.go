@@ -10,6 +10,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -33,8 +35,6 @@ type adminStore interface {
 	CreateAWSAccountConnector(context.Context, store.CreateAWSAccountConnectorParams) (store.AWSAccountConnector, error)
 	CreatePrivateAgent(context.Context, string, string) (store.PrivateAgentCredential, error)
 	BindPrivateAgentEndpoint(context.Context, string, string) (bool, error)
-	UpsertOIDCProvider(context.Context, store.UpsertOIDCProviderParams) (auth.OIDCProvider, error)
-	SetTenantMembership(context.Context, store.SetTenantMembershipParams) (auth.Identity, error)
 	CreateServiceAccount(context.Context, store.CreateServiceAccountParams) (store.ServiceAccountCredential, error)
 	AppendAuditEvent(context.Context, string, audit.AppendInput) (audit.Event, error)
 	ExportAuditEvents(context.Context, string, int64, int) ([]audit.Event, error)
@@ -52,34 +52,13 @@ var openStore = func(ctx context.Context, databaseURL string) (adminStore, error
 
 func run(ctx context.Context, args []string, output io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("operation is required: tenant-create, dlq-list, dlq-replay, aws-connector-create, private-agent-create, private-agent-bind, oidc-provider-upsert, tenant-member-set, service-account-create, audit-export, audit-verify, source-region-change, adapter-rollout-create, adapter-rollout-status, adapter-rollout-promote, or adapter-rollout-rollback")
+		return errors.New("operation is required: tenant-create, dlq-list, dlq-replay, aws-connector-create, private-agent-create, private-agent-bind, setup-link, service-account-create, audit-export, audit-verify, source-region-change, adapter-rollout-create, adapter-rollout-status, adapter-rollout-promote, or adapter-rollout-rollback")
 	}
 	switch args[0] {
 	case "tenant-create":
 		return runTenantCreate(ctx, args[1:], output)
-	case "owner-invite":
-		flags := flag.NewFlagSet("owner-invite", flag.ContinueOnError)
-		tenant := flags.String("tenant-id", "", "tenant UUID")
-		email := flags.String("email", "", "first owner email")
-		if err := flags.Parse(args[1:]); err != nil {
-			return err
-		}
-		repository, err := connect(ctx, os.Getenv("DATABASE_URL"))
-		if err != nil {
-			return err
-		}
-		defer repository.Close()
-		bootstrap, ok := repository.(interface {
-			BootstrapInvitation(context.Context, string, string) (string, error)
-		})
-		if !ok {
-			return errors.New("bootstrap unavailable")
-		}
-		token, err := bootstrap.BootstrapInvitation(ctx, *tenant, *email)
-		if err != nil {
-			return err
-		}
-		return writeJSON(output, map[string]string{"invitation_token": token, "tenant_id": *tenant})
+	case "setup-link":
+		return runSetupLink(ctx, args[1:], output)
 	case "dlq-list":
 		return runDLQList(ctx, args[1:], output)
 	case "dlq-replay":
@@ -90,10 +69,6 @@ func run(ctx context.Context, args []string, output io.Writer) error {
 		return runPrivateAgentCreate(ctx, args[1:], output)
 	case "private-agent-bind":
 		return runPrivateAgentBind(ctx, args[1:], output)
-	case "oidc-provider-upsert":
-		return runOIDCProviderUpsert(ctx, args[1:], output)
-	case "tenant-member-set":
-		return runTenantMemberSet(ctx, args[1:], output)
 	case "service-account-create":
 		return runServiceAccountCreate(ctx, args[1:], output)
 	case "audit-export":
@@ -115,31 +90,45 @@ func run(ctx context.Context, args []string, output io.Writer) error {
 	}
 }
 
-func runTenantCreate(ctx context.Context, args []string, output io.Writer) error {
-	flags := flag.NewFlagSet("tenant-create", flag.ContinueOnError)
-	flags.SetOutput(io.Discard)
-	databaseURL := flags.String("database-url", os.Getenv("DATABASE_URL"), "PostgreSQL connection URL")
-	tenantID := flags.String("tenant-id", "", "optional tenant UUID")
-	slug := flags.String("slug", "", "URL-safe tenant slug")
-	name := flags.String("name", "", "display name")
-	actorID := flags.String("actor-id", "statushub-admin", "audit actor identifier")
-	if err := flags.Parse(args); err != nil {
-		return err
+func runTenantCreate(ctx context.Context, args []string, out io.Writer) error {
+	f := flag.NewFlagSet("tenant-create", flag.ContinueOnError)
+	email := f.String("owner-email", "", "existing owner email")
+	name := f.String("name", "", "workspace name")
+	slug := f.String("slug", "", "workspace slug")
+	if e := f.Parse(args); e != nil {
+		return e
 	}
-	if flags.NArg() != 0 || strings.TrimSpace(*slug) == "" || strings.TrimSpace(*name) == "" {
-		return errors.New("-slug and -name are required")
+	repo, e := store.Open(ctx, os.Getenv("DATABASE_URL"))
+	if e != nil {
+		return e
 	}
-	repository, err := connect(ctx, *databaseURL)
-	if err != nil {
-		return err
+	defer repo.Close()
+	w, e := repo.CreateOwnedWorkspace(ctx, *email, *name, *slug)
+	if e != nil {
+		return e
 	}
-	defer repository.Close()
-	tenant, err := repository.CreateTenant(ctx, store.CreateTenantParams{ID: *tenantID, Slug: *slug, Name: *name,
-		Actor: store.AuditActor{Type: "system", ID: *actorID}})
-	if err != nil {
-		return err
+	return writeJSON(out, w)
+}
+func runSetupLink(ctx context.Context, args []string, out io.Writer) error {
+	f := flag.NewFlagSet("setup-link", flag.ContinueOnError)
+	base := f.String("public-url", os.Getenv("STATUSHUB_PUBLIC_URL"), "public origin")
+	if e := f.Parse(args); e != nil {
+		return e
 	}
-	return writeJSON(output, tenant)
+	u, e := url.Parse(*base)
+	if e != nil || u.Host == "" || u.User != nil || u.RawQuery != "" || u.Fragment != "" || u.Path != "" && u.Path != "/" || u.Scheme != "https" && !(u.Scheme == "http" && (u.Hostname() == "localhost" || net.ParseIP(u.Hostname()).IsLoopback())) {
+		return errors.New("valid public origin required")
+	}
+	repo, e := store.Open(ctx, os.Getenv("DATABASE_URL"))
+	if e != nil {
+		return e
+	}
+	defer repo.Close()
+	token, e := repo.SetupLink(ctx)
+	if e != nil {
+		return e
+	}
+	return writeJSON(out, map[string]string{"setup_url": strings.TrimRight(*base, "/") + "/ui/#/setup?token=" + token})
 }
 
 func runSourceRegionChange(ctx context.Context, args []string, output io.Writer) error {
@@ -268,79 +257,6 @@ func runAdapterRolloutDecision(ctx context.Context, args []string, output io.Wri
 		return err
 	}
 	return writeJSON(output, stats)
-}
-
-func runOIDCProviderUpsert(ctx context.Context, args []string, output io.Writer) error {
-	flags := flag.NewFlagSet("oidc-provider-upsert", flag.ContinueOnError)
-	flags.SetOutput(io.Discard)
-	databaseURL := flags.String("database-url", os.Getenv("DATABASE_URL"), "PostgreSQL connection URL")
-	tenantID := flags.String("tenant-id", "", "tenant UUID")
-	providerID := flags.String("provider-id", "", "optional provider UUID")
-	issuer := flags.String("issuer", "", "exact OIDC issuer URL")
-	clientID := flags.String("client-id", "", "OIDC audience/client ID")
-	jwksURI := flags.String("jwks-uri", "", "optional fixed JWKS URL; otherwise discovery is used")
-	domains := flags.String("allowed-domains", "", "optional comma-separated verified email domains")
-	enabled := flags.Bool("enabled", true, "enable this provider")
-	actorType := flags.String("actor-type", "system", "audit actor type")
-	actorID := flags.String("actor-id", "statushub-admin", "audit actor identifier")
-	requestID := flags.String("request-id", "", "optional audit request identifier")
-	if err := flags.Parse(args); err != nil {
-		return err
-	}
-	if flags.NArg() != 0 || strings.TrimSpace(*tenantID) == "" || strings.TrimSpace(*issuer) == "" || strings.TrimSpace(*clientID) == "" {
-		return errors.New("-tenant-id, -issuer, and -client-id are required")
-	}
-	repository, err := connect(ctx, *databaseURL)
-	if err != nil {
-		return err
-	}
-	defer repository.Close()
-	provider, err := repository.UpsertOIDCProvider(ctx, store.UpsertOIDCProviderParams{
-		ID: *providerID, TenantID: *tenantID, Issuer: *issuer, ClientID: *clientID, JWKSURI: *jwksURI,
-		AllowedDomains: splitCSV(*domains), Enabled: *enabled,
-		Actor: store.AuditActor{Type: *actorType, ID: *actorID, RequestID: *requestID},
-	})
-	if err != nil {
-		return err
-	}
-	return writeJSON(output, provider)
-}
-
-func runTenantMemberSet(ctx context.Context, args []string, output io.Writer) error {
-	flags := flag.NewFlagSet("tenant-member-set", flag.ContinueOnError)
-	flags.SetOutput(io.Discard)
-	databaseURL := flags.String("database-url", os.Getenv("DATABASE_URL"), "PostgreSQL connection URL")
-	tenantID := flags.String("tenant-id", "", "tenant UUID")
-	principalID := flags.String("principal-id", "", "optional principal UUID")
-	issuer := flags.String("issuer", "", "exact OIDC issuer")
-	subject := flags.String("subject", "", "immutable OIDC subject")
-	email := flags.String("email", "", "optional display email")
-	displayName := flags.String("display-name", "", "optional display name")
-	role := flags.String("role", "", "viewer, operator, admin, or owner")
-	actorType := flags.String("actor-type", "system", "audit actor type")
-	actorID := flags.String("actor-id", "statushub-admin", "audit actor identifier")
-	requestID := flags.String("request-id", "", "optional audit request identifier")
-	if err := flags.Parse(args); err != nil {
-		return err
-	}
-	parsedRole := auth.Role(strings.TrimSpace(*role))
-	if flags.NArg() != 0 || strings.TrimSpace(*tenantID) == "" || strings.TrimSpace(*issuer) == "" || strings.TrimSpace(*subject) == "" || !parsedRole.Valid() {
-		return errors.New("-tenant-id, -issuer, -subject, and a valid -role are required")
-	}
-	repository, err := connect(ctx, *databaseURL)
-	if err != nil {
-		return err
-	}
-	defer repository.Close()
-	identity, err := repository.SetTenantMembership(ctx, store.SetTenantMembershipParams{
-		TenantID: *tenantID, PrincipalID: *principalID, Issuer: *issuer, Subject: *subject,
-		Email: *email, DisplayName: *displayName, Role: parsedRole,
-		Actor: store.AuditActor{Type: *actorType, ID: *actorID, RequestID: *requestID},
-	})
-	if err != nil {
-		return err
-	}
-	return writeJSON(output, identity)
 }
 
 func runServiceAccountCreate(ctx context.Context, args []string, output io.Writer) error {

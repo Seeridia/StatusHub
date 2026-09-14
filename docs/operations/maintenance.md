@@ -57,21 +57,7 @@ docker compose -f deploy/compose.dev.yaml stop
 5. 安装锁定的前端依赖并构建网页，再编译 Go 程序；网页构建产物不纳入 Git，新检出的源码不包含这些资源。
 6. 启动服务，检查 readiness、来源采集、事件详情、登录和投递，再恢复正常流量。
 
-使用旧版 `make migrate-up` 初始化的数据库没有自动迁移历史表；本节适用于这类安装。Dokploy 新部署使用带版本与校验记录的 `statushub-migrate`，请按 [Dokploy 升级说明](../deployment.md#schema-upgrades) 操作。维护人员需要保存已执行文件名、版本、时间和结果。不要根据“程序能启动”推断所有迁移都已完成。查找迁移文件：
-
-```bash
-ls migrations/*.up.sql
-```
-
-下例仅演示执行一份**已确认缺失**的迁移，不是每次升级固定运行：
-
-```bash
-docker compose -f deploy/compose.dev.yaml exec -T postgres \
-  psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER:-statushub}" -d "${POSTGRES_DB:-statushub}" \
-  < migrations/000011_m5_control_plane.up.sql
-```
-
-若该文件对应的表已经存在，应先确认历史状态，不能直接重跑。
+本版本采用全新数据库基线，不支持旧身份结构自动升级。旧实例需要独立安排重装，限定到本应用的数据库和消息队列；不得清理 Dokploy 或其他应用。使用 `statushub-migrate` 初始化空结构。新基线建立后的日常部署保留数据卷和配置密钥。
 
 构建方式：
 
@@ -130,7 +116,7 @@ PostgreSQL 备份不包含 NATS JetStream 的 stream、consumer 或 ACK 状态�
 
 本仓库提供本地基础设施编排，不是开箱即用的高可用生产部署：
 
-- 配置 HTTPS、正确 public URL、可信 OIDC 客户端和数据库凭据。
+- 配置 HTTPS、正确 public URL和数据库凭据。
 - 为 API/worker 配置进程管理、日志收集、启动环境和重启策略。
 - 配置持久化、备份与恢复演练；API/worker 的加密密钥必须一致并可恢复。
 - 反向代理为 SSE 关闭缓冲，允许长连接；不要缓存认证 API。

@@ -40,44 +40,11 @@ func (s *Server) handleReady(response http.ResponseWriter, request *http.Request
 	writeJSON(response, http.StatusOK, map[string]string{"status": "ready"})
 }
 
-func (s *Server) handleOIDCStart(response http.ResponseWriter, request *http.Request) {
-	if s.oidc == nil {
-		writeProblemStatus(response, request, http.StatusServiceUnavailable, "oidc_unavailable", "Browser OIDC login is not configured")
-		return
-	}
-	if err := s.oidc.Start(response, request, request.PathValue("tenant")); err != nil {
-		writeProblem(response, request, err)
-	}
-}
-
-func (s *Server) handleOIDCCallback(response http.ResponseWriter, request *http.Request) {
-	if s.oidc == nil {
-		writeProblemStatus(response, request, http.StatusServiceUnavailable, "oidc_unavailable", "Browser OIDC login is not configured")
-		return
-	}
-	if err := s.oidc.Callback(response, request); err != nil {
-		writeProblem(response, request, err)
-	}
-}
-
 func (s *Server) handleSession(response http.ResponseWriter, request *http.Request) {
 	response.Header().Set("Cache-Control", "no-store")
 	details := requestDetails(request)
 	session, _ := s.sessions.Read(request)
 	writeJSON(response, http.StatusOK, map[string]any{"tenant": details.Tenant, "identity": details.Identity, "csrf_token": session.CSRF})
-}
-
-func (s *Server) handleLogout(response http.ResponseWriter, request *http.Request) {
-	if s.sessions.Store != nil {
-		if session, err := s.sessions.Read(request); err == nil {
-			if err = s.sessions.Store.RevokeBrowserSessions(request.Context(), session.Identity, session.ID); err != nil {
-				writeProblem(response, request, err)
-				return
-			}
-		}
-	}
-	s.sessions.Clear(response)
-	writeJSON(response, http.StatusOK, map[string]bool{"logged_out": true})
 }
 
 func (s *Server) handleVendors(response http.ResponseWriter, request *http.Request) {

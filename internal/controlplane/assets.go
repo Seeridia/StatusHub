@@ -30,15 +30,7 @@ func (s *Server) handleUI(response http.ResponseWriter, request *http.Request) {
 		http.NotFound(response, request)
 		return
 	}
-	// Keep the previous console reachable during migration; the default is React.
 	root := "assets/console/"
-	if name == "legacy.html" {
-		root = "assets/"
-		name = "index.html"
-	}
-	if name == "app.js" || name == "styles.css" {
-		root = "assets/"
-	}
 	data, err := assets.ReadFile(root + name)
 	if err != nil {
 		http.NotFound(response, request)

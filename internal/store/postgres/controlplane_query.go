@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Seeridia/StatusHub/internal/auth"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 )
@@ -44,43 +43,6 @@ func (s *Store) ResolveTenant(ctx context.Context, key string) (Tenant, error) {
 		return Tenant{}, fmt.Errorf("postgres store: resolve tenant: commit: %w", err)
 	}
 	return tenant, nil
-}
-
-func (s *Store) ListOIDCProviders(ctx context.Context, tenantID string) ([]auth.OIDCProvider, error) {
-	if err := s.ready(); err != nil {
-		return nil, err
-	}
-	if _, err := uuid.Parse(tenantID); err != nil {
-		return nil, invalid("OIDC tenant ID must be a UUID")
-	}
-	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{AccessMode: pgx.ReadOnly})
-	if err != nil {
-		return nil, fmt.Errorf("postgres store: list OIDC providers: begin: %w", err)
-	}
-	defer func() { _ = tx.Rollback(ctx) }()
-	rows, err := tx.Query(ctx, `
-SELECT id,tenant_id,issuer,client_id,COALESCE(jwks_uri,''),allowed_domains,enabled
-FROM oidc_providers WHERE tenant_id=$1 AND enabled ORDER BY issuer`, tenantID)
-	if err != nil {
-		return nil, fmt.Errorf("postgres store: list OIDC providers: %w", err)
-	}
-	defer rows.Close()
-	providers := make([]auth.OIDCProvider, 0)
-	for rows.Next() {
-		var provider auth.OIDCProvider
-		if err := rows.Scan(&provider.ID, &provider.TenantID, &provider.Issuer, &provider.ClientID,
-			&provider.JWKSURI, &provider.AllowedDomains, &provider.Enabled); err != nil {
-			return nil, fmt.Errorf("postgres store: scan OIDC provider: %w", err)
-		}
-		providers = append(providers, provider)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("postgres store: scan OIDC providers: %w", err)
-	}
-	if err := tx.Commit(ctx); err != nil {
-		return nil, fmt.Errorf("postgres store: list OIDC providers: commit: %w", err)
-	}
-	return providers, nil
 }
 
 func (s *Store) ListVendorStatuses(ctx context.Context, tenantID string) ([]VendorStatus, error) {

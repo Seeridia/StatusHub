@@ -12,7 +12,7 @@ StatusHub is a self-hosted vendor status monitoring and notification platform. A
 - **Understand incidents.** Read normalized updates and component impact while keeping vendor timestamps separate from collection timestamps.
 - **Monitor collection health.** See successful checks, scheduled polls, backoff, and failure classifications separately from vendor outages.
 - **Route notifications.** Configure subscriptions, create Slack and signed webhook channels in the console, and inspect delivery attempts and retries.
-- **Work as a team.** Invite members, use email/password or OIDC SSO, assign Viewer/Operator/Admin/Owner roles, and manage service accounts.
+- **Work as a team.** Invite members, use email/password, assign Viewer/Operator/Admin/Owner roles, and manage service accounts.
 - **Use English or Chinese.** The responsive console defaults to English and supports Simplified Chinese, light mode, and dark mode.
 
 ## Status-page compatibility
@@ -63,7 +63,7 @@ Shared sources are collected independently of tenant subscriptions. PostgreSQL h
 | [Console guide](docs/operations/console-guide.md) | Workspace members; Chinese |
 | [Team accounts](docs/operations/team-accounts.md) | Owners and admins; Chinese |
 | [Configuration](docs/operations/configuration.md), [maintenance](docs/operations/maintenance.md), [troubleshooting](docs/operations/troubleshooting.md) | Self-hosting operators; Chinese |
-| [API and OIDC](docs/api-guide.md), [OpenAPI schema](api/openapi.yaml) | Integrators |
+| [API reference](docs/api-guide.md), [OpenAPI schema](api/openapi.yaml) | Integrators |
 | [Collection](docs/collection.md), [notifications](docs/notifications.md), [advanced operations](docs/advanced-operations.md) | Backend contributors and operators; Chinese |
 | [Frontend development](docs/react-console.md), [brand attribution](docs/brand-assets.md) | Frontend contributors; Chinese |
 

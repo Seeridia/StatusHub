@@ -27,6 +27,8 @@ var (
 // database is deliberately small. It is implemented by pgxpool.Pool and keeps
 // CAS behavior unit-testable without emulating the entire pgx pool.
 type database interface {
+	QueryRow(context.Context, string, ...any) pgx.Row
+	Query(context.Context, string, ...any) (pgx.Rows, error)
 	BeginTx(context.Context, pgx.TxOptions) (pgx.Tx, error)
 	Exec(context.Context, string, ...any) (pgconn.CommandTag, error)
 	Ping(context.Context) error

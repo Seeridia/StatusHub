@@ -10,7 +10,6 @@ export interface Session {
     actor_type?: string;
     actor_id?: string;
     email?: string;
-    issuer?: string;
   };
   csrf_token?: string;
 }

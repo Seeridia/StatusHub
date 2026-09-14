@@ -17,7 +17,6 @@
 | 能查看但不能添加 | 当前角色是否 viewer；切换到 operator 或更高的既有账号 |
 | 使用服务账号名称作为密码失败 | 名称不是凭据，使用创建结果中的 `token` |
 | 邮箱密码登录失败 | 检查邮箱验证、密码、工作区成员启用状态；使用忘记密码流程恢复 |
-| SSO 失败 | public URL、redirect URI、issuer、client ID、邮箱域及 issuer/subject 绑定 |
 | 重启后 cookie/SSE cursor 失效 | 是否更换了 `STATUSHUB_API_KEY`；恢复原配置后重新登录 |
 | 403 | 先区分角色权限不足与 cookie 写入缺少 CSRF，不要关闭认证来排错 |
 

@@ -21,7 +21,7 @@ The project license is pending. Discuss substantial contributions with the maint
 2. Keep changes focused. Add regression coverage for behavior changes, especially tenant isolation, authorization, replay, and failure recovery.
 3. Run `make ui-install` when dependencies change, then `make verify` in an isolated environment. Run `python3 scripts/check-public-docs.py` for documentation changes.
 4. Update OpenAPI and operational documentation when interfaces or configuration change. Frontend text must support English and Simplified Chinese; use the existing TDesign tokens.
-5. Include expected behavior, relevant test results, and migration impact in the pull request. Keep generated console assets in sync with the frontend build.
+5. Include expected behavior, build and manual verification results, and migration impact in the pull request. Keep generated console assets in sync with the frontend build.
 
 Adapter changes should include sanitized fixtures and cover unknown fields, partial snapshots, upstream failures, and duplicate observations. Live canaries contact external status pages; use them sparingly and honor their request limits.
 

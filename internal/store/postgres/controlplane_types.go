@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"time"
 
-	"github.com/Seeridia/StatusHub/internal/auth"
 	"github.com/Seeridia/StatusHub/internal/domain"
 )
 
@@ -279,8 +278,4 @@ type CompleteEndpointTestParams struct {
 	HTTPStatus        int
 	ErrorClass        string
 	ErrorSummary      string
-}
-
-type OIDCLoginProvider struct {
-	Provider auth.OIDCProvider
 }

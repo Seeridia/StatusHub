@@ -46,9 +46,9 @@ go run ./cmd/statushub-agent \
 
 delivery 的 lease、attempt、重试和 DLQ 仍在服务端。completion 同时校验 delivery lease token 和 agent/endpoint 绑定，错误 agent 无法完成其他 agent 的工作。只有 agent 进程可以访问租户内网；SaaS 的 SSRF 策略不会因此放宽。
 
-## OIDC 与权限
+## 账号与权限
 
-提供方配置见 [API 与 OIDC 指南](api-guide.md#配置-oidc)，成员及服务账号权限见 [团队账号](operations/team-accounts.md)。
+参见 [团队账号](operations/team-accounts.md) 和 [管理 API](api-guide.md)。
 
 ## 不可变审计导出
 

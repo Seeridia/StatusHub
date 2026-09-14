@@ -14,7 +14,7 @@ make ui-dev
 # http://127.0.0.1:5173/ui/
 ```
 
-开发服务器把 `/auth` 和 `/v1` 代理至 `127.0.0.1:8080`。正常模式支持邮箱密码、OIDC 和服务账号登录。OIDC 回调仍指向 API 配置的 public URL；回到开发页面后恢复同主机会话即可。
+开发服务器把 `/auth` 和 `/v1` 代理至 `127.0.0.1:8080`。正常模式仅支持邮箱密码登录。浏览器从服务端恢复用户会话，然后选择有权限的工作区。
 
 ```bash
 make run-api
@@ -23,7 +23,7 @@ make run-api
 
 Vite 输出至 `internal/controlplane/assets/console`，由 Go embed 打包，不需要独立 Node 生产进程。路由使用 HashRouter，避免子路径刷新依赖代理 rewrite；筛选与事件详情 ID 保存在 hash 内的 query 参数中。
 
-该输出目录不纳入 Git，源码和原始素材保留在 `web/`。新克隆后先执行 `make ui-install`；`make run-api`、`make test` 和 `make test-race` 会先构建前端。直接执行 `go build`、`go run` 或完整 Go 测试前，需先执行 `make ui-build`，否则 API 缺少控制台资源。CI 和 Docker 镜像构建已包含前端构建步骤。
+该输出目录不纳入 Git，源码和原始素材保留在 `web/`。新克隆后先执行 `make ui-install`；`make run-api` 会先构建前端。直接执行 `go build`、`go run` 前，需先执行 `make ui-build`，否则 API 缺少控制台资源。CI 和 Docker 镜像构建已包含前端构建步骤。
 
 生产资源带内容 hash；JS/CSS 预压缩为 gzip，服务端根据 Accept-Encoding 提供压缩版本。HTML 不缓存，hash 资源使用 immutable 缓存。路由按需加载，React runtime 单独缓存。
 

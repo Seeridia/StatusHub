@@ -80,8 +80,6 @@ type Identity struct {
 	TenantID          string `json:"tenant_id"`
 	ActorType         string `json:"actor_type"`
 	ActorID           string `json:"actor_id"`
-	Issuer            string `json:"issuer,omitempty"`
-	Subject           string `json:"subject,omitempty"`
 	Email             string `json:"email,omitempty"`
 	DisplayName       string `json:"display_name,omitempty"`
 	Role              Role   `json:"role"`
@@ -93,36 +91,6 @@ type Verifier interface {
 
 type ServiceAccountRepository interface {
 	AuthenticateServiceAccount(context.Context, string, string) (Identity, error)
-}
-
-type CompositeVerifier struct {
-	oidc            *OIDCAuthenticator
-	serviceAccounts ServiceAccountRepository
-}
-
-func NewCompositeVerifier(oidc *OIDCAuthenticator, serviceAccounts ServiceAccountRepository) (*CompositeVerifier, error) {
-	if oidc == nil || serviceAccounts == nil {
-		return nil, errors.New("auth: OIDC and service account authenticators are required")
-	}
-	return &CompositeVerifier{oidc: oidc, serviceAccounts: serviceAccounts}, nil
-}
-
-func (verifier *CompositeVerifier) Authenticate(ctx context.Context, tenantID, token string) (Identity, error) {
-	if strings.HasPrefix(token, "sa.") {
-		identity, err := verifier.serviceAccounts.AuthenticateServiceAccount(ctx, tenantID, token)
-		if err != nil {
-			return Identity{}, ErrUnauthenticated
-		}
-		return identity, nil
-	}
-	return verifier.oidc.Authenticate(ctx, tenantID, token)
-}
-
-func (verifier *CompositeVerifier) AuthenticateOIDC(ctx context.Context, tenantID, token, nonce string) (Identity, error) {
-	if verifier == nil || verifier.oidc == nil || strings.HasPrefix(token, "sa.") {
-		return Identity{}, ErrUnauthenticated
-	}
-	return verifier.oidc.AuthenticateWithNonce(ctx, tenantID, token, nonce)
 }
 
 type TenantResolver func(*http.Request) (string, error)
@@ -172,4 +140,13 @@ func bearerToken(value string) (string, bool) {
 		returnValue = parts[1]
 	}
 	return returnValue, returnValue != ""
+}
+
+type ServiceVerifier struct{ Repository ServiceAccountRepository }
+
+func (v ServiceVerifier) Authenticate(ctx context.Context, tenant, token string) (Identity, error) {
+	if !strings.HasPrefix(token, "sa.") {
+		return Identity{}, ErrUnauthenticated
+	}
+	return v.Repository.AuthenticateServiceAccount(ctx, tenant, token)
 }

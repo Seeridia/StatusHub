@@ -9,7 +9,7 @@
 | 在 Dokploy 自托管部署 | [Dokploy 部署指南](../dokploy.md#中文部署步骤) |
 | 第一次安装、已有环境重启、创建登录账号 | [安装与启动](getting-started.md) |
 | 查看状态、添加状态页、设置渠道和通知规则 | [网页操作手册](console-guide.md) |
-| 配置项、角色权限、OIDC、API 使用约定 | [配置与账号](configuration.md) |
+| 配置项、角色权限、API 使用约定 | [配置与账号](configuration.md) |
 | 邀请成员、邮箱密码、服务账号轮换与撤销 | [团队账号管理](team-accounts.md) |
 | 日常检查、升级、备份恢复、停机 | [运行与维护](maintenance.md) |
 | 登录失败、没有数据、探测失败、通知未到达 | [故障排查](troubleshooting.md) |
@@ -35,5 +35,5 @@
 - [通知投递与可观测性](../notifications.md)
 - [状态页适配、通知渠道与死信重放](../adapters-and-channels.md)
 - [私有代理、多区域与审计](../advanced-operations.md)
-- [管理 API、OIDC、SSE 与幂等写入](../api-guide.md)
+- [管理 API、SSE 与幂等写入](../api-guide.md)
 - [OpenAPI](../../api/openapi.yaml)

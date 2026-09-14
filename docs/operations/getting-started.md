@@ -96,7 +96,7 @@ set -a
 set +a
 export STATUSHUB_SMTP_ADDRESS=127.0.0.1:51025
 export STATUSHUB_SMTP_ALLOW_LOCAL_PLAINTEXT=true
-go run ./cmd/statushub-api -allow-http-oidc
+go run ./cmd/statushub-api -allow-local-http
 ```
 
 终端 B 启动采集与投递：
@@ -108,7 +108,7 @@ set +a
 go run ./cmd/statushubd -worker-id local-live
 ```
 
-API 和 worker 必须使用同一配置加密密钥及 key ID。`-allow-http-oidc` 只用于此处的本地 HTTP 调试，正式部署使用 HTTPS。
+API 和 worker 必须使用同一配置加密密钥及 key ID。`-allow-local-http` 只用于此处的本地 HTTP 调试，正式部署使用 HTTPS。
 
 另开终端验证：
 
@@ -124,31 +124,16 @@ curl -fsS http://127.0.0.1:9464/metrics -o /dev/null
 
 先载入 `.env`。仅首次创建；同名租户或账号已经存在时不要反复执行。
 
+运行一次性初始化命令：
+
 ```bash
-umask 077
-mkdir -p tmp/local
-chmod 700 tmp/local
-
-go run ./cmd/statushub-admin tenant-create \
-  -slug local -name '本地监控工作区' > tmp/local/tenant.json
-
-TENANT_ID="$(python3 -c 'import json; print(json.load(open("tmp/local/tenant.json"))["id"])')"
-go run ./cmd/statushub-admin owner-invite \
-  -tenant-id "$TENANT_ID" -email 'owner@example.test' \
-  > tmp/local/owner-invite.json
+go run ./cmd/statushub-admin setup-link
 ```
 
-从 JSON 结果取得邀请令牌，打开以下地址，将 `<token>` 替换为该值：
+打开返回的链接，30 分钟内填写邮箱、密码、工作区名称和标识，即可创建首位 Owner 并自动登录。仅空实例可初始化，重新生成链接使旧链接失效。此步骤不需要 SMTP，也不会标记邮箱已验证。随后可在个人账号中验证邮箱，在设置中发送成员邀请。本地邮件在 Mailpit 中查看。
 
-```text
-http://127.0.0.1:8080/ui/?tenant=local#/account-flow?mode=invite&token=<token>
-```
+完整权限、SMTP 与账号恢复见 [团队账号](team-accounts.md)。
 
-选择发送验证邮件，在 [Mailpit](http://127.0.0.1:58025) 打开验证链接并设置密码，然后使用工作区 `local`、邮箱 `owner@example.test` 和新密码登录。Mailpit 仅捕获本地邮件，不向真实邮箱发送。
-
-进入「设置」邀请成员或创建用于自动化的服务账号。邀请仅供指定收件人使用，服务账号 Token 只在创建或轮换结果中展示。不要把 `tmp/local` 文件、邀请链接或令牌提交到 Git。没有自主注册或自主创建工作区入口。
-
-完整权限、真实 SMTP、SSO 与账号恢复见 [团队账号](team-accounts.md)。
 
 ## 7. 已有环境重新启动
 

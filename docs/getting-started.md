@@ -45,7 +45,7 @@ make migrate-up
 make bootstrap-top5
 ```
 
-The migration target executes every up migration without version tracking. Do not rerun it against an initialized database. The bootstrap target registers GitHub, Cloudflare, OpenAI, Anthropic, and AWS public sources; it does not insert simulated incidents.
+The baseline is for fresh installations. The previous identity schema is unsupported; do not apply it to an old database. The bootstrap target registers GitHub, Cloudflare, OpenAI, Anthropic, and AWS public sources; it does not insert simulated incidents.
 
 ## 3. Build the console and start the API
 
@@ -54,10 +54,10 @@ make ui-install
 make ui-build
 export STATUSHUB_SMTP_ADDRESS=127.0.0.1:51025
 export STATUSHUB_SMTP_ALLOW_LOCAL_PLAINTEXT=true
-go run ./cmd/statushub-api -allow-http-oidc
+go run ./cmd/statushub-api -allow-local-http
 ```
 
-Keep this terminal open. The SMTP settings route identity emails into local Mailpit. `-allow-http-oidc` permits local HTTP; use HTTPS for public deployments.
+Keep this terminal open. The SMTP settings route identity emails into local Mailpit. `-allow-local-http` permits local HTTP; use HTTPS for public deployments.
 
 In a second terminal, load the same configuration and start the worker:
 
@@ -77,33 +77,17 @@ curl -fsS http://127.0.0.1:8080/readyz
 
 The API serves the console; the worker performs collection and notification delivery. Readiness checks database and live-event connectivity, not whether every source has been collected successfully.
 
-## 4. Invite the first Owner
+## 4. Initialize the first Owner
 
-Load `.env` in the admin terminal. Create the workspace only once:
+With the same environment loaded, run:
 
 ```bash
-set -a
-. ./.env
-set +a
-umask 077
-mkdir -p tmp/local
-chmod 700 tmp/local
-go run ./cmd/statushub-admin tenant-create \
-  -slug local -name 'Local workspace' > tmp/local/tenant.json
-TENANT_ID="$(python3 -c 'import json; print(json.load(open("tmp/local/tenant.json"))["id"])')"
-go run ./cmd/statushub-admin owner-invite \
-  -tenant-id "$TENANT_ID" -email 'owner@example.test' > tmp/local/owner-invite.json
+go run ./cmd/statushub-admin setup-link
 ```
 
-Use the invitation token from that file to open:
+Open the returned URL within 30 minutes. Enter your email, a 12–128 character password, workspace name and slug. This atomically creates the first Owner and workspace and signs you in. Setup is available only on an empty instance; generating another link invalidates the previous one. Keep the link private.
 
-```text
-http://127.0.0.1:8080/ui/?tenant=local#/account-flow?mode=invite&token=<token>
-```
-
-Request the verification email, open it in [Mailpit](http://127.0.0.1:58025), follow the verification link, and set a 12–128 character password. Sign in with workspace `local`, email `owner@example.test`, and your new password. Mailpit captures mail locally and does not deliver it to a real recipient.
-
-There is no default password. The invitation alone does not prove email ownership. From Settings, invite members or create a service account for automation. Tokens appear only on creation or rotation; keep invitation files and tokens out of Git and issue reports.
+Setup does not require SMTP and does not mark your email verified. Use Personal account to verify email later. Admins send invitations from Settings; open local invitation and reset emails in [Mailpit](http://127.0.0.1:58025). There is no default password. Normal login asks only for email and password.
 
 ## 5. Use the workspace
 
@@ -114,7 +98,7 @@ For later restarts, reuse the existing `.env`, run `make infra-up`, and restart 
 ## Next steps
 
 - [Console operations (中文)](operations/console-guide.md)
-- [Team accounts, SMTP, and SSO (中文)](operations/team-accounts.md)
+- [Team accounts and SMTP (中文)](operations/team-accounts.md)
 - [Configuration and polling (中文)](operations/configuration.md)
 - [Maintenance and deployment (中文)](operations/maintenance.md)
 - [Development](../CONTRIBUTING.md)

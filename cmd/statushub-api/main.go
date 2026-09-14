@@ -9,6 +9,7 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"os"
 	"os/signal"
@@ -42,7 +43,8 @@ type config struct {
 	configKeyID     string
 	apiKey          string
 	htmlRecipesFile string
-	allowHTTPOIDC   bool
+	allowHTTP       bool
+	trustedProxies  []netip.Prefix
 }
 
 func main() {
@@ -69,7 +71,7 @@ func parseConfig(args []string) (config, error) {
 	flags.StringVar(&result.configKeyID, "config-key-id", environmentOr("STATUSHUB_CONFIG_KEY_ID", "local-v1"), "endpoint config key ID")
 	flags.StringVar(&result.apiKey, "api-key", os.Getenv("STATUSHUB_API_KEY"), "base64 32-byte cursor/session key")
 	flags.StringVar(&result.htmlRecipesFile, "html-recipes-file", os.Getenv("STATUSHUB_HTML_RECIPES_FILE"), "controlled HTML recipe file")
-	flags.BoolVar(&result.allowHTTPOIDC, "allow-http-oidc", false, "allow HTTP OIDC issuer/endpoints for local tests only")
+	flags.BoolVar(&result.allowHTTP, "allow-local-http", false, "allow loopback HTTP for local development")
 	if err := flags.Parse(args); err != nil {
 		return config{}, err
 	}
@@ -84,8 +86,18 @@ func parseConfig(args []string) (config, error) {
 		return config{}, errors.New("STATUSHUB_CONFIG_KEY, STATUSHUB_CONFIG_KEY_ID, and STATUSHUB_API_KEY are required")
 	}
 	parsedPublic, err := url.Parse(result.publicURL)
-	if err != nil || parsedPublic.Host == "" || (parsedPublic.Scheme != "https" && !(result.allowHTTPOIDC && parsedPublic.Scheme == "http")) {
-		return config{}, errors.New("public URL must be HTTPS; local HTTP requires -allow-http-oidc")
+	if err != nil || parsedPublic.Host == "" || (parsedPublic.Scheme != "https" && !(result.allowHTTP && parsedPublic.Scheme == "http")) {
+		return config{}, errors.New("public URL must be HTTPS; local HTTP requires -allow-local-http")
+	}
+	for _, v := range strings.Split(os.Getenv("STATUSHUB_TRUSTED_PROXIES"), ",") {
+		if strings.TrimSpace(v) == "" {
+			continue
+		}
+		p, e := netip.ParsePrefix(strings.TrimSpace(v))
+		if e != nil {
+			return config{}, errors.New("invalid trusted proxy CIDR")
+		}
+		result.trustedProxies = append(result.trustedProxies, p)
 	}
 	return result, nil
 }
@@ -125,7 +137,7 @@ func run(parent context.Context, args []string) error {
 	if err != nil {
 		return fmt.Errorf("API key: %w", err)
 	}
-	sessions, err := controlplane.NewSessionManager(apiKey, strings.HasPrefix(settings.publicURL, "https://"), 15*time.Minute)
+	sessions, err := controlplane.NewSessionManager(apiKey, strings.HasPrefix(settings.publicURL, "https://"), 7*24*time.Hour)
 	if err != nil {
 		return err
 	}
@@ -163,18 +175,7 @@ func run(parent context.Context, args []string) error {
 	if err != nil {
 		return err
 	}
-	oidcAuthenticator, err := auth.NewOIDCAuthenticator(repository, httpClient, auth.OIDCConfig{AllowHTTPForTests: settings.allowHTTPOIDC})
-	if err != nil {
-		return err
-	}
-	verifier, err := auth.NewCompositeVerifier(oidcAuthenticator, repository)
-	if err != nil {
-		return err
-	}
-	oidcFlow, err := controlplane.NewOIDCFlow(repository, verifier, httpClient, sessions, settings.publicURL, settings.allowHTTPOIDC)
-	if err != nil {
-		return err
-	}
+	verifier := auth.ServiceVerifier{Repository: repository}
 
 	hub := controlplane.NewEventHub()
 	natsConnection, err := nats.Connect(settings.natsURL, nats.Name("statushub-api-"+settings.workerID),
@@ -222,7 +223,7 @@ func run(parent context.Context, args []string) error {
 	}, workerErrors)
 
 	application, err := controlplane.NewServer(repository, verifier, profiledAdapter, envelope, sessions, cursors,
-		oidcFlow, hub.Broker(), controlplane.Config{ServiceRegion: settings.serviceRegion, ProbeTimeout: 15 * time.Second,
+		hub.Broker(), controlplane.Config{PublicURL: settings.publicURL, TrustedProxies: settings.trustedProxies, ServiceRegion: settings.serviceRegion, ProbeTimeout: 15 * time.Second,
 			RequestTimeout: 15 * time.Second, Logger: logger})
 	if err != nil {
 		return err

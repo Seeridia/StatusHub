@@ -1,5 +1,14 @@
 import { setLanguage, tr, type LanguagePreference } from "./lib/i18n";
-import AccountFlow, { accountRequest } from "./pages/AccountFlow";
+import {
+  LoginPage,
+  SetupPage,
+  InvitationPage,
+  ForgotPage,
+  ResetPage,
+  VerifyEmailPage,
+  WorkspacePicker,
+  AccountPage,
+} from "./pages/Auth";
 import { FormField } from "./components";
 import { lazy, Suspense, useEffect, useState } from "react";
 import {
@@ -44,8 +53,12 @@ import {
   clearSession,
   currentTenant,
   demo,
-  login,
-  restore,
+  accountSession,
+  accountRequest,
+  configure,
+  enterWorkspace,
+  request,
+  type AccountSession,
 } from "./lib/api";
 import { SessionContext, useLive } from "./lib/hooks";
 import { label } from "./lib/model";
@@ -56,7 +69,7 @@ const Rules = lazy(() => import("./pages/Rules"));
 const Channels = lazy(() => import("./pages/Channels"));
 const Operations = lazy(() => import("./pages/Operations"));
 
-function BrandMark({ compact = false }: { compact?: boolean }) {
+export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
     <span
       className={`brand-mark ${compact ? "is-compact" : ""}`}
@@ -79,7 +92,7 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function LanguageSelect() {
+export function LanguageSelect() {
   return (
     <Dropdown
       trigger="click"
@@ -127,223 +140,6 @@ const navigation = [
   },
   { path: "/settings", label: tr("\u8BBE\u7F6E"), icon: <SettingIcon /> },
 ];
-function Login({ onLogin }: { onLogin: (session: Session) => void }) {
-  useEffect(() => {
-    document.documentElement.setAttribute("theme-mode", "light");
-  }, []);
-  const [workspace, setWorkspace] = useState(currentTenant());
-  const [secret, setSecret] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [advanced, setAdvanced] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  async function connect() {
-    if (!workspace.trim()) {
-      setError(tr("\u8BF7\u8F93\u5165\u5DE5\u4F5C\u533A\u6807\u8BC6\u3002"));
-      return;
-    }
-    if (advanced && !secret.trim()) {
-      setError(
-        tr("\u8BF7\u8F93\u5165\u670D\u52A1\u8D26\u53F7\u4EE4\u724C\u3002"),
-      );
-      return;
-    }
-    setBusy(true);
-    setError("");
-    try {
-      if (advanced) {
-        onLogin(await login(workspace.trim(), secret.trim()));
-      } else {
-        await accountRequest("login", {
-          tenant: workspace.trim(),
-          email,
-          password,
-        });
-        clearSession();
-        onLogin(await login(workspace.trim()));
-      }
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  }
-  return (
-    <div className="signin-page">
-      <img
-        className="signin-art"
-        src={`${import.meta.env.BASE_URL}landing/login-background.jpg`}
-        alt=""
-        width={3168}
-        height={1344}
-        fetchPriority="high"
-      />
-      <a
-        className="skip-link"
-        href="#login-workspace"
-        onClick={(event) => {
-          event.preventDefault();
-          document.getElementById("login-workspace")?.focus();
-        }}
-      >
-        {tr("\u8DF3\u5230\u5DE5\u4F5C\u533A\u767B\u5F55")}
-      </a>
-      <header className="signin-header">
-        <div className="signin-brand">
-          <BrandMark />
-        </div>
-        <div className="signin-header-actions">
-          <span className="signin-caption">
-            {tr("\u5916\u90E8\u4F9D\u8D56\u72B6\u6001\u76D1\u63A7")}
-          </span>
-        </div>
-      </header>
-      <main className="signin-main">
-        <section className="signin-hero" aria-labelledby="signin-title">
-          <h1 id="signin-title">{tr("登录 StatusHub")}</h1>
-          <p className="signin-intro">
-            {tr("登录工作区，掌握服务状态与重要通知。")}
-          </p>
-          <section
-            className="signin-login"
-            id="login-workspace"
-            tabIndex={-1}
-            aria-label={tr("\u767B\u5F55\u5DE5\u4F5C\u533A")}
-          >
-            <Form
-              className={advanced ? "signin-form is-token" : "signin-form"}
-              labelAlign="top"
-              layout="vertical"
-              onSubmit={() => void connect()}
-            >
-              <div className="signin-fields">
-                <FormField
-                  label={tr("\u5DE5\u4F5C\u533A\u6807\u8BC6")}
-                  name="workspace"
-                >
-                  <Input
-                    aria-label={tr("\u5DE5\u4F5C\u533A\u6807\u8BC6")}
-                    value={workspace}
-                    onChange={setWorkspace}
-                    placeholder={tr("\u4F8B\u5982 local")}
-                    size="large"
-                  />
-                </FormField>
-                {!advanced && (
-                  <>
-                    <FormField label={tr("邮箱")} name="email">
-                      <Input
-                        aria-label={tr("邮箱")}
-                        ref={(input) =>
-                          input?.inputElement?.setAttribute(
-                            "aria-label",
-                            tr("邮箱"),
-                          )
-                        }
-                        value={email}
-                        onChange={setEmail}
-                        autocomplete="email"
-                        size="large"
-                      />
-                    </FormField>
-                    <FormField label={tr("密码")} name="password">
-                      <Input
-                        aria-label={tr("密码")}
-                        ref={(input) =>
-                          input?.inputElement?.setAttribute(
-                            "aria-label",
-                            tr("密码"),
-                          )
-                        }
-                        type="password"
-                        value={password}
-                        onChange={setPassword}
-                        autocomplete="current-password"
-                        size="large"
-                      />
-                    </FormField>
-                  </>
-                )}
-                {advanced && (
-                  <FormField
-                    label={tr("\u670D\u52A1\u8D26\u53F7\u4EE4\u724C")}
-                    name="token"
-                  >
-                    <Input
-                      aria-label={tr("\u670D\u52A1\u8D26\u53F7\u4EE4\u724C")}
-                      type="password"
-                      value={secret}
-                      onChange={setSecret}
-                      placeholder="sa.…"
-                      size="large"
-                      autocomplete="off"
-                    />
-                  </FormField>
-                )}
-              </div>
-              <Button
-                className="signin-submit"
-                size="large"
-                type="submit"
-                loading={busy}
-              >
-                {advanced
-                  ? tr("\u8FDE\u63A5\u5DE5\u4F5C\u533A")
-                  : tr("邮箱密码登录")}
-                <ChevronRightIcon aria-hidden="true" />
-              </Button>
-              {error && (
-                <div className="signin-error" role="alert">
-                  <Alert theme="error" message={error} />
-                </div>
-              )}
-            </Form>
-            <div className="signin-options">
-              <Button
-                variant="text"
-                onClick={() => {
-                  location.href = `/auth/${encodeURIComponent(workspace.trim())}/login`;
-                }}
-              >
-                {tr("通过 SSO 登录")}
-              </Button>
-              <Button
-                variant="text"
-                onClick={() => {
-                  location.hash = "/account-flow?mode=forgot";
-                }}
-              >
-                {tr("忘记密码")}
-              </Button>
-              <Button
-                variant="text"
-                theme="primary"
-                className="signin-switch"
-                onClick={() => {
-                  setAdvanced(!advanced);
-                  setError("");
-                }}
-              >
-                {advanced
-                  ? tr("邮箱密码登录")
-                  : tr("\u4F7F\u7528\u670D\u52A1\u8D26\u53F7\u767B\u5F55")}
-                <ChevronRightIcon aria-hidden="true" />
-              </Button>
-            </div>
-            {advanced && (
-              <p className="signin-account-note">
-                {tr(
-                  "\u5DE5\u4F5C\u533A\u7531\u7BA1\u7406\u5458\u521B\u5EFA\uFF0C\u4F7F\u7528\u5DF2\u5206\u914D\u7684\u670D\u52A1\u8D26\u53F7\u4EE4\u724C\u767B\u5F55\u3002",
-                )}
-              </p>
-            )}
-          </section>
-        </section>
-      </main>
-    </div>
-  );
-}
 function Workspace({
   session,
   onLogout,
@@ -397,7 +193,7 @@ function Workspace({
   async function logout() {
     setLoggingOut(true);
     try {
-      if (!demo) await api("/logout", { method: "POST", body: "{}" });
+      if (!demo) await accountRequest("logout");
       clearSession();
       queryClient.clear();
       onLogout();
@@ -514,6 +310,12 @@ function Workspace({
                   }
                 </Tag>
               )}
+              <Button variant="text" onClick={() => navigate("/workspaces")}>
+                {tr("切换工作区")}
+              </Button>
+              <Button variant="text" onClick={() => navigate("/account")}>
+                {tr("个人账号")}
+              </Button>
               <LanguageSelect />
               <Dropdown
                 trigger="click"
@@ -614,33 +416,119 @@ function Workspace({
   );
 }
 export default function App() {
-  const accountLocation = useLocation();
+  const loc = useLocation();
+  const cache = useQueryClient();
+  const [snapshot, setSnapshot] = useState<AccountSession | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [booting, setBooting] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  async function reload() {
+    try {
+      if (demo) {
+        const v = await request<Session>("/auth/session");
+        setSession(v);
+        configure({ tenant: v.tenant.slug });
+        return;
+      }
+      const v = await accountSession();
+      setSnapshot(v);
+      setError("");
+      const selected = currentTenant();
+      const w =
+        v.workspaces.find((w) => w.slug === selected || w.id === selected) ||
+        (!selected && v.workspaces.length === 1 ? v.workspaces[0] : undefined);
+      if (w) {
+        configure({ tenant: w.slug, csrf: v.csrf_token });
+        const u = new URL(window.location.href);
+        u.searchParams.set("tenant", w.slug);
+        history.replaceState(null, "", u);
+        setSession({
+          tenant: w,
+          identity: {
+            actor_id: v.user.id,
+            email: v.user.email,
+            actor_type: "user",
+            role: w.role,
+          },
+          csrf_token: v.csrf_token,
+        });
+      } else setSession(null);
+    } catch (e) {
+      if (e instanceof APIError && e.status === 401) {
+        setSnapshot(null);
+        setSession(null);
+        clearSession();
+      } else setError((e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  }
   useEffect(() => {
-    let active = true;
-    void restore()
-      .then((value) => {
-        if (active) setSession(value);
-      })
-      .catch(() => clearSession())
-      .finally(() => {
-        if (active) setBooting(false);
-      });
+    void reload();
+    const refresh = () => void reload();
+    window.addEventListener("focus", refresh);
+    window.addEventListener("statushub-session-expired", refresh);
     return () => {
-      active = false;
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("statushub-session-expired", refresh);
     };
   }, []);
-  if (accountLocation.pathname === "/account-flow") return <AccountFlow />;
-  if (booting)
+  const completed = async () => {
+    cache.clear();
+    await reload();
+  };
+  if (loading) return <div className="boot">{tr("正在加载账号…")}</div>;
+  if (loc.pathname === "/setup") return <SetupPage onComplete={completed} />;
+  if (loc.pathname === "/invitation")
+    return <InvitationPage snapshot={snapshot} onComplete={completed} />;
+  if (loc.pathname === "/forgot-password") return <ForgotPage />;
+  if (loc.pathname === "/reset-password") return <ResetPage />;
+  if (loc.pathname === "/verify-email")
+    return <VerifyEmailPage onComplete={completed} />;
+  if (loc.pathname === "/account-flow")
     return (
-      <div className="boot">
-        {tr("\u6B63\u5728\u8FDE\u63A5\u5DE5\u4F5C\u533A\u2026")}
+      <div className="account-flow">
+        <Alert
+          theme="warning"
+          message={tr("此链接属于旧版登录系统，请重新申请邀请或密码重置。")}
+        />
+        <Button onClick={() => window.location.assign("/ui/")}>
+          {tr("返回登录")}
+        </Button>
       </div>
     );
+  if (error)
+    return (
+      <div className="account-flow">
+        <Alert theme="error" message={error} />
+        <Button onClick={() => void reload()}>{tr("重试")}</Button>
+      </div>
+    );
+  if (!snapshot && !demo) return <LoginPage onComplete={completed} />;
+  if (snapshot && loc.pathname === "/account")
+    return <AccountPage snapshot={snapshot} onComplete={completed} />;
+  if (snapshot && (!session || loc.pathname === "/workspaces")) {
+    const denied =
+      !!currentTenant() &&
+      !snapshot.workspaces.some(
+        (w) => w.slug === currentTenant() || w.id === currentTenant(),
+      );
+    return (
+      <WorkspacePicker
+        snapshot={snapshot}
+        denied={denied}
+        onComplete={completed}
+      />
+    );
+  }
   return session ? (
-    <Workspace session={session} onLogout={() => setSession(null)} />
-  ) : (
-    <Login onLogin={setSession} />
-  );
+    <Workspace
+      key={session.tenant.id}
+      session={session}
+      onLogout={() => {
+        setSnapshot(null);
+        setSession(null);
+      }}
+    />
+  ) : null;
 }
