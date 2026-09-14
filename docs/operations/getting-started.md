@@ -8,7 +8,7 @@
 - Docker 与 Docker Compose v2；macOS 可使用 OrbStack 或 Docker Desktop。
 - Node.js 22.12+、npm：用于构建或开发 React 控制台，运行已经编译的 Go 二进制不需要 Node。
 - Python 3：用于下文首次生成本地配置及读取账号 JSON。
-- 可访问厂商公开 HTTPS 状态页的网络。
+- 可访问服务公开 HTTPS 状态页的网络。
 
 检查工具：
 

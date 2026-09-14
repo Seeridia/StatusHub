@@ -7,7 +7,7 @@ is an optional display label, never an identity key.
 
 添加数据源时可按服务名、别名或状态页域名搜索。选择目录项会自动填写地址；
 未收录的服务仍可手动填写地址并由系统实时探测适配器。服务名称只是展示名称，
-不作为厂商身份标识。
+不作为服务身份标识。
 
 The built-in directory currently contains **67 services**. Of these, 65 exposed
 valid Atlassian Statuspage summary data in checks completed through 2026-09-14, Better Stack

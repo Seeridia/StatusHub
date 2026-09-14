@@ -12,35 +12,35 @@ set -a
 set +a
 ```
 
-| 配置 | 用途 / 默认行为 |
-| --- | --- |
-| `DATABASE_URL` | PostgreSQL 连接串；API、worker 和 admin CLI 使用 |
-| `NATS_URL` | NATS 连接串；本地通常为 `nats://127.0.0.1:54222` |
-| `STATUSHUB_CONFIG_KEY` | base64 编码的 32 字节 AES 配置加密密钥，API/worker 必须一致 |
-| `STATUSHUB_CONFIG_KEY_ID` | 配置密钥版本标识，本地建议显式设为 `local-v1` |
-| `STATUSHUB_API_KEY` | 独立的 base64 32 字节密钥，用于会话及游标；不是服务账号登录令牌 |
-| `STATUSHUB_API_ADDRESS` | API 监听地址，默认 `127.0.0.1:8080` |
-| `STATUSHUB_PUBLIC_URL` | 唯一公开访问地址及邮件链接来源，本地 `http://127.0.0.1:8080` |
-| `STATUSHUB_REGION` | 区域身份，默认 `local`，影响来源 ownership |
-| `STATUSHUB_HTML_RECIPES_FILE` | 可选受控 HTML recipe JSON 文件；API 和 worker 需要相容配置 |
-| `AWS_REGION` | AWS SDK 使用的区域，本地示例 `us-east-1` |
-| `POSTGRES_PORT/DB/USER/PASSWORD` | Compose 数据库初始化和端口配置 |
-| `NATS_CLIENT_PORT` / `NATS_MONITOR_PORT` | Compose 映射端口，默认 54222 / 58222 |
+| 配置                                     | 用途 / 默认行为                                                 |
+| ---------------------------------------- | --------------------------------------------------------------- |
+| `DATABASE_URL`                           | PostgreSQL 连接串；API、worker 和 admin CLI 使用                |
+| `NATS_URL`                               | NATS 连接串；本地通常为 `nats://127.0.0.1:54222`                |
+| `STATUSHUB_CONFIG_KEY`                   | base64 编码的 32 字节 AES 配置加密密钥，API/worker 必须一致     |
+| `STATUSHUB_CONFIG_KEY_ID`                | 配置密钥版本标识，本地建议显式设为 `local-v1`                   |
+| `STATUSHUB_API_KEY`                      | 独立的 base64 32 字节密钥，用于会话及游标；不是服务账号登录令牌 |
+| `STATUSHUB_API_ADDRESS`                  | API 监听地址，默认 `127.0.0.1:8080`                             |
+| `STATUSHUB_PUBLIC_URL`                   | 唯一公开访问地址及邮件链接来源，本地 `http://127.0.0.1:8080`    |
+| `STATUSHUB_REGION`                       | 区域身份，默认 `local`，影响来源 ownership                      |
+| `STATUSHUB_HTML_RECIPES_FILE`            | 可选受控 HTML recipe JSON 文件；API 和 worker 需要相容配置      |
+| `AWS_REGION`                             | AWS SDK 使用的区域，本地示例 `us-east-1`                        |
+| `POSTGRES_PORT/DB/USER/PASSWORD`         | Compose 数据库初始化和端口配置                                  |
+| `NATS_CLIENT_PORT` / `NATS_MONITOR_PORT` | Compose 映射端口，默认 54222 / 58222                            |
 
 Compose 中改变数据库口令不会自动修改已有数据卷里用户的口令；连接串也不会随端口环境变量自动改写。不要用删除数据卷来解决配置不一致。
 
-worker 的 `-metrics-address` 默认 `127.0.0.1:9464`。`-collector-interval` 等参数表示扫描任务队列的频率，不是所有厂商固定轮询周期；实际轮询由资源能力、动态 cadence 和下一次调度时间决定。
+worker 的 `-metrics-address` 默认 `127.0.0.1:9464`。`-collector-interval` 等参数表示扫描任务队列的频率，不是所有服务固定轮询周期；实际轮询由资源能力、动态 cadence 和下一次调度时间决定。
 
 ## 默认采集策略
 
 采集按资源分别调度，不是每次都请求全部接口：
 
-| 资源 | 事故活跃期间 | 最近变化后 | 稳定期间 |
-| --- | --- | --- | --- |
-| 事故 / 未结束事故 | 60–90 秒 | 2–3 分钟 | 4–5 分钟 |
-| 状态 | 90–120 秒 | 2–3 分钟 | 4–5 分钟 |
-| 组件 / 完整摘要 | 2–3 分钟 | 3–4 分钟 | 4–5 分钟 |
-| 计划维护 | 5–10 分钟 | 5–10 分钟 | 10–15 分钟 |
+| 资源              | 事故活跃期间 | 最近变化后 | 稳定期间   |
+| ----------------- | ------------ | ---------- | ---------- |
+| 事故 / 未结束事故 | 60–90 秒     | 2–3 分钟   | 4–5 分钟   |
+| 状态              | 90–120 秒    | 2–3 分钟   | 4–5 分钟   |
+| 组件 / 完整摘要   | 2–3 分钟     | 3–4 分钟   | 4–5 分钟   |
+| 计划维护          | 5–10 分钟    | 5–10 分钟  | 10–15 分钟 |
 
 一般变化后保持 hot 10 分钟，随后 warm 使用 3–4 分钟间隔，30 分钟无变化转为 stable。事故仍未关闭但连续 30 分钟没有内容变化，也会降至稳定频率；后续采集发现新变化再加速。稳定时新事件可能等待约 5 分钟才被发现，再叠加上游发布、缓存和处理时间，不承诺秒级发现。
 
@@ -50,12 +50,12 @@ worker 的 `-metrics-address` 默认 `127.0.0.1:9464`。`-collector-interval` �
 
 ## 账号权限
 
-| 能力 | viewer | operator | admin | owner |
-| --- | --- | --- | --- | --- |
-| 查看可见厂商、事件、规则、渠道、投递 | 是 | 是 | 是 | 是 |
-| 添加来源、管理规则/渠道、测试渠道、重试投递 | 否 | 是 | 是 | 是 |
-| 审计导出、成员/连接器管理权限 | 否 | 否 | 是 | 是 |
-| 身份配置、区域灾备切换权限 | 否 | 否 | 否 | 是 |
+| 能力                                        | viewer | operator | admin | owner |
+| ------------------------------------------- | ------ | -------- | ----- | ----- |
+| 查看可见服务、事件、规则、渠道、投递        | 是     | 是       | 是    | 是    |
+| 添加来源、管理规则/渠道、测试渠道、重试投递 | 否     | 是       | 是    | 是    |
+| 审计导出、成员/连接器管理权限               | 否     | 否       | 是    | 是    |
+| 身份配置、区域灾备切换权限                  | 否     | 否       | 否    | 是    |
 
 这是服务端权限分组，不表示所有能力都已有网页按钮。平台 CLI 直接使用数据库权限，不会因为当前浏览器账号是 viewer 而自动受到同样限制；CLI 仅交给可信运维使用。
 
