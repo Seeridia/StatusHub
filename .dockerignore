@@ -14,6 +14,7 @@
 !web/**
 web/node_modules
 web/*.tsbuildinfo
+internal/controlplane/assets/console/
 **/.env
 **/.env.*
 **/*_test.go

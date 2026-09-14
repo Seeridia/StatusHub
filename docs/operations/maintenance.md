@@ -54,7 +54,7 @@ docker compose -f deploy/compose.dev.yaml stop
 2. 在独立测试数据库验证新增迁移和目标版本；不要把 `make migrate-down` 当作自动升级的一部分。
 3. 根据迁移要求安排维护窗口，停止可能写入不兼容 schema 的 API/worker。
 4. 核对已经执行的迁移，仅按数字顺序运行尚未执行的 `.up.sql`。
-5. 如前端变化，重新安装锁定依赖并构建网页，再编译 Go 程序。
+5. 安装锁定的前端依赖并构建网页，再编译 Go 程序；网页构建产物不纳入 Git，新检出的源码不包含这些资源。
 6. 启动服务，检查 readiness、来源采集、事件详情、登录和投递，再恢复正常流量。
 
 使用旧版 `make migrate-up` 初始化的数据库没有自动迁移历史表；本节适用于这类安装。Dokploy 新部署使用带版本与校验记录的 `statushub-migrate`，请按 [Dokploy 升级说明](../deployment.md#schema-upgrades) 操作。维护人员需要保存已执行文件名、版本、时间和结果。不要根据“程序能启动”推断所有迁移都已完成。查找迁移文件：

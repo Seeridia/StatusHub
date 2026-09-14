@@ -492,7 +492,6 @@ function Workspace({
               </Breadcrumb>
             </div>
             <div className="topbar-right">
-              <LanguageSelect />
               {live !== "demo" && (
                 <Tag
                   variant="light"
@@ -515,6 +514,7 @@ function Workspace({
                   }
                 </Tag>
               )}
+              <LanguageSelect />
               <Dropdown
                 trigger="click"
                 options={[

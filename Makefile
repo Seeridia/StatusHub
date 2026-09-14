@@ -3,10 +3,10 @@
 LOCAL_DATABASE_URL ?= postgres://statushub:statushub_local_only@127.0.0.1:55432/statushub?sslmode=disable
 LOCAL_NATS_URL ?= nats://127.0.0.1:54222
 
-test:
+test: ui-build
 	go test ./...
 
-test-race:
+test-race: ui-build
 	go test -race -count=1 ./...
 
 test-integration:
@@ -88,7 +88,7 @@ canary-ecosystem:
 run-once:
 	go run ./cmd/statushubd -database-url '$(LOCAL_DATABASE_URL)' -nats-url '$(LOCAL_NATS_URL)' -worker-id local -once
 
-run-api:
+run-api: ui-build
 	go run ./cmd/statushub-api -database-url '$(LOCAL_DATABASE_URL)' -nats-url '$(LOCAL_NATS_URL)' -allow-http-oidc
 
 .PHONY: ui-install ui-build ui-check ui-dev
@@ -98,8 +98,8 @@ ui-install:
 ui-build:
 	cd web && npm run build
 
-ui-check:
-	cd web && npm test && npm run build
+ui-check: ui-build
+	cd web && npm test
 
 ui-dev:
 	cd web && npm run dev
