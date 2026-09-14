@@ -27,6 +27,7 @@ import {
   EmptyState,
   Freshness,
   PageHeading,
+  ListToolbar,
   QueryState,
   StatusBadge,
   VendorIdentity,
@@ -236,49 +237,21 @@ export default function Overview({
           </div>
         )}
         <div className={vendorsOnly ? "" : "overview-grid"}>
-          <Panel className="panel vendors-panel">
-            <div className="section-head">
-              <div>
-                <h2>
-                  {tr("服务状态")}
-                  <span className="count">{vendors.length}</span>
-                </h2>
-                <p>
-                  {tr(
-                    "\u5F02\u5E38\u4F18\u5148\u5C55\u793A \u00B7 \u6700\u8FD1\u6210\u529F\u91C7\u96C6\u65F6\u95F4",
-                  )}
-                </p>
+          <Panel className={`panel vendors-panel ${vendorsOnly ? "starter-list-panel" : ""}`}>
+            {vendorsOnly ? (
+              <ListToolbar
+                title={tr("服务状态")}
+                description={tr("集中查看外部依赖，区分服务状态与采集健康。")}
+                actions={<>
+                  <Button variant="outline" icon={<RefreshIcon />} loading={query.isFetching} onClick={() => void query.refetch()}>{tr("刷新")}</Button>
+                  {permission.write && <Button onClick={() => navigate("/rules/new")}>{tr("创建通知规则")}</Button>}
+                </>}
+              />
+            ) : (
+              <div className="section-head">
+                <div><h2>{tr("服务状态")}<span className="count">{vendors.length}</span></h2><p>{tr("异常优先展示 · 最近成功采集时间")}</p></div>
               </div>
-              <div className="view-actions">
-                {vendorsOnly && (
-                  <div className="heading-actions">
-                    <Button
-                      variant="outline"
-                      icon={<RefreshIcon />}
-                      loading={query.isFetching}
-                      onClick={() => void query.refetch()}
-                    >
-                      {tr("刷新")}
-                    </Button>
-                    {permission.write && (
-                      <Button onClick={() => navigate("/rules/new")}>
-                        {tr("创建通知规则")}
-                      </Button>
-                    )}
-                  </div>
-                )}
-                <Radio.Group
-                  theme="button"
-                  variant="outline"
-                  value={mode}
-                  onChange={(value) => setMode(String(value))}
-                  options={[
-                    { value: "cards", label: tr("\u5361\u7247") },
-                    { value: "list", label: tr("\u5217\u8868") },
-                  ]}
-                />
-              </div>
-            </div>
+            )}
             <div className="filter-row">
               <Input
                 aria-label={tr("搜索服务")}
@@ -304,6 +277,18 @@ export default function Overview({
                   { value: "stale", label: tr("\u6570\u636E\u8FC7\u671F") },
                 ]}
               />
+              <div className="list-view-toggle">
+                <Radio.Group
+                  theme="button"
+                  variant="outline"
+                  value={mode}
+                  onChange={(value) => setMode(String(value))}
+                  options={[
+                    { value: "cards", label: tr("\u5361\u7247") },
+                    { value: "list", label: tr("\u5217\u8868") },
+                  ]}
+                />
+              </div>
             </div>
             {!filtered.length ? (
               <EmptyState

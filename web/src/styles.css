@@ -1786,3 +1786,46 @@ a {
 .auth-workspaces { display: grid; gap: var(--td-size-4); margin-block: var(--td-size-6); }
 .signin-login .t-alert { margin-block: var(--td-size-4); overflow-wrap: anywhere; }
 .signin-login .team-form { max-width: 100%; }
+
+/* Shared console heading: Channels is the reference layout. */
+.page-heading {
+  flex-wrap: wrap;
+  gap: var(--td-comp-margin-l);
+}
+.page-heading > div:first-child {
+  flex: 1;
+  min-width: min(100%, 280px);
+}
+.page-heading h1 {
+  margin: 0;
+  font: var(--td-font-title-extraLarge);
+  font-weight: 600;
+  color: var(--td-text-color-primary);
+}
+.page-heading p {
+  margin-top: var(--td-comp-margin-s);
+  font: var(--td-font-body-medium);
+}
+.page-heading .heading-actions {
+  flex-wrap: wrap;
+  gap: var(--td-comp-margin-s);
+}
+.list-view-toggle {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+@media (max-width: 760px) {
+  .page-heading .heading-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .list-view-toggle { margin-left: 0; }
+}
+.team-actions {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: var(--td-comp-margin-l);
+}
+@media (max-width: 760px) {
+  .team-actions { justify-content: flex-start; }
+}

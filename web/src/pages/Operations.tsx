@@ -333,20 +333,15 @@ function Sources() {
   }
   return (
     <>
-      <div className="section-head">
-        <div>
-          <h2>{tr('\u6570\u636E\u6E90')}</h2>
-          <p>
-            {tr(
-              '\u68C0\u67E5\u91C7\u96C6\u5065\u5EB7\uFF0C\u7BA1\u7406\u79DF\u6237\u79C1\u6709\u72B6\u6001\u9875\u3002',
-            )}
-          </p>
-        </div>
-        <div className="heading-actions">
+      <ListToolbar
+        title={tr("数据源")}
+        description={tr("检查采集健康，管理租户私有状态页。")}
+        actions={<>
           <Button
             variant="outline"
             icon={<RefreshIcon />}
-            onClick={() => query.refetch()}
+            loading={query.isFetching}
+            onClick={() => void query.refetch()}
           >
             {tr('刷新')}
           </Button>
@@ -361,8 +356,8 @@ function Sources() {
               {tr('\u6DFB\u52A0\u6570\u636E\u6E90')}
             </Button>
           )}
-        </div>
-      </div>
+        </>}
+      />
       <details className="collection-help">
         <summary>{tr('采集频率说明')}</summary>
         <Alert
@@ -727,10 +722,11 @@ export default function Operations({
   const permission = usePermissions();
   const [tab, setTab] = useState('account');
   if (view === 'deliveries') return <Deliveries />;
-  if (view === 'sources') return <Panel><Sources /></Panel>;
+  if (view === 'sources') return <Panel className="panel starter-list-panel"><Sources /></Panel>;
   return (
     <>
       <Panel className="panel settings-panel">
+        <ListToolbar title={tr("设置")} />
         <Tabs value={tab} onChange={(v) => setTab(String(v))}>
           <Tabs.TabPanel value="account" label={tr('个人账号')} />
           {permission.admin && (

@@ -319,6 +319,7 @@ export default function Channels() {
               <Button
                 variant="outline"
                 icon={<RefreshIcon />}
+                loading={query.isFetching}
                 onClick={() => void query.refetch()}
               >
                 {tr("\u5237\u65B0")}

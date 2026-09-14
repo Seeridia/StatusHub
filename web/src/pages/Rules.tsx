@@ -1,4 +1,4 @@
-import { Panel } from "../components";
+import { Panel, ListToolbar } from "../components";
 import { DeleteResource } from "../components/DeleteResource";
 import { formatList, tr } from "../lib/i18n";
 import { FormField, ValidatedForm } from "../components";
@@ -514,28 +514,20 @@ export default function Rules() {
         />
       )}
       <Panel className="panel starter-list-panel">
-        <div className="starter-list-toolbar">
-          <div className="heading-actions">
-            {permission.write && (
-              <Button icon={<AddIcon />} onClick={() => navigate("/rules/new")}>
-                {tr("创建规则")}
-              </Button>
-            )}
-            <Button
-              theme="default"
-              variant="outline"
-              icon={<RefreshIcon />}
-              loading={query.isFetching}
-              onClick={() => void query.refetch()}
-            >
-              {tr("刷新")}
-            </Button>
-          </div>
+        <ListToolbar
+          title={tr("通知规则")}
+          description={tr("选择服务与渠道，让重要的状态变化及时到达。")}
+          actions={<>
+            <Button variant="outline" icon={<RefreshIcon />} loading={query.isFetching} onClick={() => void query.refetch()}>{tr("刷新")}</Button>
+            {permission.write && <Button icon={<AddIcon />} onClick={() => navigate("/rules/new")}>{tr("创建规则")}</Button>}
+          </>}
+        />
+        <div className="filter-row">
           <Input
             className="starter-list-search"
             aria-label={tr("搜索已加载的规则")}
             placeholder={tr("搜索已加载的规则")}
-            suffixIcon={<SearchIcon />}
+            prefixIcon={<SearchIcon />}
             clearable
             value={search}
             onChange={(value) => {

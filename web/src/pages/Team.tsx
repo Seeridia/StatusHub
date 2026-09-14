@@ -1,3 +1,4 @@
+import { AddIcon, RefreshIcon } from "tdesign-icons-react";
 import { Dialog, Drawer } from "../overlays";
 import { Form } from "tdesign-react";
 import { useEffect, useState } from "react";
@@ -119,12 +120,12 @@ export function Team({
     <div className="team-panel">
 {kind==="invitations"&&!mailReady&&<Alert theme="warning" message={tr("邮件服务未配置或不可用，请联系管理员。")}/>}
       {error && <Alert theme="error" message={error} />}
-      <div className="toolbar">
-        <Button onClick={() => query.refetch()} loading={query.isFetching}>
+      <div className="team-actions heading-actions">
+        <Button variant="outline" icon={<RefreshIcon />} onClick={() => void query.refetch()} loading={query.isFetching}>
           {tr("刷新")}
         </Button>
         {kind !== "members" && (
-          <Button theme="primary" disabled={kind==="invitations"&&!mailReady} onClick={() => edit()}>
+          <Button theme="primary" icon={<AddIcon />} disabled={kind==="invitations"&&!mailReady} onClick={() => edit()}>
             {kind === "invitations" ? tr("创建邀请") : tr("创建服务账号")}
           </Button>
         )}

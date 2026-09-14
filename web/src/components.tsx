@@ -46,16 +46,9 @@ export function PageHeading({
   description: string;
   actions?: ReactNode;
 }) {
-  return (
-    <div className="page-heading">
-      <div>
-        <h1>{title}</h1>
-        <p>{description}</p>
-      </div>
-      <div className="heading-actions">{actions}</div>
-    </div>
-  );
+  return <ListToolbar title={title} description={description} actions={actions} />;
 }
+
 export function StatusBadge({ value }: { value?: string }) {
   const theme = tone(value);
   return (
@@ -368,7 +361,7 @@ export function ListToolbar({
         <h1>{title}</h1>
         {description && <p>{description}</p>}
       </div>
-      <div className="heading-actions">{actions}</div>
+      {actions && <div className="heading-actions">{actions}</div>}
     </div>
   );
 }
