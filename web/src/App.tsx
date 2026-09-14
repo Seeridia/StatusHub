@@ -310,12 +310,12 @@ function Workspace({
                   }
                 </Tag>
               )}
-              <Button variant="text" onClick={() => navigate("/workspaces")}>
-                {tr("切换工作区")}
-              </Button>
-              <Button variant="text" onClick={() => navigate("/account")}>
-                {tr("个人账号")}
-              </Button>
+              <Tooltip content={tr("切换工作区")}>
+                <Button variant="text" shape="square" aria-label={tr("切换工作区")} icon={<AppIcon />} onClick={() => navigate("/workspaces")} />
+              </Tooltip>
+              <Tooltip content={tr("个人账号")}>
+                <Button variant="text" shape="square" aria-label={tr("个人账号")} icon={<UserIcon />} onClick={() => navigate("/account")} />
+              </Tooltip>
               <LanguageSelect />
               <Dropdown
                 trigger="click"
