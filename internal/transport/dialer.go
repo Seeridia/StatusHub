@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net"
 	"net/netip"
+	"net/url"
 	"time"
 )
 
@@ -82,4 +83,14 @@ func networkSupportsAddress(network string, address netip.Addr) bool {
 	default:
 		return true
 	}
+}
+
+// DialPublic opens a TCP connection using the same public-address policy and
+// pinned DNS resolution as outbound HTTP. It never re-resolves after validation.
+func DialPublic(ctx context.Context, address string) (net.Conn, error) {
+	plan, err := (&targetPolicy{resolver: net.DefaultResolver}).resolve(ctx, &url.URL{Scheme: "https", Host: address})
+	if err != nil {
+		return nil, err
+	}
+	return (&pinnedDialer{base: &net.Dialer{}, connectTimeout: 10 * time.Second}).DialContext(context.WithValue(ctx, planContextKey{}, plan), "tcp", address)
 }

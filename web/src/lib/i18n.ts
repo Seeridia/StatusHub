@@ -19,6 +19,17 @@ export function resolveLanguage(
 }
 
 const english: Record<string, string> = {
+  "SMTP 邮件": "SMTP email",
+  "SMTP 服务器及端口": "SMTP server and port",
+  "连接加密": "Connection encryption",
+  "SMTP 用户名": "SMTP username",
+  "SMTP 密码或授权码": "SMTP password or app password",
+  "发件邮箱": "Sender email",
+  "收件邮箱": "Recipient email",
+  "请填写 SMTP 服务器及端口，例如 smtp.example.com:587。": "Enter an SMTP server and port, such as smtp.example.com:587.",
+  "请输入有效的邮箱地址。": "Enter a valid email address.",
+  "请填写 SMTP 密码或授权码。": "Enter the SMTP password or app password.",
+  "使用加密 SMTP 连接发送 HTML 邮件及纯文本副本。每个渠道配置一个收件邮箱，可使用团队邮件组。与账号邀请邮件配置独立。": "Send HTML email with a plain-text alternative over encrypted SMTP. Configure one recipient or a team mailing list per channel. This is separate from account invitation email.",
   切换工作区: 'Switch workspace',
   '正在加载账号…': 'Loading account\u2026',
   '此链接属于旧版登录系统，请重新申请邀请或密码重置。':

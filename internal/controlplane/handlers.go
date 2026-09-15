@@ -474,6 +474,9 @@ type endpointConfigInput struct {
 	URL              string `json:"url,omitempty"`
 	Secret           string `json:"secret,omitempty"`
 	SigningKeyID     string `json:"signing_key_id,omitempty"`
+	SMTPAddress      string `json:"smtp_address,omitempty"`
+	SMTPUsername     string `json:"smtp_username,omitempty"`
+	SMTPSecurity     string `json:"smtp_security,omitempty"`
 	AccountSID       string `json:"account_sid,omitempty"`
 	From             string `json:"from,omitempty"`
 	To               string `json:"to,omitempty"`
@@ -593,7 +596,7 @@ func (s *Server) endpointParams(ctx context.Context, tenantID, endpointID string
 func validateEndpointInput(ctx context.Context, endpointID string, channel notify.Channel, config endpointConfigInput) error {
 	endpoint := notify.Endpoint{ID: endpointID, Channel: channel, URL: strings.TrimSpace(config.URL),
 		KeyID: strings.TrimSpace(config.SigningKeyID), Secret: []byte(config.Secret), MaxPayloadBytes: config.MaxPayloadBytes,
-		AccountSID: config.AccountSID, From: config.From, To: config.To,
+		SMTPAddress: config.SMTPAddress, SMTPUsername: config.SMTPUsername, SMTPSecurity: config.SMTPSecurity, AccountSID: config.AccountSID, From: config.From, To: config.To,
 		ConfigurationSet: config.ConfigurationSet, CallbackURL: config.CallbackURL}
 	var driver notify.ChannelDriver
 	switch channel {
@@ -601,10 +604,12 @@ func validateEndpointInput(ctx context.Context, endpointID string, channel notif
 		driver = notify.NewGenericWebhook(nil)
 	case notify.ChannelSlack:
 		driver = notify.NewSlack(nil)
+	case notify.ChannelSMTP:
+		driver = notify.NewSMTP()
 	case notify.ChannelLark:
 		driver = notify.NewLark(nil)
 	default:
-		return fmt.Errorf("%w: endpoint management supports generic_webhook, slack and lark", store.ErrInvalidArgument)
+		return fmt.Errorf("%w: endpoint management supports generic_webhook, slack, lark and smtp", store.ErrInvalidArgument)
 	}
 	if err := driver.Validate(ctx, endpoint); err != nil {
 		return fmt.Errorf("%w: endpoint configuration is invalid: %v", store.ErrInvalidArgument, err)

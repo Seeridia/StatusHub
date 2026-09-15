@@ -171,3 +171,13 @@ Deleting a channel also removes it from linked rules. Rules with no remaining ch
 Feishu notifications use rich-text posts with a title, event type, component status transition, incident phase, impact, latest non-empty update, UTC timestamp and an original-event link. Missing fields are omitted. Payloads are bounded to 20 KiB of encoded JSON or the lower channel limit, with compact text fallback for oversized messages or HTTP 413. Upstream text is rendered as text nodes; links must use HTTP or HTTPS. Existing webhook and signing-secret settings remain valid.
 
 Reference: [Feishu custom bot guide](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot?lang=zh-CN).
+
+## SMTP 邮件通知 / SMTP email notifications
+
+在「通知渠道 → 添加渠道」选择 **SMTP 邮件**。填写服务器及端口（如 `smtp.example.com:587`）、加密方式（587/2525 使用 STARTTLS，465 通常使用 TLS）、用户名、密码或邮箱服务商提供的授权码、发件邮箱和收件邮箱。发件人须获得 SMTP 服务商授权。允许无需身份认证的加密中继，此时用户名与密码留空。每个渠道配置一个收件邮箱，可使用团队邮件组；不同收件人可创建多个渠道。
+
+保存后点击「发送测试」，再关联通知规则。HTML 邮件包含服务名称、状态变化、事件阶段、影响程度、最新进展、UTC 时间和原始链接，同时附带纯文本版本。上游内容进行 HTML 转义，链接仅允许 HTTP/HTTPS。SMTP 接受表示服务商接收，不保证进入收件箱；检查垃圾箱及 SPF、DKIM、DMARC 配置。临时错误按现有投递策略重试，SMTP 5xx 为永久失败，错误记录不包含密码和服务器返回的原文。
+
+配置独立于账号邀请/密码恢复 SMTP，完整配置加密存储。要求 TLS 1.2 及以上并验证服务器证书，不支持明文连接。网页渠道仅能连接公网 SMTP 地址，沿用出站地址过滤和 DNS 固定策略；不允许访问本机、内网或云元数据地址。
+
+Choose **SMTP email** in Notification channels. Enter the SMTP server and port, TLS (usually 465) or STARTTLS (587/2525), username, password/app password, authorized sender and one recipient (a mailing list is supported). Anonymous encrypted relays may omit credentials. Save, send a test, then attach notification rules. Emails include HTML and plain-text alternatives. SMTP acceptance does not guarantee inbox delivery; configure SPF/DKIM/DMARC and check spam folders. Temporary errors are retried; SMTP 5xx failures are permanent. This encrypted channel configuration is separate from identity email settings. Only public SMTP destinations with verified TLS are supported.

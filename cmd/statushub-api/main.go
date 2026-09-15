@@ -210,6 +210,7 @@ func run(parent context.Context, args []string) error {
 		notify.ChannelGenericWebhook: notify.NewGenericWebhook(notifyClient),
 		notify.ChannelSlack:          notify.NewSlack(notifyClient),
 		notify.ChannelLark:           notify.NewLark(notifyClient),
+		notify.ChannelSMTP:           notify.NewSMTP(),
 	}
 	testWorker, err := controlplane.NewEndpointTestWorker(repository,
 		notifierpipeline.EnvelopeConfigDecoder{Opener: envelope}, drivers, settings.workerID+"/endpoint-tests", 10*time.Second)

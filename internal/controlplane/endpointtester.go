@@ -65,7 +65,7 @@ func (w *EndpointTestWorker) process(parent context.Context, lease store.Endpoin
 	event := notify.CanonicalEvent{ID: eventID, Source: "statushub://endpoint-test",
 		Kind: domain.EventKindIncidentCreated, Subject: "StatusHub endpoint test",
 		EntityID: "endpoint-test", Time: time.Now().UTC(), Revision: 1, SchemaVersion: "v1",
-		Summary: "This is a test notification from Vendor Status Monitoring.",
+		Summary: "This is a test notification from StatusHub.",
 		Data:    json.RawMessage(`{"current":{"name":"StatusHub endpoint test","impact":"minor"}}`)}
 	payload, err := driver.Render(ctx, event, endpoint)
 	if err != nil {

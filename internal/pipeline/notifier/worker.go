@@ -52,6 +52,9 @@ type endpointConfig struct {
 	URL              string `json:"url"`
 	Secret           string `json:"secret"`
 	SigningKeyID     string `json:"signing_key_id"`
+	SMTPAddress      string `json:"smtp_address,omitempty"`
+	SMTPUsername     string `json:"smtp_username,omitempty"`
+	SMTPSecurity     string `json:"smtp_security,omitempty"`
 	AccountSID       string `json:"account_sid"`
 	From             string `json:"from"`
 	To               string `json:"to"`
@@ -93,7 +96,7 @@ func decodeEndpointConfig(lease store.DeliveryLease, raw []byte) (notify.Endpoin
 	}
 	return notify.Endpoint{ID: lease.EndpointID, Channel: notify.Channel(lease.Channel), URL: config.URL,
 		KeyID: signingKeyID, Secret: []byte(config.Secret), MaxPayloadBytes: config.MaxPayloadBytes,
-		AccountSID: config.AccountSID, From: config.From, To: config.To,
+		SMTPAddress: config.SMTPAddress, SMTPUsername: config.SMTPUsername, SMTPSecurity: config.SMTPSecurity, AccountSID: config.AccountSID, From: config.From, To: config.To,
 		ConfigurationSet: config.ConfigurationSet, CallbackURL: config.CallbackURL}, nil
 }
 
@@ -198,7 +201,7 @@ func New(repository Store, drivers []notify.ChannelDriver, decoder ConfigDecoder
 		// Drivers reject a mismatched channel during Validate, so explicit
 		// registration is supplied through the small channelDriver wrapper.
 		for _, channel := range []notify.Channel{
-			notify.ChannelGenericWebhook, notify.ChannelSlack, notify.ChannelEmailSES,
+			notify.ChannelGenericWebhook, notify.ChannelSlack, notify.ChannelSMTP, notify.ChannelEmailSES,
 			notify.ChannelPagerDuty, notify.ChannelTwilioSMS, notify.ChannelTeams,
 			notify.ChannelDiscord, notify.ChannelTelegram, notify.ChannelLark,
 			notify.ChannelDingTalk, notify.ChannelWeCom, notify.ChannelShoutrrr,

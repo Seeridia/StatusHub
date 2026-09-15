@@ -259,6 +259,7 @@ func run(parent context.Context, args []string, output io.Writer) error {
 		notifierpipeline.Bind(notify.ChannelDiscord, notify.NewDiscord(notifyHTTPClient)),
 		notifierpipeline.Bind(notify.ChannelTelegram, notify.NewTelegram(notifyHTTPClient)),
 		notifierpipeline.Bind(notify.ChannelLark, notify.NewLark(notifyHTTPClient)),
+		notifierpipeline.Bind(notify.ChannelSMTP, notify.NewSMTP()),
 		notifierpipeline.Bind(notify.ChannelDingTalk, notify.NewDingTalk(notifyHTTPClient)),
 		notifierpipeline.Bind(notify.ChannelWeCom, notify.NewWeCom(notifyHTTPClient)),
 		notifierpipeline.Bind(notify.ChannelShoutrrr, notify.NewShoutrrr(nil)),

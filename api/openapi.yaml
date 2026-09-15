@@ -838,7 +838,7 @@ components:
       required: [name, channel, config]
       properties:
         name: {type: string, maxLength: 200}
-        channel: {type: string, enum: [generic_webhook, slack, lark]}
+        channel: {type: string, enum: [generic_webhook, slack, lark, smtp]}
         enabled: {type: boolean, default: true}
         expected_secret_version: {type: integer, minimum: 1}
         config:
@@ -848,5 +848,11 @@ components:
             url: {type: string, format: uri}
             secret: {type: string, writeOnly: true}
             signing_key_id: {type: string}
+            smtp_address: {type: string, description: 'SMTP hostname and port; supported ports are 465, 587, 2525'}
+            smtp_username: {type: string}
+            smtp_security: {type: string, enum: [tls, starttls]}
+            from: {type: string, format: email}
+            to: {type: string, format: email}
+
             max_payload_bytes: {type: integer}
         rate_limit_config: {type: object}

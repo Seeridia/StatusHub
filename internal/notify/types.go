@@ -17,6 +17,7 @@ type Channel string
 const (
 	ChannelGenericWebhook Channel = "generic_webhook"
 	ChannelSlack          Channel = "slack"
+	ChannelSMTP           Channel = "smtp"
 	ChannelEmailSES       Channel = "email_ses"
 	ChannelPagerDuty      Channel = "pagerduty"
 	ChannelTwilioSMS      Channel = "twilio_sms"
@@ -65,6 +66,9 @@ type Endpoint struct {
 	KeyID            string  `json:"key_id,omitempty"`
 	Secret           []byte  `json:"-"`
 	MaxPayloadBytes  int     `json:"max_payload_bytes,omitempty"`
+	SMTPAddress      string  `json:"-"`
+	SMTPUsername     string  `json:"-"`
+	SMTPSecurity     string  `json:"smtp_security,omitempty"`
 	AccountSID       string  `json:"-"`
 	From             string  `json:"from,omitempty"`
 	To               string  `json:"to,omitempty"`

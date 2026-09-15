@@ -36,9 +36,15 @@ export function ChannelEditor({
   const [key, setKey] = useState("primary");
   const [secret, setSecret] = useState("");
   const [error, setError] = useState("");
+  const [smtpAddress, setSMTPAddress] = useState("");
+  const [smtpUsername, setSMTPUsername] = useState("");
+  const [smtpSecurity, setSMTPSecurity] = useState("starttls");
+  const [mailFrom, setMailFrom] = useState("");
+  const [mailTo, setMailTo] = useState("");
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     if (visible) {
+      setSMTPAddress(""); setSMTPUsername(""); setSMTPSecurity("starttls"); setMailFrom(""); setMailTo("");
       setName("");
       setURL("");
       setSecret("");
@@ -61,7 +67,7 @@ export function ChannelEditor({
     } catch {
       /* invalid URL */
     }
-    if (!valid)
+    if (channel !== "smtp" && !valid)
       errors.url = tr(
         "\u8BF7\u8F93\u5165\u6709\u6548\u7684 HTTPS \u5730\u5740\uFF0C\u4E14\u4E0D\u8981\u5728\u5730\u5740\u4E2D\u5305\u542B\u7528\u6237\u540D\u548C\u5BC6\u7801\u3002",
       );
@@ -77,6 +83,12 @@ export function ChannelEditor({
     }
     if (channel === "lark" && !secret.trim())
       errors.secret = tr("请填写飞书机器人的签名密钥。");
+    if (channel === "smtp") {
+      if (!/^[^\s/:]+:(465|587|2525)$/.test(smtpAddress.trim())) errors.smtp_address = tr("请填写 SMTP 服务器及端口，例如 smtp.example.com:587。");
+      if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(mailFrom.trim())) errors.from = tr("请输入有效的邮箱地址。");
+      if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(mailTo.trim())) errors.to = tr("请输入有效的邮箱地址。");
+      if (smtpUsername.trim() && !secret) errors.secret = tr("请填写 SMTP 密码或授权码。");
+    }
     return errors;
   }
   async function save() {
@@ -88,7 +100,7 @@ export function ChannelEditor({
         name: name.trim(),
         channel,
         config: {
-          url: url.trim(),
+          ...(channel === "smtp" ? { smtp_address: smtpAddress.trim(), smtp_username: smtpUsername.trim(), smtp_security: smtpSecurity, from: mailFrom.trim(), to: mailTo.trim(), secret } : { url: url.trim() }),
           ...(channel === "generic_webhook"
             ? { signing_key_id: key.trim(), secret }
             : channel === "lark"
@@ -153,11 +165,12 @@ export function ChannelEditor({
               options={[
                 { value: "slack", label: "Slack Incoming Webhook" },
                 { value: "lark", label: tr("飞书") },
+                { value: "smtp", label: tr("SMTP 邮件") },
                 { value: "generic_webhook", label: tr("\u901A\u7528 Webhook") },
               ]}
             />
           </FormField>
-          <FormField label={tr("HTTPS \u5730\u5740")} name="url" required>
+          {channel !== "smtp" && <FormField label={tr("HTTPS \u5730\u5740")} name="url" required>
             <Input
               aria-label={tr("HTTPS \u5730\u5740")}
               placeholder={
@@ -168,7 +181,7 @@ export function ChannelEditor({
               value={url}
               onChange={setURL}
             />
-          </FormField>
+          </FormField>}
           {(channel === "generic_webhook" || channel === "lark") && (
             <>
               {channel === "generic_webhook" && (
@@ -199,6 +212,15 @@ export function ChannelEditor({
               </FormField>
             </>
           )}
+          {channel === "smtp" && <>
+            <FormField label={tr("SMTP 服务器及端口")} name="smtp_address" required><Input value={smtpAddress} onChange={setSMTPAddress} placeholder="smtp.example.com:587" /></FormField>
+            <FormField label={tr("连接加密")} name="smtp_security"><Select value={smtpSecurity} onChange={v => setSMTPSecurity(String(v))} options={[{value:"starttls",label:"STARTTLS (587 / 2525)"},{value:"tls",label:"TLS (465)"}]} /></FormField>
+            <FormField label={tr("SMTP 用户名")} name="smtp_username"><Input value={smtpUsername} onChange={setSMTPUsername} autocomplete="off" /></FormField>
+            <FormField label={tr("SMTP 密码或授权码")} name="secret" required={!!smtpUsername.trim()}><Input type="password" value={secret} onChange={setSecret} autocomplete="new-password" /></FormField>
+            <FormField label={tr("发件邮箱")} name="from" required><Input value={mailFrom} onChange={setMailFrom} autocomplete="email" /></FormField>
+            <FormField label={tr("收件邮箱")} name="to" required><Input value={mailTo} onChange={setMailTo} autocomplete="email" /></FormField>
+            <Alert theme="info" message={tr("使用加密 SMTP 连接发送 HTML 邮件及纯文本副本。每个渠道配置一个收件邮箱，可使用团队邮件组。与账号邀请邮件配置独立。")}/>
+          </>}
           {channel === "lark" && (
             <Alert
               theme="info"
