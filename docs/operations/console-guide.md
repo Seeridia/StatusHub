@@ -161,3 +161,13 @@ Deleting a channel also removes it from linked rules. Rules with no remaining ch
 在通知渠道、通知规则和工作区数据源列表中点击**删除**，确认后配置会从列表移除，停止后续采集或通知。历史事件、投递记录和审计记录保留；已开始执行的任务仍可能完成。目前不提供恢复入口，需要时可重新创建配置。
 
 删除渠道会同时解除通知规则中的引用；没有剩余渠道的规则会自动停用，其他规则保留其剩余渠道。平台共享数据源由平台维护，工作区不能删除。删除权限与对应配置的编辑权限一致。
+
+### 飞书消息内容 / Feishu message content
+
+飞书通知使用富文本（post），分开显示标题、事件类型、组件状态变化、事件阶段、影响程度、最新非空进展、UTC 时间和原始事件链接。缺失字段不显示；组件变更会显示 `operational → degraded_performance` 等状态变化，不再出现空破折号。进展按上游更新时间选择，时间缺失时使用创建时间。
+
+消息按 JSON 编码后的字节数限制在 20 KiB 内（渠道设置更小时使用更小限制）。超长正文截断；超出限制或服务器返回 HTTP 413 时降级为精简文本。上游文字作为文本节点发送，不解释为 @ 提及或消息结构。仅允许 HTTP/HTTPS 原始事件链接。无需修改已有飞书渠道的 Webhook 和签名密钥。
+
+Feishu notifications use rich-text posts with a title, event type, component status transition, incident phase, impact, latest non-empty update, UTC timestamp and an original-event link. Missing fields are omitted. Payloads are bounded to 20 KiB of encoded JSON or the lower channel limit, with compact text fallback for oversized messages or HTTP 413. Upstream text is rendered as text nodes; links must use HTTP or HTTPS. Existing webhook and signing-secret settings remain valid.
+
+Reference: [Feishu custom bot guide](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot?lang=zh-CN).

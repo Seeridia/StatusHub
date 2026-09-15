@@ -437,26 +437,5 @@ func eventSubject(payload json.RawMessage, kind domain.EventKind) string {
 }
 
 func eventSummary(payload json.RawMessage) string {
-	var value struct {
-		Current struct {
-			Name    string `json:"name"`
-			Phase   string `json:"phase"`
-			Impact  string `json:"impact"`
-			Updates []struct {
-				Body string `json:"body"`
-			} `json:"updates"`
-		} `json:"current"`
-	}
-	if json.Unmarshal(payload, &value) != nil {
-		return string(payload)
-	}
-	parts := []string{value.Current.Name, value.Current.Phase, value.Current.Impact}
-	if count := len(value.Current.Updates); count > 0 {
-		parts = append(parts, value.Current.Updates[count-1].Body)
-	}
-	result := strings.TrimSpace(strings.Join(parts, " — "))
-	if result == "" {
-		return string(payload)
-	}
-	return result
+	return notify.EventSummary(payload)
 }

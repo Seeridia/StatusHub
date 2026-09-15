@@ -44,14 +44,8 @@ func (d *Lark) Render(ctx context.Context, event CanonicalEvent, endpoint Endpoi
 	if err := validateCanonicalEvent(event); err != nil {
 		return Payload{}, permanent(ChannelLark, "render", err)
 	}
-	timestamp := strconv.FormatInt(d.now().Unix(), 10)
-	signature := larkSignature(timestamp, endpoint.Secret)
-	text, degraded := truncateRunes(chatText(event), 3900)
-	payload, err := marshalBounded(ChannelLark, event.ID, endpoint.MaxPayloadBytes, map[string]any{
-		"timestamp": timestamp, "sign": signature, "msg_type": "text", "content": map[string]string{"text": text},
-	})
-	payload.Degraded = degraded
-	return payload, err
+	return d.renderPost(event, endpoint)
+
 }
 func (d *Lark) Send(ctx context.Context, delivery Delivery, payload Payload) (Receipt, error) {
 	if err := d.Validate(ctx, delivery.Endpoint); err != nil {
