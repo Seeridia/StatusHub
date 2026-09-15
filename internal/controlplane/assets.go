@@ -47,9 +47,9 @@ func (s *Server) handleUI(response http.ResponseWriter, request *http.Request) {
 		response.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	}
 	if name == "index.html" && root == "assets/console/" {
-		// TDesign positions popups with style attributes; scripts and stylesheets
-		// remain same-origin only. Icon CSS and modal scroll locking are external.
-		response.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self'; img-src 'self' data: https://cdn.jsdelivr.net https://cdn.simpleicons.org; style-src 'self'; style-src-attr 'unsafe-inline'; script-src 'self'; base-uri 'none'; frame-ancestors 'none'")
+		// TDesign positions popups with style attributes. Allow the configured
+		// Umami host for analytics scripts and collection requests.
+		response.Header().Set("Content-Security-Policy", "default-src 'self'; connect-src 'self' https://umami.seeridia.top; img-src 'self' data: https://cdn.jsdelivr.net https://cdn.simpleicons.org; style-src 'self'; style-src-attr 'unsafe-inline'; script-src 'self' https://umami.seeridia.top; base-uri 'none'; frame-ancestors 'none'")
 	}
 	if path.Ext(name) == ".js" || path.Ext(name) == ".css" {
 		response.Header().Set("Vary", "Accept-Encoding")
