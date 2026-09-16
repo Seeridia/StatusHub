@@ -323,6 +323,10 @@ type problem struct {
 
 func writeProblem(response http.ResponseWriter, request *http.Request, err error) {
 	status, code, detail := http.StatusInternalServerError, "internal_error", "The request could not be completed"
+	if probeStatus, probeCode, probeDetail, ok := sourceProbeProblem(err); ok {
+		writeProblemStatus(response, request, probeStatus, probeCode, probeDetail)
+		return
+	}
 	switch {
 	case errors.Is(err, store.ErrNotFound):
 		status, code, detail = http.StatusNotFound, "not_found", "The requested resource was not found"

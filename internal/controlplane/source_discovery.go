@@ -2,13 +2,51 @@ package controlplane
 
 import (
 	"context"
+	"errors"
 	"net/url"
 	"strings"
 
+	"github.com/Seeridia/StatusHub/internal/adapter/ecosystem"
+	"github.com/Seeridia/StatusHub/internal/adapter/statuspage"
 	"github.com/Seeridia/StatusHub/internal/adapter/vendorprofile"
 	store "github.com/Seeridia/StatusHub/internal/store/postgres"
+	"github.com/Seeridia/StatusHub/internal/transport"
 	"github.com/google/uuid"
 )
+
+type sourceProbeError struct{ err error }
+
+func (e *sourceProbeError) Error() string { return "controlplane: source probe failed" }
+func (e *sourceProbeError) Unwrap() error { return e.err }
+
+func sourceProbeProblem(err error) (int, string, string, bool) {
+	var probeErr *sourceProbeError
+	if !errors.As(err, &probeErr) {
+		return 0, "", "", false
+	}
+	if kind, found := transport.KindOf(probeErr.err); found {
+		switch kind {
+		case transport.KindUnsafeTarget, transport.KindInvalidURL, transport.KindUnsupportedScheme:
+			return 400, "unsafe_source_url", "The address must be a public HTTPS status page", true
+		case transport.KindDNS:
+			return 422, "source_dns_failure", "The status page hostname could not be resolved", true
+		case transport.KindConnect:
+			return 422, "source_connection_failure", "The status page refused or could not accept the connection", true
+		case transport.KindTLS:
+			return 422, "source_tls_failure", "The status page did not provide a valid TLS connection", true
+		case transport.KindTimeout, transport.KindCanceled:
+			return 504, "source_probe_timeout", "The status page did not respond before the probe timed out", true
+		case transport.KindBodyTooLarge:
+			return 422, "source_response_too_large", "The status page response is too large to inspect safely", true
+		default:
+			return 422, "source_probe_failed", "The status page could not be inspected", true
+		}
+	}
+	if errors.Is(probeErr.err, statuspage.ErrNotStatuspage) || errors.Is(probeErr.err, ecosystem.ErrNotRecognized) {
+		return 422, "unsupported_source", "No supported status-page API was detected at this address", true
+	}
+	return 500, "internal_error", "The request could not be completed", true
+}
 
 type sourceVendor struct {
 	ID   string `json:"id"`

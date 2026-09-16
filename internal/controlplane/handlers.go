@@ -18,6 +18,7 @@ import (
 	"github.com/Seeridia/StatusHub/internal/secret"
 	store "github.com/Seeridia/StatusHub/internal/store/postgres"
 	"github.com/Seeridia/StatusHub/internal/subscription"
+	"github.com/Seeridia/StatusHub/internal/transport"
 	"github.com/google/uuid"
 )
 
@@ -204,7 +205,11 @@ func (s *Server) probe(parent context.Context, input sourceRequest, sourceID str
 	defer cancel()
 	capabilities, err := s.prober.Probe(ctx, domain.Target{URL: parsed, SourceID: sourceID, Provider: input.Provider, PageID: input.PageID})
 	if err != nil {
-		return probeResponse{}, fmt.Errorf("controlplane: probe source: %w", err)
+		kind, _ := transport.KindOf(err)
+		details, _ := parent.Value(contextKeys{}).(requestContext)
+		s.config.Logger.Warn("source probe failed", "stage", "adapter_probe", "kind", kind,
+			"host", parsed.Hostname(), "request_id", details.RequestID, "error", err)
+		return probeResponse{}, &sourceProbeError{err: err}
 	}
 	if len(capabilities.Endpoints) == 0 || strings.TrimSpace(capabilities.Engine) == "" {
 		return probeResponse{}, fmt.Errorf("%w: probe found no supported status resources", store.ErrInvalidArgument)

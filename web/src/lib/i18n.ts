@@ -694,6 +694,20 @@ const english: Record<string, string> = {
   "主版本 {{value0}} ms": "Primary {{value0}} ms",
   "暂时无法接入该地址。{{value0}}":
     "This URL cannot be connected right now. {{value0}}",
+  "请输入可公开访问的 HTTPS 状态页地址。":
+    "Enter a publicly accessible HTTPS status page URL.",
+  "无法解析该状态页的域名。": "The status page hostname could not be resolved.",
+  "无法连接到该状态页。": "The status page could not be reached.",
+  "该状态页的 HTTPS 证书或连接无效。":
+    "The status page has an invalid HTTPS certificate or connection.",
+  "状态页响应超时，请稍后重试。":
+    "The status page timed out. Try again later.",
+  "状态页返回的内容过大，无法安全检测。":
+    "The status page response is too large to inspect safely.",
+  "没有在该地址检测到受支持的状态页接口。":
+    "No supported status-page API was detected at this address.",
+  "暂时无法检测该状态页。":
+    "The status page cannot be inspected right now.",
   "{{value0}} 个活跃事件，需要持续关注":
     "{{value0}} active incidents need attention",
   "{{value0}} 家服务的数据已过期，当前状态可能不是最新结果。":

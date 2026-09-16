@@ -90,6 +90,14 @@ export async function request<T>(
       rate_limited: tr("请求过于频繁，请稍后重试。"),
       mail_unavailable: tr("邮件服务未配置或不可用，请联系管理员。"),
       auth_unavailable: tr("认证服务暂时不可用，请稍后重试。"),
+      unsafe_source_url: tr("请输入可公开访问的 HTTPS 状态页地址。"),
+      source_dns_failure: tr("无法解析该状态页的域名。"),
+      source_connection_failure: tr("无法连接到该状态页。"),
+      source_tls_failure: tr("该状态页的 HTTPS 证书或连接无效。"),
+      source_probe_timeout: tr("状态页响应超时，请稍后重试。"),
+      source_response_too_large: tr("状态页返回的内容过大，无法安全检测。"),
+      unsupported_source: tr("没有在该地址检测到受支持的状态页接口。"),
+      source_probe_failed: tr("暂时无法检测该状态页。"),
     };
     const code =
       String(body.type || "")
