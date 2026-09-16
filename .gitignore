@@ -7,6 +7,7 @@ coverage.out
 dist/
 tmp/
 work/
+logs/
 
 web/node_modules/
 web/*.tsbuildinfo
