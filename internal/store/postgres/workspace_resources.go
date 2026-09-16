@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -31,7 +32,7 @@ FROM sources s JOIN vendors v ON v.id=s.vendor_id
 LEFT JOIN workspace_sources ws ON ws.source_id=s.id AND ws.tenant_id=$1
 WHERE s.deleted_at IS NULL AND s.canonical_url=$2 AND (s.tenant_id IS NULL OR s.tenant_id=$1)
 ORDER BY (s.tenant_id IS NULL) DESC LIMIT 1`, tenantID, canonicalURL))
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return SourceView{}, ErrNotFound
 	}
 	if err != nil {
@@ -122,7 +123,7 @@ UPDATE workspace_sources ws SET enabled=false,archived_at=COALESCE(archived_at,s
  archive_reason=$3,replaced_by_source_id=NULLIF($4,'')::uuid,updated_at=statement_timestamp()
 FROM sources s WHERE ws.tenant_id=$1 AND ws.source_id=$2 AND s.id=ws.source_id
 RETURNING s.vendor_id`, tenantID, sourceID, reason, replacementID).Scan(&vendorID)
-	if err == pgx.ErrNoRows {
+	if errors.Is(err, pgx.ErrNoRows) {
 		return ErrNotFound
 	}
 	if err != nil {
