@@ -23,7 +23,45 @@ func chatText(event CanonicalEvent) string {
 	if subject := strings.TrimSpace(event.Subject); subject != "" && !strings.Contains(text, subject) {
 		text = subject + "\n" + text
 	}
-	return text
+	lines := make([]string, 0, 3)
+	if service := strings.TrimSpace(event.ServiceName); service != "" {
+		lines = append(lines, service)
+	}
+	lines = append(lines, text)
+	if affected := affectedServicesText(event); affected != "" {
+		lines = append(lines, "Affected services: "+affected)
+	}
+	return strings.Join(lines, "\n")
+}
+
+func eventTitle(event CanonicalEvent) string {
+	title := strings.TrimSpace(event.Subject)
+	if title == "" {
+		title = string(event.Kind)
+	}
+	service := strings.TrimSpace(event.ServiceName)
+	if service != "" && !strings.Contains(strings.ToLower(title), strings.ToLower(service)) {
+		title = service + " · " + title
+	}
+	return title
+}
+
+func affectedServicesText(event CanonicalEvent) string {
+	seen := make(map[string]struct{}, len(event.AffectedServices))
+	values := make([]string, 0, len(event.AffectedServices))
+	for _, value := range event.AffectedServices {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		key := strings.ToLower(value)
+		if _, exists := seen[key]; exists {
+			continue
+		}
+		seen[key] = struct{}{}
+		values = append(values, value)
+	}
+	return strings.Join(values, "、")
 }
 
 func marshalBounded(channel Channel, eventID domain.CanonicalEventID, maximum int, value any) (Payload, error) {
@@ -87,7 +125,7 @@ func (d *Teams) Render(ctx context.Context, event CanonicalEvent, endpoint Endpo
 	value := map[string]any{"type": "message", "attachments": []any{map[string]any{
 		"contentType": "application/vnd.microsoft.card.adaptive", "contentUrl": nil,
 		"content": map[string]any{"$schema": "http://adaptivecards.io/schemas/adaptive-card.json", "type": "AdaptiveCard", "version": "1.4",
-			"body": []any{map[string]any{"type": "TextBlock", "weight": "Bolder", "text": event.Subject, "wrap": true},
+			"body": []any{map[string]any{"type": "TextBlock", "weight": "Bolder", "text": eventTitle(event), "wrap": true},
 				map[string]any{"type": "TextBlock", "text": chatText(event), "wrap": true}}},
 	}}}
 	return marshalBounded(ChannelTeams, event.ID, endpoint.MaxPayloadBytes, value)

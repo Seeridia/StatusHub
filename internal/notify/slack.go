@@ -63,7 +63,7 @@ func (d *Slack) Render(ctx context.Context, event CanonicalEvent, endpoint Endpo
 		return Payload{}, permanent(ChannelSlack, "render", err)
 	}
 
-	compactText, _ := truncateRunes(sanitizeSlackText(fmt.Sprintf("%s: %s (%s)", event.Kind, event.Subject, event.ID)), compactSlackMaximumRunes)
+	compactText, _ := truncateRunes(sanitizeSlackText(fmt.Sprintf("%s: %s (%s)", event.Kind, eventTitle(event), event.ID)), compactSlackMaximumRunes)
 	fallback, _, err := fitRenderedText(compactText, maximumBytes, build)
 	if err != nil {
 		return Payload{}, permanent(ChannelSlack, "render fallback", err)
@@ -102,16 +102,9 @@ func (d *Slack) Classify(err error) RetryDecision {
 }
 
 func slackText(event CanonicalEvent) string {
-	summary := strings.TrimSpace(event.Summary)
-	if summary == "" {
-		summary = string(event.Kind)
-	}
-	if subject := strings.TrimSpace(event.Subject); subject != "" {
-		summary = subject + "\n" + summary
-	}
 	// Prevent untrusted vendor text from creating Slack user, group, channel, or
 	// everyone mentions. Ordinary Slack link markup remains available.
-	return sanitizeSlackText(summary)
+	return sanitizeSlackText(chatText(event))
 }
 
 func sanitizeSlackText(text string) string {

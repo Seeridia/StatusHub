@@ -48,11 +48,11 @@ func (d *SES) Render(ctx context.Context, event CanonicalEvent, endpoint Endpoin
 	if err := validateCanonicalEvent(event); err != nil {
 		return Payload{}, permanent(ChannelEmailSES, "render", err)
 	}
-	summary := strings.TrimSpace(event.Summary)
+	summary := strings.TrimSpace(chatText(event))
 	if summary == "" {
 		summary = string(event.Data)
 	}
-	subject := strings.TrimSpace(event.Subject)
+	subject := eventTitle(event)
 	if subject == "" {
 		subject = string(event.Kind)
 	}

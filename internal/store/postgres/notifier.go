@@ -96,11 +96,31 @@ SELECT c.id, c.event_id, c.subscription_id, c.endpoint_id,
        c.attempt_count, c.lease_token, c.lease_until, c.eligible_at,
        src.canonical_url, ce.event_kind, ce.entity_id, ce.aggregate_revision,
        ce.canonical_schema_version, ce.canonical_payload, ce.observed_at,
-       $5::text, ep.tenant_id, src.vendor_id, COALESCE(i.id::text,'')
+       $5::text, ep.tenant_id, src.vendor_id,
+       COALESCE(NULLIF(ws.display_name,''),v.name),
+       COALESCE(affected.names,'{}'::text[]), COALESCE(i.id::text,'')
 FROM claimed c
 JOIN endpoints ep ON ep.id=c.endpoint_id
 JOIN canonical_events ce ON ce.id=c.event_id
 JOIN sources src ON src.id=ce.source_id
+JOIN vendors v ON v.id=src.vendor_id
+LEFT JOIN workspace_sources ws ON ws.tenant_id=ep.tenant_id AND ws.source_id=src.id
+LEFT JOIN LATERAL (
+    SELECT array_agg(matched.name ORDER BY matched.name) AS names
+    FROM (
+        SELECT DISTINCT left(component.name,160) AS name
+        FROM components component
+        WHERE component.source_id=ce.source_id AND (
+            (ce.entity_type='component' AND (component.upstream_id=ce.entity_id OR component.id::text=ce.entity_id))
+            OR EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements_text(COALESCE(ce.canonical_payload->'current'->'component_ids','[]'::jsonb)) component_id(value)
+                WHERE component.upstream_id=component_id.value OR component.id::text=component_id.value
+            )
+        )
+        ORDER BY name LIMIT 20
+    ) matched
+) affected ON true
 LEFT JOIN incidents i ON i.source_id=ce.source_id AND ce.entity_type IN ('incident','maintenance')
  AND i.upstream_id=COALESCE(NULLIF(ce.canonical_payload->'current'->>'upstream_id',''),ce.entity_id)
 ORDER BY c.priority DESC, c.next_attempt_at, c.id`, owner, limit, perTenant, leaseDuration.String(), string(lane))
@@ -117,7 +137,8 @@ ORDER BY c.priority DESC, c.next_attempt_at, c.id`, owner, limit, perTenant, lea
 			&lease.Channel, &lease.EncryptedConfig, &lease.KeyID, &lease.SecretVersion,
 			&lease.AttemptNumber, &lease.LeaseToken, &lease.LeaseUntil, &lease.EligibleAt,
 			&lease.EventSource, &kind, &lease.EventEntityID, &revision,
-			&lease.EventSchemaVersion, &lease.EventPayload, &lease.EventObservedAt, &lease.Lane, &lease.TenantID, &lease.VendorID, &lease.IncidentID); err != nil {
+			&lease.EventSchemaVersion, &lease.EventPayload, &lease.EventObservedAt, &lease.Lane, &lease.TenantID, &lease.VendorID,
+			&lease.ServiceName, &lease.AffectedServices, &lease.IncidentID); err != nil {
 			return nil, fmt.Errorf("postgres store: scan delivery lease: %w", err)
 		}
 		lease.EventKind = domain.EventKind(kind)

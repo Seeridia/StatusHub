@@ -6,7 +6,6 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"strings"
 	"time"
 )
 
@@ -46,10 +45,7 @@ func (d *TwilioSMS) Render(ctx context.Context, event CanonicalEvent, endpoint E
 	if err := validateCanonicalEvent(event); err != nil {
 		return Payload{}, permanent(ChannelTwilioSMS, "render", err)
 	}
-	message := strings.TrimSpace(event.Summary)
-	if message == "" {
-		message = string(event.Kind) + ": " + event.Subject
-	}
+	message := chatText(event)
 	message, degraded := truncateRunes(message, twilioMaxMessageRunes)
 	values := url.Values{"To": {endpoint.To}, "From": {endpoint.From}, "Body": {message}}
 	if endpoint.CallbackURL != "" {

@@ -81,6 +81,8 @@ type Endpoint struct {
 type CanonicalEvent struct {
 	ConsoleURL        string                  `json:"console_url,omitempty"`
 	ConsoleIsIncident bool                    `json:"-"`
+	ServiceName       string                  `json:"service_name,omitempty"`
+	AffectedServices  []string                `json:"affected_services,omitempty"`
 	ID                domain.CanonicalEventID `json:"id"`
 	Source            string                  `json:"source"`
 	Kind              domain.EventKind        `json:"kind"`

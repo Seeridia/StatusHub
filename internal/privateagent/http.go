@@ -204,7 +204,8 @@ func workItems(leases []store.DeliveryLease) ([]WorkItem, error) {
 			Event: notify.CanonicalEvent{ID: domain.CanonicalEventID(lease.EventID), Source: lease.EventSource,
 				Kind: lease.EventKind, Subject: eventSubject(lease.EventPayload, lease.EventKind), EntityID: lease.EventEntityID,
 				Time: lease.EventObservedAt, Revision: lease.EventRevision, SchemaVersion: lease.EventSchemaVersion,
-				Summary: eventSummary(lease.EventPayload), Data: lease.EventPayload},
+				Summary: eventSummary(lease.EventPayload), Data: lease.EventPayload,
+				ServiceName: lease.ServiceName, AffectedServices: lease.AffectedServices},
 		})
 	}
 	return items, nil

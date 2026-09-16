@@ -59,9 +59,16 @@ func (d *PagerDuty) Render(ctx context.Context, event CanonicalEvent, endpoint E
 		action = "resolve"
 	}
 	severity := pagerDutySeverity(event)
-	summary := strings.TrimSpace(event.Summary)
-	if summary == "" {
-		summary = string(event.Kind) + ": " + event.Subject
+	summary := chatText(event)
+	customDetails := make(map[string]any)
+	if err := json.Unmarshal(event.Data, &customDetails); err != nil {
+		customDetails["event"] = json.RawMessage(event.Data)
+	}
+	if event.ServiceName != "" {
+		customDetails["service_name"] = event.ServiceName
+	}
+	if len(event.AffectedServices) > 0 {
+		customDetails["affected_services"] = event.AffectedServices
 	}
 	body, err := json.Marshal(struct {
 		RoutingKey  string `json:"routing_key"`
@@ -71,7 +78,7 @@ func (d *PagerDuty) Render(ctx context.Context, event CanonicalEvent, endpoint E
 	}{RoutingKey: string(endpoint.Secret), EventAction: action, DedupKey: pagerDutyDedupKey(event), Payload: map[string]any{
 		"summary": summary, "source": event.Source, "severity": severity,
 		"timestamp":      event.Time.UTC().Format("2006-01-02T15:04:05.999999999Z07:00"),
-		"custom_details": json.RawMessage(event.Data),
+		"custom_details": customDetails,
 	}})
 	if err != nil {
 		return Payload{}, permanent(ChannelPagerDuty, "render", err)

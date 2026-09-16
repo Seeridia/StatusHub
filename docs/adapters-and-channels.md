@@ -67,7 +67,7 @@ recipe 是受控配置，不接受用户脚本。上线前必须为目标页面�
 | Teams           | Workflows message + Adaptive Card        | HTTP 2xx                               | 同上                                                    | 同上；不新增 legacy Office 365 Connector          |
 | Discord         | webhook JSON，禁止 mentions，`wait=true` | HTTP 2xx；保存返回 message id          | 429/5xx、网络错误                                       | 其他 4xx；410 disable                             |
 | Telegram        | `sendMessage`                            | HTTP 2xx 且 `ok=true`；保存 message_id | HTTP 429/5xx；业务 429，并读取 `parameters.retry_after` | 401/403 等鉴权/请求错误                           |
-| 飞书/Lark       | text webhook，秒级 timestamp + HMAC      | HTTP 2xx 且 `code`/`StatusCode` 为 0   | 9499、99991663、HTTP 429/5xx                            | 签名错误 19021 disable；其他业务错误 permanent    |
+| 飞书/Lark       | interactive card，秒级 timestamp + HMAC  | HTTP 2xx 且 `code`/`StatusCode` 为 0   | 9499、99991663、HTTP 429/5xx                            | 签名错误 19021 disable；其他业务错误 permanent    |
 | 钉钉            | text webhook，毫秒 timestamp/sign query  | HTTP 2xx 且 `errcode=0`                | -1、130101、HTTP 429/5xx                                | 310000/40035 disable；其他业务错误 permanent      |
 | 企业微信        | text webhook                             | HTTP 2xx 且 `errcode=0`                | -1、45009、HTTP 429/5xx                                 | 40014/42001/93000 disable；其他业务错误 permanent |
 | PagerDuty       | Events v2 + stable dedup key             | HTTP 2xx                               | 429/5xx                                                 | 其他 4xx                                          |

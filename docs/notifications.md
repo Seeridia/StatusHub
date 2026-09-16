@@ -77,7 +77,7 @@ POST /v1/provider-callbacks/twilio/{endpoint_id}
 
 ## Generic Webhook 签名
 
-请求为 CloudEvents 1.0 JSON，包含 `X-Delivery-ID` 和 `X-Event-ID`。`X-Signature-Timestamp` 是请求时间，`X-Signature` 格式为 `v1,kid=<key-id>,t=<timestamp>,sig=<hex>`。
+请求为 CloudEvents 1.0 JSON，包含 `service_name`（工作区别名优先）和 `affected_services`（已解析的组件名称），以及 `X-Delivery-ID` 和 `X-Event-ID`。没有可识别组件时省略 `affected_services`。`X-Signature-Timestamp` 是请求时间，`X-Signature` 格式为 `v1,kid=<key-id>,t=<timestamp>,sig=<hex>`。
 
 接收方使用共享密钥对 `timestamp + "." + 原始请求正文` 计算 HMAC-SHA256，并以常量时间比较十六进制签名。校验时间戳的允许偏差并按 delivery ID 去重，避免重放；不要先解析或重新序列化 JSON 再验签。签名 key ID 与配置加密 key ID 是不同概念。
 

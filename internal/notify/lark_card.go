@@ -10,14 +10,14 @@ import (
 // Custom bot cards use plain text for upstream content and explicit URL buttons.
 func (d *Lark) renderCard(event CanonicalEvent, endpoint Endpoint) (Payload, error) {
 	details := parseEventDetails(event.Data)
-	title := strings.TrimSpace(event.Subject)
+	title := eventTitle(event)
 	if title == "" {
 		title = strings.TrimSpace(details.Current.Name)
 	}
 	if title == "" {
 		title = string(event.Kind)
 	}
-	title, degraded := truncateRunes("StatusHub · "+title, 180)
+	title, degraded := truncateRunes(title, 180)
 
 	plain := func(text string) map[string]string { return map[string]string{"tag": "plain_text", "content": text} }
 	elements := []any{}
@@ -30,6 +30,8 @@ func (d *Lark) renderCard(event CanonicalEvent, endpoint Endpoint) (Payload, err
 		degraded = degraded || cut
 		fields = append(fields, map[string]any{"is_short": true, "text": plain(text)})
 	}
+	field("服务", event.ServiceName)
+	field("受影响服务", affectedServicesText(event))
 	field("通知类型", larkLabel(string(event.Kind)))
 	field("服务状态", statusChange(larkLabel(details.Previous.Status), larkLabel(details.Current.Status)))
 	field("事件阶段", statusChange(larkLabel(details.Previous.Phase), larkLabel(details.Current.Phase)))
@@ -48,7 +50,7 @@ func (d *Lark) renderCard(event CanonicalEvent, endpoint Endpoint) (Payload, err
 		elements = append(elements, map[string]any{"tag": "hr"}, map[string]any{"tag": "div", "text": plain("最新进展\n" + body)})
 	}
 	if !event.Time.IsZero() {
-		elements = append(elements, map[string]any{"tag": "note", "elements": []any{plain("采集时间 · " + event.Time.UTC().Format("2006-01-02 15:04:05") + " UTC")}})
+		elements = append(elements, map[string]any{"tag": "note", "elements": []any{plain("StatusHub · 采集时间 · " + event.Time.UTC().Format("2006-01-02 15:04:05") + " UTC")}})
 	}
 	buttons := []any{}
 	button := func(label, link, kind string) {

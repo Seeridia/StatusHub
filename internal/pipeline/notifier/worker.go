@@ -346,7 +346,8 @@ func (w *Worker) process(parent context.Context, lease store.DeliveryLease) (str
 	event := notify.CanonicalEvent{ID: domain.CanonicalEventID(lease.EventID), Source: lease.EventSource,
 		Kind: lease.EventKind, Subject: eventSubject(lease.EventPayload, lease.EventKind), EntityID: lease.EventEntityID,
 		Time: lease.EventObservedAt, Revision: lease.EventRevision,
-		SchemaVersion: lease.EventSchemaVersion, Summary: eventSummary(lease.EventPayload), Data: lease.EventPayload}
+		SchemaVersion: lease.EventSchemaVersion, Summary: eventSummary(lease.EventPayload), Data: lease.EventPayload,
+		ServiceName: lease.ServiceName, AffectedServices: lease.AffectedServices}
 	event.ConsoleURL = consoleLink(w.config.PublicURL, lease)
 	event.ConsoleIsIncident = lease.IncidentID != ""
 	ctx, cancel := context.WithTimeout(parent, w.config.AttemptTimeout)

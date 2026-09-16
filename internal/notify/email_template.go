@@ -31,7 +31,7 @@ var notificationEmail = template.Must(template.New("notification").Parse(`<!doct
 
 func renderEmail(event CanonicalEvent) (emailMessage, error) {
 	d := parseEventDetails(event.Data)
-	title := strings.TrimSpace(event.Subject)
+	title := eventTitle(event)
 	if title == "" {
 		title = d.Current.Name
 	}
@@ -50,6 +50,8 @@ func renderEmail(event CanonicalEvent) (emailMessage, error) {
 			view.Fields = append(view.Fields, field{label, value})
 		}
 	}
+	add("Service", event.ServiceName)
+	add("Affected services", affectedServicesText(event))
 	add("Event", string(event.Kind))
 	add("Status", statusChange(d.Previous.Status, d.Current.Status))
 	add("Phase", statusChange(d.Previous.Phase, d.Current.Phase))

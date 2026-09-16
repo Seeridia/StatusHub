@@ -207,6 +207,8 @@ type ProviderCallback struct {
 type DeliveryLease struct {
 	TenantID           string
 	VendorID           string
+	ServiceName        string
+	AffectedServices   []string
 	IncidentID         string
 	ID                 string
 	EventID            string

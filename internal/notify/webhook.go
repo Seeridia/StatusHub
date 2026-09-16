@@ -146,6 +146,8 @@ type cloudEventEnvelope struct {
 	Source            string          `json:"source"`
 	Type              string          `json:"type"`
 	Subject           string          `json:"subject,omitempty"`
+	ServiceName       string          `json:"service_name,omitempty"`
+	AffectedServices  []string        `json:"affected_services,omitempty"`
 	Time              string          `json:"time"`
 	DataContentType   string          `json:"datacontenttype"`
 	DataSchema        string          `json:"dataschema,omitempty"`
@@ -192,18 +194,20 @@ func validateCanonicalEvent(event CanonicalEvent) error {
 
 func marshalCloudEvent(event CanonicalEvent, data json.RawMessage, truncated bool) ([]byte, error) {
 	envelope := cloudEventEnvelope{
-		SpecVersion:     CloudEventsSpecVersion,
-		ID:              string(event.ID),
-		Source:          event.Source,
-		Type:            string(event.Kind),
-		Subject:         event.Subject,
-		Time:            event.Time.UTC().Format(time.RFC3339Nano),
-		DataContentType: "application/json",
-		DataSchema:      schemaURI(event.SchemaVersion),
-		SchemaVersion:   event.SchemaVersion,
-		Revision:        event.Revision,
-		DataTruncated:   truncated,
-		Data:            data,
+		SpecVersion:      CloudEventsSpecVersion,
+		ID:               string(event.ID),
+		Source:           event.Source,
+		Type:             string(event.Kind),
+		Subject:          event.Subject,
+		ServiceName:      event.ServiceName,
+		AffectedServices: event.AffectedServices,
+		Time:             event.Time.UTC().Format(time.RFC3339Nano),
+		DataContentType:  "application/json",
+		DataSchema:       schemaURI(event.SchemaVersion),
+		SchemaVersion:    event.SchemaVersion,
+		Revision:         event.Revision,
+		DataTruncated:    truncated,
+		Data:             data,
 	}
 	if truncated {
 		envelope.OriginalDataBytes = len(event.Data)
