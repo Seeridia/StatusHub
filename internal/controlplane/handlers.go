@@ -216,6 +216,9 @@ func (s *Server) probe(parent context.Context, input sourceRequest, sourceID str
 	}
 	result := probeResponse{RequestedURL: parsed.String(), CanonicalURL: canonical.String(), Capabilities: capabilities}
 	if err := s.identifySource(parent, &result); err != nil {
+		details, _ := parent.Value(contextKeys{}).(requestContext)
+		s.config.Logger.Error("source identification failed", "stage", "identify_source",
+			"host", canonical.Hostname(), "request_id", details.RequestID, "error", err)
 		return probeResponse{}, err
 	}
 	if result.Vendor.New && input.DisplayName != "" {
