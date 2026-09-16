@@ -15,8 +15,8 @@ export function useSession() {
 export function usePermissions() {
   const { identity } = useSession();
   return {
-    write: ["operator", "admin", "owner"].includes(identity.role),
-    admin: ["admin", "owner"].includes(identity.role),
+    write: ["operator", "admin"].includes(identity.role),
+    admin: identity.role === "admin",
   };
 }
 export const useWriter = () => useMemo(createWriter, []);

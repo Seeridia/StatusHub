@@ -279,6 +279,7 @@ func run(parent context.Context, args []string, output io.Writer) error {
 		configDecoder = notifierpipeline.EnvelopeConfigDecoder{Opener: envelope}
 	}
 	for _, laneConfig := range notifierpipeline.DefaultLaneConfigs(settings.workerID + "/notifier") {
+		laneConfig.PublicURL = os.Getenv("STATUSHUB_PUBLIC_URL")
 		worker, workerErr := notifierpipeline.New(repository, notificationDrivers, configDecoder, metrics, laneConfig)
 		if workerErr != nil {
 			return workerErr

@@ -59,7 +59,7 @@ func (s *Store) CreateServiceAccount(ctx context.Context, params CreateServiceAc
 	if _, err := uuid.Parse(params.ID); err != nil {
 		return ServiceAccountCredential{}, invalid("service account ID must be a UUID")
 	}
-	if _, err := uuid.Parse(params.TenantID); err != nil || params.Name == "" || len(params.Name) > 128 || !params.Role.Valid() {
+	if _, err := uuid.Parse(params.TenantID); err != nil || params.Name == "" || len(params.Name) > 128 || (params.Role != auth.RoleViewer && params.Role != auth.RoleOperator) {
 		return ServiceAccountCredential{}, invalid("service account tenant, name, or role is invalid")
 	}
 	secret := make([]byte, 32)

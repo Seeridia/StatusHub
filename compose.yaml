@@ -144,6 +144,7 @@ services:
       NATS_URL: nats://nats:4222
       STATUSHUB_CONFIG_KEY: "${STATUSHUB_CONFIG_KEY:?Set a base64 32-byte key}"
       STATUSHUB_CONFIG_KEY_ID: "${STATUSHUB_CONFIG_KEY_ID:-production-v1}"
+      STATUSHUB_PUBLIC_URL: "${STATUSHUB_PUBLIC_URL:?Set the public HTTPS URL}"
       STATUSHUB_REGION: "${STATUSHUB_REGION:-production}"
     depends_on:
       migrate:

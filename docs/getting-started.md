@@ -77,7 +77,7 @@ curl -fsS http://127.0.0.1:8080/readyz
 
 The API serves the console; the worker performs collection and notification delivery. Readiness checks database and live-event connectivity, not whether every source has been collected successfully.
 
-## 4. Initialize the first Owner
+## 4. Initialize the first Admin
 
 With the same environment loaded, run:
 
@@ -85,7 +85,7 @@ With the same environment loaded, run:
 go run ./cmd/statushub-admin setup-link
 ```
 
-Open the returned URL within 30 minutes. Enter your email, a 12–128 character password, workspace name and slug. This atomically creates the first Owner and workspace and signs you in. Setup is available only on an empty instance; generating another link invalidates the previous one. Keep the link private.
+Open the returned URL within 30 minutes. Enter your email, a 12–128 character password, workspace name and slug. This atomically creates the first Admin and workspace and signs you in. Setup is available only on an empty instance; generating another link invalidates the previous one. Keep the link private.
 
 Setup does not require SMTP and does not mark your email verified. Use Personal account to verify email later. Admins send invitations from Settings; open local invitation and reset emails in [Mailpit](http://127.0.0.1:58025). There is no default password. Normal login asks only for email and password.
 

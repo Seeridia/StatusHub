@@ -32,6 +32,7 @@ export const labels: Record<string, string> = {
   running: tr("\u6267\u884C\u4E2D"),
   sending: tr("\u53D1\u9001\u4E2D"),
   disabled: tr("\u5DF2\u505C\u7528"),
+  archived: tr("已归档"),
   enabled: tr("\u5DF2\u542F\u7528"),
   shadow: tr("\u5F71\u5B50\u8FD0\u884C"),
   promoted: tr("\u5DF2\u664B\u7EA7"),
@@ -49,7 +50,8 @@ export const labels: Record<string, string> = {
   viewer: tr("\u53EA\u8BFB\u6210\u5458"),
   operator: tr("\u64CD\u4F5C\u5458"),
   admin: tr("\u7BA1\u7406\u5458"),
-  owner: tr("\u6240\u6709\u8005"),
+  source_archived: tr("数据源已归档"),
+  channel_archived: tr("通知渠道已归档"),
 };
 export const label = (value?: string) => (value ? labels[value] || value : "—");
 export function tone(

@@ -161,6 +161,20 @@ VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::interval,$15,NULLIF($16,'
 			return SourceView{}, fmt.Errorf("postgres store: insert source capability %s: %w", kind, err)
 		}
 	}
+	if _, err := tx.Exec(ctx, `
+INSERT INTO workspace_sources(tenant_id,source_id,display_name,enabled)
+VALUES($1,$2,$3,true)
+ON CONFLICT (tenant_id,source_id) DO UPDATE
+SET display_name=CASE WHEN EXCLUDED.display_name='' THEN workspace_sources.display_name ELSE EXCLUDED.display_name END,
+    enabled=true,archived_at=NULL,archive_reason='',replaced_by_source_id=NULL,updated_at=statement_timestamp()`,
+		params.TenantID, params.ID, strings.TrimSpace(params.DisplayName)); err != nil {
+		return SourceView{}, fmt.Errorf("postgres store: attach created source: %w", err)
+	}
+	if params.ReplacesSourceID != "" && params.ReplacesSourceID != params.ID {
+		if err := archiveWorkspaceSourceTx(ctx, tx, params.TenantID, params.ReplacesSourceID, "replaced", params.ID, params.Actor); err != nil {
+			return SourceView{}, err
+		}
+	}
 	metadata, _ := json.Marshal(map[string]any{"vendor_id": params.VendorID, "canonical_url": params.CanonicalURL})
 	if _, err := appendAuditTx(ctx, tx, params.TenantID, auditInput(params.Actor, "source.create", "source", params.ID, metadata)); err != nil {
 		return SourceView{}, err
@@ -168,8 +182,7 @@ VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::interval,$15,NULLIF($16,'
 	if err := tx.Commit(ctx); err != nil {
 		return SourceView{}, fmt.Errorf("postgres store: create source: commit: %w", err)
 	}
-	item.Collection = sourceCollection(item, nil, time.Now().UTC())
-	return item, nil
+	return s.Source(ctx, params.TenantID, params.ID)
 }
 
 func resolveCapabilityURL(baseValue, path string) (string, error) {
@@ -184,7 +197,8 @@ func resolveCapabilityURL(baseValue, path string) (string, error) {
 	return base.ResolveReference(reference).String(), nil
 }
 
-func (s *Store) SetSourceEnabled(ctx context.Context, tenantID, sourceID string, enabled bool, actor AuditActor) (SourceView, error) {
+func (s *Store) UpdateWorkspaceSource(ctx context.Context, params UpdateWorkspaceSourceParams) (SourceView, error) {
+	tenantID, sourceID, actor := params.TenantID, params.SourceID, params.Actor
 	if _, err := uuid.Parse(tenantID); err != nil {
 		return SourceView{}, invalid("source tenant ID must be a UUID")
 	}
@@ -193,14 +207,29 @@ func (s *Store) SetSourceEnabled(ctx context.Context, tenantID, sourceID string,
 		return SourceView{}, fmt.Errorf("postgres store: update source: begin: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	tag, err := tx.Exec(ctx, `UPDATE sources SET enabled=$3,updated_at=statement_timestamp() WHERE id=$2 AND tenant_id=$1 AND deleted_at IS NULL`, tenantID, sourceID, enabled)
+	if params.DisplayName != nil {
+		value := strings.TrimSpace(*params.DisplayName)
+		if len([]rune(value)) > 120 || strings.ContainsAny(value, "\r\n\t") {
+			return SourceView{}, invalid("source display name is invalid")
+		}
+	}
+	tag, err := tx.Exec(ctx, `UPDATE workspace_sources SET
+display_name=CASE WHEN $3::text IS NULL THEN display_name ELSE $3 END,
+enabled=CASE WHEN $4::boolean IS NULL THEN enabled ELSE $4 END,
+updated_at=statement_timestamp()
+WHERE tenant_id=$1 AND source_id=$2 AND archived_at IS NULL`, tenantID, sourceID, params.DisplayName, params.Enabled)
 	if err != nil {
 		return SourceView{}, fmt.Errorf("postgres store: update source: %w", err)
 	}
 	if tag.RowsAffected() != 1 {
 		return SourceView{}, ErrNotFound
 	}
-	metadata, _ := json.Marshal(map[string]bool{"enabled": enabled})
+	if params.Enabled != nil && *params.Enabled {
+		if _, err = tx.Exec(ctx, `UPDATE sources SET enabled=true,updated_at=statement_timestamp() WHERE id=$2 AND tenant_id=$1`, tenantID, sourceID); err != nil {
+			return SourceView{}, fmt.Errorf("postgres store: enable workspace source: %w", err)
+		}
+	}
+	metadata, _ := json.Marshal(map[string]any{"display_name": params.DisplayName, "enabled": params.Enabled})
 	if _, err := appendAuditTx(ctx, tx, tenantID, auditInput(actor, "source.update", "source", sourceID, metadata)); err != nil {
 		return SourceView{}, err
 	}
@@ -268,7 +297,7 @@ func (s *Store) UpdateSubscription(ctx context.Context, params UpdateSubscriptio
 	defer func() { _ = tx.Rollback(ctx) }()
 	var version int
 	err = tx.QueryRow(ctx, `
-UPDATE subscriptions SET name=$3,enabled=$4,rule=$5,rule_version=rule_version+1,updated_at=statement_timestamp()
+UPDATE subscriptions SET name=$3,enabled=$4,pause_reason=CASE WHEN $4 THEN '' ELSE pause_reason END,rule=$5,rule_version=rule_version+1,updated_at=statement_timestamp()
 WHERE id=$1 AND tenant_id=$2 AND deleted_at IS NULL AND rule_version=$6 RETURNING rule_version`,
 		params.ID, params.TenantID, params.Name, params.Enabled, params.Rule, params.ExpectedRuleVersion).Scan(&version)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -307,7 +336,7 @@ func (s *Store) SetSubscriptionEnabled(ctx context.Context, tenantID, subscripti
 		return SubscriptionView{}, fmt.Errorf("postgres store: disable subscription: begin: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	tag, err := tx.Exec(ctx, `UPDATE subscriptions SET enabled=$3,updated_at=statement_timestamp() WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL`, tenantID, subscriptionID, enabled)
+	tag, err := tx.Exec(ctx, `UPDATE subscriptions SET enabled=$3,pause_reason=CASE WHEN $3 THEN '' ELSE pause_reason END,updated_at=statement_timestamp() WHERE tenant_id=$1 AND id=$2 AND deleted_at IS NULL`, tenantID, subscriptionID, enabled)
 	if err != nil {
 		return SubscriptionView{}, fmt.Errorf("postgres store: disable subscription: %w", err)
 	}

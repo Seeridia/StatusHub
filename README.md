@@ -12,7 +12,7 @@ StatusHub is a self-hosted vendor status monitoring and notification platform. A
 - **Understand incidents.** Read normalized updates and component impact while keeping vendor timestamps separate from collection timestamps.
 - **Monitor collection health.** See successful checks, scheduled polls, backoff, and failure classifications separately from vendor outages.
 - **Route notifications.** Configure subscriptions, create Slack and signed webhook channels in the console, and inspect delivery attempts and retries.
-- **Work as a team.** Invite members, use email/password, assign Viewer/Operator/Admin/Owner roles, and manage service accounts.
+- **Work as a team.** Invite members, use email/password, assign Viewer/Operator/Admin roles, and manage service accounts.
 - **Use English or Chinese.** The responsive console defaults to English and supports Simplified Chinese, light mode, and dark mode.
 
 ## Status-page compatibility
@@ -32,7 +32,7 @@ git clone https://github.com/Seeridia/StatusHub.git
 cd StatusHub
 ```
 
-Follow the [local installation guide](docs/getting-started.md) to generate keys, start PostgreSQL/NATS/Mailpit, initialize an empty database, and run the API and worker. It also walks through inviting your first Owner and verifying the account in the local mail sandbox.
+Follow the [local installation guide](docs/getting-started.md) to generate keys, start PostgreSQL/NATS/Mailpit, initialize an empty database, and run the API and worker. It also walks through creating your first Admin and verifying the account in the local mail sandbox.
 
 The console runs at `http://127.0.0.1:8080/ui/?tenant=local`. There is no default password or public self-registration. Existing installations should follow the [upgrade guide](docs/operations/maintenance.md#版本升级), rather than rerunning initialization commands.
 
@@ -61,7 +61,7 @@ Shared sources are collected independently of tenant subscriptions. PostgreSQL h
 | --- | --- |
 | [Getting started](docs/getting-started.md) / [安装与启动](docs/operations/getting-started.md) | First-time operators |
 | [Console guide](docs/operations/console-guide.md) | Workspace members; Chinese |
-| [Team accounts](docs/operations/team-accounts.md) | Owners and admins; Chinese |
+| [Team accounts](docs/operations/team-accounts.md) | Workspace administrators; Chinese |
 | [Configuration](docs/operations/configuration.md), [maintenance](docs/operations/maintenance.md), [troubleshooting](docs/operations/troubleshooting.md) | Self-hosting operators; Chinese |
 | [API reference](docs/api-guide.md), [OpenAPI schema](api/openapi.yaml) | Integrators |
 | [Collection](docs/collection.md), [notifications](docs/notifications.md), [advanced operations](docs/advanced-operations.md) | Backend contributors and operators; Chinese |
@@ -72,15 +72,15 @@ Shared sources are collected independently of tenant subscriptions. PostgreSQL h
 ```bash
 make ui-install
 make ui-dev       # Vite on port 5173; requires the API on port 8080
-make ui-check     # Frontend tests, translation checks, and production build
-make verify       # Go race/vet, frontend, migrations, and database/NATS integration
+make ui-check     # Frontend type checking, translations, and production build
+make verify       # Go build/vet, frontend, and migration checks
 ```
 
 Use a disposable development database for integration tests. The frontend build is embedded in the Go API, so rebuild and restart the API after changing production web assets. See [CONTRIBUTING.md](CONTRIBUTING.md) for code layout and review expectations.
 
 ## Deployment and security
 
-Use the root `compose.yaml` with a published GHCR image. GitHub Actions tests and publishes versioned images; deployment servers only pull them. See [container deployment](docs/deployment.md) or [Dokploy](docs/dokploy.md).
+Use the root `compose.yaml` with a published GHCR image. GitHub Actions builds and publishes versioned images; deployment servers only pull them. See [container deployment](docs/deployment.md) or [Dokploy](docs/dokploy.md).
 
 Configure a public HTTPS URL, independent SMTP credentials, persistent storage, and protected encryption keys before deployment. The bundled Compose file is a local development setup. Key management currently uses a static AES backend; managed KMS/Vault and online multi-key rotation are not provided. Review [operations](docs/operations/maintenance.md) and [security reporting](SECURITY.md).
 

@@ -43,10 +43,12 @@ export function PageHeading({
   actions,
 }: {
   title: string;
-  description: string;
+  description?: string;
   actions?: ReactNode;
 }) {
-  return <ListToolbar title={title} description={description} actions={actions} />;
+  return (
+    <ListToolbar title={title} description={description} actions={actions} />
+  );
 }
 
 export function StatusBadge({ value }: { value?: string }) {

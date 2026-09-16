@@ -92,7 +92,7 @@ func run(ctx context.Context, args []string, output io.Writer) error {
 
 func runTenantCreate(ctx context.Context, args []string, out io.Writer) error {
 	f := flag.NewFlagSet("tenant-create", flag.ContinueOnError)
-	email := f.String("owner-email", "", "existing owner email")
+	email := f.String("admin-email", "", "existing administrator email")
 	name := f.String("name", "", "workspace name")
 	slug := f.String("slug", "", "workspace slug")
 	if e := f.Parse(args); e != nil {
@@ -103,7 +103,7 @@ func runTenantCreate(ctx context.Context, args []string, out io.Writer) error {
 		return e
 	}
 	defer repo.Close()
-	w, e := repo.CreateOwnedWorkspace(ctx, *email, *name, *slug)
+	w, e := repo.CreateAdminWorkspace(ctx, *email, *name, *slug)
 	if e != nil {
 		return e
 	}
@@ -266,7 +266,7 @@ func runServiceAccountCreate(ctx context.Context, args []string, output io.Write
 	tenantID := flags.String("tenant-id", "", "tenant UUID")
 	accountID := flags.String("account-id", "", "optional service account UUID")
 	name := flags.String("name", "", "unique service account name")
-	role := flags.String("role", "", "viewer, operator, admin, or owner")
+	role := flags.String("role", "", "viewer or operator")
 	actorType := flags.String("actor-type", "system", "audit actor type")
 	actorID := flags.String("actor-id", "statushub-admin", "audit actor identifier")
 	requestID := flags.String("request-id", "", "optional audit request identifier")

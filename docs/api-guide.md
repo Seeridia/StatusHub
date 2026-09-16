@@ -29,7 +29,7 @@
 
 ## 初始化工作区与账号
 
-按 [首次启动](operations/getting-started.md#6-创建工作区和账号) 创建工作区及首位人员 Owner，随后从网页邀请成员和创建服务账号。完整权限与令牌管理见 [团队账号](operations/team-accounts.md)。
+按 [首次启动](operations/getting-started.md#6-创建工作区和账号) 创建工作区及首位人员 Admin，随后从网页邀请成员和创建服务账号。完整权限与令牌管理见 [团队账号](operations/team-accounts.md)。
 
 ## 人员会话
 

@@ -44,7 +44,7 @@ func (d *Lark) Render(ctx context.Context, event CanonicalEvent, endpoint Endpoi
 	if err := validateCanonicalEvent(event); err != nil {
 		return Payload{}, permanent(ChannelLark, "render", err)
 	}
-	return d.renderPost(event, endpoint)
+	return d.renderCard(event, endpoint)
 
 }
 func (d *Lark) Send(ctx context.Context, delivery Delivery, payload Payload) (Receipt, error) {

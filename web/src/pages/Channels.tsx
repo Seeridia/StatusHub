@@ -1,12 +1,20 @@
 import { ListToolbar } from "../components";
 import { Panel } from "../components";
-import { DeleteResource } from "../components/DeleteResource";
 import { tr } from "../lib/i18n";
 import { FormField, ValidatedForm } from "../components";
 import { Drawer } from "../overlays";
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Button, Input, Select, Table } from "tdesign-react";
+import {
+  Alert,
+  Button,
+  Dropdown,
+  Input,
+  Select,
+  Switch,
+  Table,
+  Tabs,
+} from "tdesign-react";
 import { AddIcon, RefreshIcon } from "tdesign-icons-react";
 import {
   EmptyState,
@@ -21,10 +29,12 @@ import { fmt, label } from "../lib/model";
 import type { Endpoint, TestJob } from "../lib/types";
 export function ChannelEditor({
   visible,
+  endpoint,
   onClose,
   onSaved,
 }: {
   visible: boolean;
+  endpoint?: Endpoint | null;
   onClose: () => void;
   onSaved?: (endpoint: Endpoint) => void;
 }) {
@@ -35,6 +45,7 @@ export function ChannelEditor({
   const [url, setURL] = useState("");
   const [key, setKey] = useState("primary");
   const [secret, setSecret] = useState("");
+  const [enabled, setEnabled] = useState(true);
   const [error, setError] = useState("");
   const [smtpAddress, setSMTPAddress] = useState("");
   const [smtpUsername, setSMTPUsername] = useState("");
@@ -44,15 +55,36 @@ export function ChannelEditor({
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     if (visible) {
-      setSMTPAddress(""); setSMTPUsername(""); setSMTPSecurity("starttls"); setMailFrom(""); setMailTo("");
-      setName("");
+      setSMTPAddress("");
+      setSMTPUsername("");
+      setSMTPSecurity("starttls");
+      setMailFrom("");
+      setMailTo("");
+      setName(endpoint?.name || "");
       setURL("");
       setSecret("");
       setError("");
-      setChannel("slack");
+      setChannel(endpoint?.channel || "slack");
+      setEnabled(endpoint?.enabled ?? true);
       setKey("primary");
+      if (endpoint?.id) {
+        void api<Endpoint>("/endpoints/" + endpoint.id)
+          .then((detail) => {
+            setName(detail.name);
+            setChannel(detail.channel);
+            setEnabled(detail.enabled);
+            setURL(detail.config?.url || "");
+            setKey(detail.config?.signing_key_id || "primary");
+            setSMTPAddress(detail.config?.smtp_address || "");
+            setSMTPUsername(detail.config?.smtp_username || "");
+            setSMTPSecurity(detail.config?.smtp_security || "starttls");
+            setMailFrom(detail.config?.from || "");
+            setMailTo(detail.config?.to || "");
+          })
+          .catch((err) => setError((err as Error).message));
+      }
     }
-  }, [visible]);
+  }, [visible, endpoint]);
   function validate() {
     const errors: Record<string, string> = {};
     if (!name.trim())
@@ -67,7 +99,7 @@ export function ChannelEditor({
     } catch {
       /* invalid URL */
     }
-    if (channel !== "smtp" && !valid)
+    if (channel !== "smtp" && !valid && !(endpoint && !url.trim()))
       errors.url = tr(
         "\u8BF7\u8F93\u5165\u6709\u6548\u7684 HTTPS \u5730\u5740\uFF0C\u4E14\u4E0D\u8981\u5728\u5730\u5740\u4E2D\u5305\u542B\u7528\u6237\u540D\u548C\u5BC6\u7801\u3002",
       );
@@ -76,18 +108,24 @@ export function ChannelEditor({
         errors.key = tr(
           "Webhook \u9700\u8981\u7B7E\u540D\u6807\u8BC6\u4E0E\u7B7E\u540D\u5BC6\u94A5\u3002",
         );
-      if (!secret.trim())
+      if (!endpoint && !secret.trim())
         errors.secret = tr(
           "Webhook \u9700\u8981\u7B7E\u540D\u6807\u8BC6\u4E0E\u7B7E\u540D\u5BC6\u94A5\u3002",
         );
     }
-    if (channel === "lark" && !secret.trim())
+    if (channel === "lark" && !endpoint && !secret.trim())
       errors.secret = tr("请填写飞书机器人的签名密钥。");
     if (channel === "smtp") {
-      if (!/^[^\s/:]+:(465|587|2525)$/.test(smtpAddress.trim())) errors.smtp_address = tr("请填写 SMTP 服务器及端口，例如 smtp.example.com:587。");
-      if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(mailFrom.trim())) errors.from = tr("请输入有效的邮箱地址。");
-      if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(mailTo.trim())) errors.to = tr("请输入有效的邮箱地址。");
-      if (smtpUsername.trim() && !secret) errors.secret = tr("请填写 SMTP 密码或授权码。");
+      if (!/^[^\s/:]+:(465|587|2525)$/.test(smtpAddress.trim()))
+        errors.smtp_address = tr(
+          "请填写 SMTP 服务器及端口，例如 smtp.example.com:587。",
+        );
+      if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(mailFrom.trim()))
+        errors.from = tr("请输入有效的邮箱地址。");
+      if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(mailTo.trim()))
+        errors.to = tr("请输入有效的邮箱地址。");
+      if (smtpUsername.trim() && !endpoint && !secret)
+        errors.secret = tr("请填写 SMTP 密码或授权码。");
     }
     return errors;
   }
@@ -96,25 +134,42 @@ export function ChannelEditor({
     setBusy(true);
     setError("");
     try {
-      const endpoint = await write<Endpoint>("/endpoints", {
-        name: name.trim(),
-        channel,
-        config: {
-          ...(channel === "smtp" ? { smtp_address: smtpAddress.trim(), smtp_username: smtpUsername.trim(), smtp_security: smtpSecurity, from: mailFrom.trim(), to: mailTo.trim(), secret } : { url: url.trim() }),
-          ...(channel === "generic_webhook"
-            ? { signing_key_id: key.trim(), secret }
-            : channel === "lark"
-              ? { secret: secret.trim() }
-              : {}),
+      const saved = await write<Endpoint>(
+        endpoint ? "/endpoints/" + endpoint.id : "/endpoints",
+        {
+          name: name.trim(),
+          channel,
+          enabled,
+          ...(endpoint
+            ? { expected_secret_version: endpoint.secret_version }
+            : {}),
+          config: {
+            ...(channel === "smtp"
+              ? {
+                  smtp_address: smtpAddress.trim(),
+                  smtp_username: smtpUsername.trim(),
+                  smtp_security: smtpSecurity,
+                  from: mailFrom.trim(),
+                  to: mailTo.trim(),
+                  secret,
+                }
+              : { url: url.trim() }),
+            ...(channel === "generic_webhook"
+              ? { signing_key_id: key.trim(), secret }
+              : channel === "lark"
+                ? { secret: secret.trim() }
+                : {}),
+          },
         },
-      });
+        endpoint ? "PUT" : "POST",
+      );
       await client.invalidateQueries({
         predicate: (q) =>
           q.queryKey[0] === currentTenant() &&
           String(q.queryKey[1]).startsWith("/endpoints"),
       });
       setSecret("");
-      onSaved?.(endpoint);
+      onSaved?.(saved);
       onClose();
     } catch (err) {
       setError((err as Error).message);
@@ -124,7 +179,11 @@ export function ChannelEditor({
   }
   return (
     <Drawer
-      header={tr("\u6DFB\u52A0\u901A\u77E5\u6E20\u9053")}
+      header={
+        endpoint
+          ? tr("编辑通知渠道")
+          : tr("\u6DFB\u52A0\u901A\u77E5\u6E20\u9053")
+      }
       size="520px"
       visible={visible}
       onClose={() => !busy && onClose()}
@@ -133,9 +192,7 @@ export function ChannelEditor({
     >
       <div className="drawer-body">
         <p className="muted">
-          {tr(
-            "连接团队的接收渠道，再通过通知规则关联服务。",
-          )}
+          {tr("连接团队的接收渠道，再通过通知规则关联服务。")}
         </p>
         <ValidatedForm
           key={String(visible)}
@@ -161,6 +218,7 @@ export function ChannelEditor({
             <Select
               aria-label={tr("\u6E20\u9053\u7C7B\u578B")}
               value={channel}
+              disabled={!!endpoint}
               onChange={(v) => setChannel(String(v))}
               options={[
                 { value: "slack", label: "Slack Incoming Webhook" },
@@ -170,18 +228,29 @@ export function ChannelEditor({
               ]}
             />
           </FormField>
-          {channel !== "smtp" && <FormField label={tr("HTTPS \u5730\u5740")} name="url" required>
-            <Input
-              aria-label={tr("HTTPS \u5730\u5740")}
-              placeholder={
-                channel === "slack"
-                  ? "https://hooks.slack.com/services/…"
-                  : "https://example.com/webhook"
-              }
-              value={url}
-              onChange={setURL}
-            />
-          </FormField>}
+          <FormField label={tr("启用状态")} name="enabled">
+            <Switch value={enabled} onChange={setEnabled} />
+          </FormField>
+          {channel !== "smtp" && (
+            <FormField
+              label={tr("HTTPS \u5730\u5740")}
+              name="url"
+              required={!endpoint}
+            >
+              <Input
+                aria-label={tr("HTTPS \u5730\u5740")}
+                placeholder={
+                  endpoint
+                    ? tr("留空以保留现有凭据")
+                    : channel === "slack"
+                      ? "https://hooks.slack.com/services/…"
+                      : "https://example.com/webhook"
+                }
+                value={url}
+                onChange={setURL}
+              />
+            </FormField>
+          )}
           {(channel === "generic_webhook" || channel === "lark") && (
             <>
               {channel === "generic_webhook" && (
@@ -200,7 +269,7 @@ export function ChannelEditor({
               <FormField
                 label={tr("\u7B7E\u540D\u5BC6\u94A5")}
                 name="secret"
-                required
+                required={!endpoint}
               >
                 <Input
                   aria-label={tr("\u7B7E\u540D\u5BC6\u94A5")}
@@ -212,15 +281,71 @@ export function ChannelEditor({
               </FormField>
             </>
           )}
-          {channel === "smtp" && <>
-            <FormField label={tr("SMTP 服务器及端口")} name="smtp_address" required><Input value={smtpAddress} onChange={setSMTPAddress} placeholder="smtp.example.com:587" /></FormField>
-            <FormField label={tr("连接加密")} name="smtp_security"><Select value={smtpSecurity} onChange={v => setSMTPSecurity(String(v))} options={[{value:"starttls",label:"STARTTLS (587 / 2525)"},{value:"tls",label:"TLS (465)"}]} /></FormField>
-            <FormField label={tr("SMTP 用户名")} name="smtp_username"><Input value={smtpUsername} onChange={setSMTPUsername} autocomplete="off" /></FormField>
-            <FormField label={tr("SMTP 密码或授权码")} name="secret" required={!!smtpUsername.trim()}><Input type="password" value={secret} onChange={setSecret} autocomplete="new-password" /></FormField>
-            <FormField label={tr("发件邮箱")} name="from" required><Input value={mailFrom} onChange={setMailFrom} autocomplete="email" /></FormField>
-            <FormField label={tr("收件邮箱")} name="to" required><Input value={mailTo} onChange={setMailTo} autocomplete="email" /></FormField>
-            <Alert theme="info" message={tr("使用加密 SMTP 连接发送 HTML 邮件及纯文本副本。每个渠道配置一个收件邮箱，可使用团队邮件组。与账号邀请邮件配置独立。")}/>
-          </>}
+          {channel === "smtp" && (
+            <>
+              <FormField
+                label={tr("SMTP 服务器及端口")}
+                name="smtp_address"
+                required
+              >
+                <Input
+                  value={smtpAddress}
+                  onChange={setSMTPAddress}
+                  placeholder="smtp.example.com:587"
+                />
+              </FormField>
+              <FormField label={tr("连接加密")} name="smtp_security">
+                <Select
+                  value={smtpSecurity}
+                  onChange={(v) => setSMTPSecurity(String(v))}
+                  options={[
+                    { value: "starttls", label: "STARTTLS (587 / 2525)" },
+                    { value: "tls", label: "TLS (465)" },
+                  ]}
+                />
+              </FormField>
+              <FormField label={tr("SMTP 用户名")} name="smtp_username">
+                <Input
+                  value={smtpUsername}
+                  onChange={setSMTPUsername}
+                  autocomplete="off"
+                />
+              </FormField>
+              <FormField
+                label={tr("SMTP 密码或授权码")}
+                name="secret"
+                required={!endpoint && !!smtpUsername.trim()}
+              >
+                <Input
+                  type="password"
+                  value={secret}
+                  onChange={setSecret}
+                  autocomplete="new-password"
+                  placeholder={endpoint ? tr("留空以保留现有凭据") : undefined}
+                />
+              </FormField>
+              <FormField label={tr("发件邮箱")} name="from" required>
+                <Input
+                  value={mailFrom}
+                  onChange={setMailFrom}
+                  autocomplete="email"
+                />
+              </FormField>
+              <FormField label={tr("收件邮箱")} name="to" required>
+                <Input
+                  value={mailTo}
+                  onChange={setMailTo}
+                  autocomplete="email"
+                />
+              </FormField>
+              <Alert
+                theme="info"
+                message={tr(
+                  "使用加密 SMTP 连接发送 HTML 邮件及纯文本副本。每个渠道配置一个收件邮箱，可使用团队邮件组。与账号邀请邮件配置独立。",
+                )}
+              />
+            </>
+          )}
           {channel === "lark" && (
             <Alert
               theme="info"
@@ -250,10 +375,14 @@ export function ChannelEditor({
   );
 }
 export default function Channels() {
-  const query = useList<Endpoint>("/endpoints");
+  const [tab, setTab] = useState("active");
+  const query = useList<Endpoint>(
+    "/endpoints?state=" + (tab === "archived" ? "archived" : "active"),
+  );
   const permission = usePermissions();
   const write = useWriter();
   const [adding, setAdding] = useState(false);
+  const [editing, setEditing] = useState<Endpoint | null>(null);
   const [testing, setTesting] = useState(false);
   const [job, setJob] = useState<TestJob | null>(null);
   const [error, setError] = useState("");
@@ -284,6 +413,26 @@ export default function Channels() {
     !!job &&
     !["succeeded", "failed"].includes(result.data?.status || job.status);
   const outcome = result.data || job;
+  async function archive(endpoint: Endpoint) {
+    setError("");
+    try {
+      await write("/endpoints/" + endpoint.id, {}, "DELETE");
+      setNotice(tr("通知渠道已归档，历史投递记录仍然保留。"));
+      await query.refetch();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+  async function restore(endpoint: Endpoint) {
+    setError("");
+    try {
+      await write("/endpoints/" + endpoint.id + "/restore", {});
+      setNotice(tr("通知渠道已恢复为停用状态，请检查凭据后再启用。"));
+      await query.refetch();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
   return (
     <>
       {error && <Alert className="query-error" theme="error" message={error} />}
@@ -333,9 +482,6 @@ export default function Channels() {
       <Panel className="panel starter-list-panel">
         <ListToolbar
           title={tr("\u901A\u77E5\u6E20\u9053")}
-          description={tr(
-            "\u8FDE\u63A5\u56E2\u961F\u5E38\u7528\u5DE5\u5177\uFF0C\u786E\u4FDD\u91CD\u8981\u4E8B\u4EF6\u6709\u660E\u786E\u7684\u63A5\u6536\u76EE\u7684\u5730\u3002",
-          )}
           actions={
             <>
               <Button
@@ -354,8 +500,13 @@ export default function Channels() {
             </>
           }
         />
+        <Tabs value={tab} onChange={(value) => setTab(String(value))}>
+          <Tabs.TabPanel value="active" label={tr("使用中")} />
+          <Tabs.TabPanel value="archived" label={tr("已归档")} />
+        </Tabs>
         <QueryState query={query}>
           <Table
+            className="mobile-priority-table"
             tableLayout="fixed"
             rowKey="id"
             data={query.rows}
@@ -421,26 +572,48 @@ export default function Channels() {
               },
               {
                 colKey: "actions",
-                fixed: "right",
                 title: tr("\u64CD\u4F5C"),
-                width: 180,
+                width: 220,
                 cell: ({ row }) => (
-                  <div className="table-actions">
-                    <Button
-                      variant="text"
-                      disabled={
-                        !permission.write || !row.enabled || testing || pending
-                      }
-                      onClick={() => void test(row)}
-                    >
-                      {tr("\u53D1\u9001\u6D4B\u8BD5")}
-                    </Button>
-                    <DeleteResource
-                      path={`/endpoints/${row.id}`}
-                      name={row.name}
-                      channel
-                      disabled={!permission.write || testing || pending}
-                    />
+                  <div className="table-actions table-actions-nowrap">
+                    {row.archived_at ? (
+                      <Button
+                        variant="text"
+                        disabled={!permission.write}
+                        onClick={() => void restore(row)}
+                      >
+                        {tr("恢复")}
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          variant="text"
+                          disabled={!permission.write || testing || pending}
+                          onClick={() => setEditing(row)}
+                        >
+                          {tr("编辑")}
+                        </Button>
+                        <Button
+                          variant="text"
+                          disabled={!permission.write || testing || pending}
+                          onClick={() => void test(row)}
+                        >
+                          {tr("发送测试")}
+                        </Button>
+                        <Dropdown
+                          trigger="click"
+                          options={[{ value: "archive", content: tr("归档") }]}
+                          onClick={() => void archive(row)}
+                        >
+                          <Button
+                            variant="text"
+                            disabled={!permission.write || testing || pending}
+                          >
+                            {tr("更多")}
+                          </Button>
+                        </Dropdown>
+                      </>
+                    )}
                   </div>
                 ),
               },
@@ -460,6 +633,15 @@ export default function Channels() {
             ),
           )
         }
+      />
+      <ChannelEditor
+        visible={!!editing}
+        endpoint={editing}
+        onClose={() => setEditing(null)}
+        onSaved={(endpoint) => {
+          setEditing(null);
+          setNotice(tr("已更新「{{value0}}」。", { value0: endpoint.name }));
+        }}
       />
     </>
   );

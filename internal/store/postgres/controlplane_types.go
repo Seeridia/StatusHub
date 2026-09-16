@@ -36,28 +36,34 @@ type VendorStatus struct {
 }
 
 type SourceView struct {
-	Collection     CollectionStatus `json:"collection"`
-	ID             string           `json:"id"`
-	TenantID       *string          `json:"tenant_id,omitempty"`
-	VendorID       string           `json:"vendor_id"`
-	VendorSlug     string           `json:"vendor_slug"`
-	VendorName     string           `json:"vendor_name"`
-	RequestedURL   string           `json:"requested_url"`
-	FinalURL       string           `json:"final_url,omitempty"`
-	CanonicalURL   string           `json:"canonical_url"`
-	SourceType     string           `json:"source_type"`
-	AdapterName    string           `json:"adapter_name,omitempty"`
-	AdapterVersion string           `json:"adapter_version,omitempty"`
-	Enabled        bool             `json:"enabled"`
-	HealthState    string           `json:"health_state"`
-	FailureStreak  int              `json:"failure_streak"`
-	LastAttemptAt  *time.Time       `json:"last_attempt_at,omitempty"`
-	LastSuccessAt  *time.Time       `json:"last_success_at,omitempty"`
-	NextPollAt     *time.Time       `json:"next_poll_at,omitempty"`
-	UpdatedAt      time.Time        `json:"updated_at"`
+	Collection           CollectionStatus `json:"collection"`
+	ID                   string           `json:"id"`
+	TenantID             *string          `json:"tenant_id,omitempty"`
+	VendorID             string           `json:"vendor_id"`
+	VendorSlug           string           `json:"vendor_slug"`
+	VendorName           string           `json:"vendor_name"`
+	RequestedURL         string           `json:"requested_url"`
+	FinalURL             string           `json:"final_url,omitempty"`
+	CanonicalURL         string           `json:"canonical_url"`
+	SourceType           string           `json:"source_type"`
+	AdapterName          string           `json:"adapter_name,omitempty"`
+	AdapterVersion       string           `json:"adapter_version,omitempty"`
+	Enabled              bool             `json:"enabled"`
+	Ownership            string           `json:"ownership"`
+	WorkspaceDisplayName string           `json:"workspace_display_name,omitempty"`
+	ArchivedAt           *time.Time       `json:"archived_at,omitempty"`
+	ArchiveReason        string           `json:"archive_reason,omitempty"`
+	AllowedActions       []string         `json:"allowed_actions"`
+	HealthState          string           `json:"health_state"`
+	FailureStreak        int              `json:"failure_streak"`
+	LastAttemptAt        *time.Time       `json:"last_attempt_at,omitempty"`
+	LastSuccessAt        *time.Time       `json:"last_success_at,omitempty"`
+	NextPollAt           *time.Time       `json:"next_poll_at,omitempty"`
+	UpdatedAt            time.Time        `json:"updated_at"`
 }
 
 type IncidentView struct {
+	OfficialURL     string               `json:"official_url,omitempty"`
 	ID              string               `json:"id"`
 	SourceID        string               `json:"source_id"`
 	VendorID        string               `json:"vendor_id"`
@@ -95,16 +101,25 @@ type SubscriptionScopeInput struct {
 }
 
 type SubscriptionView struct {
-	ID          string                   `json:"id"`
-	TenantID    string                   `json:"tenant_id"`
-	Name        string                   `json:"name"`
-	Enabled     bool                     `json:"enabled"`
-	RuleVersion int                      `json:"rule_version"`
-	Rule        json.RawMessage          `json:"rule"`
-	Scopes      []SubscriptionScopeInput `json:"scopes"`
-	EndpointIDs []string                 `json:"endpoint_ids"`
-	CreatedAt   time.Time                `json:"created_at"`
-	UpdatedAt   time.Time                `json:"updated_at"`
+	ID           string                   `json:"id"`
+	TenantID     string                   `json:"tenant_id"`
+	Name         string                   `json:"name"`
+	Enabled      bool                     `json:"enabled"`
+	PauseReason  string                   `json:"pause_reason,omitempty"`
+	Dependencies []ResourceDependency     `json:"pause_dependencies,omitempty"`
+	ArchivedAt   *time.Time               `json:"archived_at,omitempty"`
+	RuleVersion  int                      `json:"rule_version"`
+	Rule         json.RawMessage          `json:"rule"`
+	Scopes       []SubscriptionScopeInput `json:"scopes"`
+	EndpointIDs  []string                 `json:"endpoint_ids"`
+	CreatedAt    time.Time                `json:"created_at"`
+	UpdatedAt    time.Time                `json:"updated_at"`
+}
+
+type ResourceDependency struct {
+	Type string `json:"type"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 type EndpointView struct {
@@ -113,6 +128,7 @@ type EndpointView struct {
 	Channel       string          `json:"channel"`
 	Name          string          `json:"name"`
 	Enabled       bool            `json:"enabled"`
+	ArchivedAt    *time.Time      `json:"archived_at,omitempty"`
 	KeyID         string          `json:"key_id"`
 	SecretVersion int             `json:"secret_version"`
 	HealthState   string          `json:"health_state"`
@@ -187,20 +203,40 @@ type TimeCursor struct {
 }
 
 type CreateSourceParams struct {
-	AutoVendorSlug string
-	AutoVendorName string
-	ID             string
-	TenantID       string
-	VendorID       string
-	RequestedURL   string
-	FinalURL       string
-	CanonicalURL   string
-	SourceType     string
-	AdapterName    string
-	AdapterVersion string
-	ActiveRegion   string
-	Capabilities   domain.Capabilities
-	Actor          AuditActor
+	AutoVendorSlug   string
+	AutoVendorName   string
+	ID               string
+	TenantID         string
+	VendorID         string
+	RequestedURL     string
+	FinalURL         string
+	CanonicalURL     string
+	SourceType       string
+	AdapterName      string
+	AdapterVersion   string
+	ActiveRegion     string
+	Capabilities     domain.Capabilities
+	DisplayName      string
+	ReplacesSourceID string
+	Actor            AuditActor
+}
+
+type UpdateWorkspaceSourceParams struct {
+	TenantID    string
+	SourceID    string
+	DisplayName *string
+	Enabled     *bool
+	Actor       AuditActor
+}
+
+type SourceCatalogItem struct {
+	ID           string `json:"id"`
+	VendorID     string `json:"vendor_id"`
+	VendorSlug   string `json:"vendor_slug"`
+	VendorName   string `json:"vendor_name"`
+	CanonicalURL string `json:"canonical_url"`
+	HealthState  string `json:"health_state"`
+	Added        bool   `json:"added"`
 }
 
 type CreateSubscriptionParams struct {

@@ -27,6 +27,7 @@ export interface Vendor {
   source_health_state: string;
 }
 export interface Incident {
+  official_url?: string;
   id: string;
   source_id: string;
   vendor_id: string;
@@ -65,6 +66,13 @@ export interface Subscription {
   id: string;
   name: string;
   enabled: boolean;
+  pause_reason?: string;
+  pause_dependencies?: {
+    type: "source" | "endpoint";
+    id: string;
+    name: string;
+  }[];
+  archived_at?: string;
   rule_version: number;
   rule: Rule;
   scopes: Scope[];
@@ -76,10 +84,20 @@ export interface Endpoint {
   name: string;
   channel: string;
   enabled: boolean;
+  archived_at?: string;
   health_state: string;
   secret_version: number;
   key_id: string;
   updated_at: string;
+  config?: {
+    url?: string;
+    signing_key_id?: string;
+    smtp_address?: string;
+    smtp_username?: string;
+    smtp_security?: string;
+    from?: string;
+    to?: string;
+  };
 }
 export interface TestJob {
   id: string;
@@ -94,6 +112,11 @@ export interface Source {
   next_poll_at?: string;
   id: string;
   tenant_id?: string;
+  ownership: "platform" | "workspace";
+  workspace_display_name?: string;
+  archived_at?: string;
+  archive_reason?: string;
+  allowed_actions: string[];
   vendor_id: string;
   vendor_name: string;
   canonical_url: string;
@@ -103,6 +126,15 @@ export interface Source {
   enabled: boolean;
   last_success_at?: string;
   failure_streak: number;
+}
+export interface SourceCatalogItem {
+  id: string;
+  vendor_id: string;
+  vendor_slug: string;
+  vendor_name: string;
+  canonical_url: string;
+  health_state: string;
+  added: boolean;
 }
 export interface CollectionStatus {
   failure_code?: string;

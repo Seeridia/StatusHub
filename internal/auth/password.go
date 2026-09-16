@@ -43,8 +43,5 @@ func CanManage(actor Role, oldRole, newRole Role) bool {
 	if !oldRole.Valid() || !newRole.Valid() {
 		return false
 	}
-	if actor == RoleOwner {
-		return true
-	}
 	return actor == RoleAdmin && (oldRole == RoleViewer || oldRole == RoleOperator) && (newRole == RoleViewer || newRole == RoleOperator)
 }

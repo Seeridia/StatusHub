@@ -34,12 +34,12 @@
 
 ## 添加一个状态页
 
-进入 **数据源 → 添加数据源**：
+进入 **数据源**。页面分为“监控中”“托管服务目录”和“已归档”三个标签。“托管服务目录”展示 StatusHub 已经持续采集的共享服务，添加后只建立当前工作区关联。点击“添加数据源”可以搜索预设服务或接入任意状态页：
 
 1. 在“服务名称”中搜索服务名、别名或状态页域名，例如 OpenAI 或 Claude。选择候选项后自动填写状态页地址，也可用方向键和 Enter 选择。未收录的服务直接输入名称，再手动填写完整 HTTPS 地址。地址始终可以编辑；修改服务名称会清空之前的地址和检测结果。
 2. 点击“检测状态页”，等待探测完成。
 3. 查看识别服务/站点名称、规范化地址和可采集内容；需要时展开“技术详情”查看适配器。
-4. 未接入的来源点击“确认接入”；已有来源会提示无需重复添加，点击“完成”。
+4. 若匹配 StatusHub 托管采集器，确认后只添加当前工作区关联；否则创建工作区自建采集器。共享采集器不会自动出现在新工作区。
 
 不需要填写适配器名。[服务地址目录](service-catalog.md)提供快捷补全，实际支持情况以实时检测为准。已知官方别名会归一化；已有来源优先复用。无法匹配已知服务但能够适配的站点，使用输入的服务名称；未填写时使用主机名和路径。名称仅作为显示文本，不会据此合并服务或覆盖已有名称。同一托管平台的不同路径不会仅因域名相同被合并。
 
@@ -53,7 +53,7 @@
 
 ### 共享来源与私有来源
 
-bootstrap 导入的公开来源由平台维护；当前工作区通过页面新增的来源属于租户。用户无需选择或发布适配器，系统在接入时自动检测。数据源列表显示采集健康和计划；排障需要时，可在采集计划的“技术详情”中查看适配器名称和版本。
+StatusHub 托管来源由平台维护，多个工作区可独立关联；工作区自建来源仅服务当前工作区。用户无需选择或发布适配器，系统在接入时自动检测。两类来源都可以修改工作区别名、启停或从当前工作区归档；托管来源的规范地址和适配器不能由工作区修改。替换地址会重新探测，成功后归档旧关联并保留历史事件。
 
 ## 事件中心
 
@@ -67,11 +67,13 @@ bootstrap 导入的公开来源由平台维护；当前工作区通过页面新�
 
 ## 配置通知渠道
 
-进入 **通知渠道 → 添加渠道**，填写名称和类型。目前网页创建表单提供两种：
+进入 **通知渠道 → 添加渠道**，填写名称和类型。渠道类型创建后不能更改：
 
 | 类型                   | 所需信息                                            |
 | ---------------------- | --------------------------------------------------- |
 | Slack Incoming Webhook | Slack 工作区生成的 Incoming Webhook HTTPS 地址      |
+| 飞书                   | 自定义机器人 Webhook 与签名密钥                     |
+| SMTP 邮件              | 加密 SMTP、发件人与收件人                           |
 | Generic Webhook        | 接收端 HTTPS 地址、签名标识、与接收端约定的签名密钥 |
 
 Generic Webhook 的签名密钥用于接收端校验通知，与服务端 `.env` 的配置加密密钥不是同一把密钥。签名约定见 [通知](../notifications.md)。
@@ -87,7 +89,7 @@ Generic Webhook 的签名密钥用于接收端校验通知，与服务端 `.env`
 
 测试成功说明此次接收端接受了请求，不证明通知规则一定会匹配，也不证明接收人已经阅读。测试失败不要立即重新创建多个相同渠道；先排查地址、凭据和网络。
 
-后端还有其他渠道 driver，但当前网页没有为所有渠道提供创建表单。渠道修改、启停和凭据轮换也并非全部开放在网页中；高级操作参阅 [适配器与渠道](../adapters-and-channels.md)、[管理 API](../api-guide.md) 和 API 合同。
+列表中的“更多”可编辑或归档渠道。编辑时普通字段会回填，秘密字段不会回显；留空表示保留现有凭据，填写新值表示轮换。归档与恢复行为见下文。高级配置参阅 [适配器与渠道](../adapters-and-channels.md)、[管理 API](../api-guide.md) 和 API 合同。
 
 ## 创建通知规则
 
@@ -141,7 +143,7 @@ Generic Webhook 的签名密钥用于接收端校验通知，与服务端 `.env`
 历史失败不回填原因；无法可靠分类时显示「未分类错误」。多个资源同时失败时按固定优先级显示一个代表原因（限流、访问拒绝、服务错误、其他 HTTP 错误、超时、网络、解析、不支持、取消），完整详情查看日志。接口只返回分类代码，不回显原始错误或上游响应。
 
 
-admin/owner 可查看审计记录。适配器升级、影子验证和回滚由平台维护者通过可信运维工具处理，不作为工作区用户的操作步骤，见 [高级运维](../advanced-operations.md)。
+Admin 可查看审计记录。适配器升级、影子验证和回滚由平台维护者通过可信运维工具处理，不作为工作区用户的操作步骤，见 [高级运维](../advanced-operations.md)。
 
 ## 飞书群机器人通知 / Feishu notifications
 
@@ -152,25 +154,29 @@ admin/owner 可查看审计记录。适配器升级、影子验证和回滚由�
 Choose **Feishu / Lark** under Notification channels, enter the custom bot webhook URL and its signing secret, then save and send a test notification. Enable signature verification in the bot security settings. Attach the channel to a notification rule to receive event notifications. The signing-key ID used by Generic Webhook is not required for Feishu.
 
 
-## Delete configuration / 删除配置
+## Archive and restore / 归档与恢复
 
-The **Delete** action is available in notification channels, notification rules, and workspace data sources. A confirmation dialog describes the impact. Deletion hides the configuration and stops future collection or notification work; historical events, delivery records, and audit records remain available. Work already in progress may finish. There is no restore action; create a new configuration if needed.
+数据源、通知规则和通知渠道统一使用软归档。归档后资源从默认列表移除并停止后续采集或通知；历史事件、投递和审计记录保持可查询。“已归档”标签可恢复资源，恢复后保持停用，需要检查配置后手动启用。
 
-Deleting a channel also removes it from linked rules. Rules with no remaining channels are disabled; other rules keep their remaining channels. Workspace users cannot delete platform shared data sources. Deletion uses the same role permissions as editing the corresponding resource.
+归档明确指定服务的数据源时，相关范围规则会暂停并显示“数据源已归档”；监听全部服务的规则保持启用并忽略该服务。归档渠道使规则失去全部有效渠道时，规则会暂停并显示“通知渠道已归档”。恢复依赖不会自动恢复规则。事件中心可勾选“包含已归档服务”查询旧事件。
 
-在通知渠道、通知规则和工作区数据源列表中点击**删除**，确认后配置会从列表移除，停止后续采集或通知。历史事件、投递记录和审计记录保留；已开始执行的任务仍可能完成。目前不提供恢复入口，需要时可重新创建配置。
+StatusHub 托管数据源可以从当前工作区归档和恢复，但工作区不会销毁共享采集器，也不会影响其他工作区。工作区自建数据源在没有有效关联时停止采集。
 
-删除渠道会同时解除通知规则中的引用；没有剩余渠道的规则会自动停用，其他规则保留其剩余渠道。平台共享数据源由平台维护，工作区不能删除。删除权限与对应配置的编辑权限一致。
+通知渠道可编辑名称、启用状态和普通字段；类型创建后不可更改。密码、Webhook Secret 等秘密字段留空表示保留原值，填写新值表示轮换。
 
 ### 飞书消息内容 / Feishu message content
 
-飞书通知使用富文本（post），分开显示标题、事件类型、组件状态变化、事件阶段、影响程度、最新非空进展、UTC 时间和原始事件链接。缺失字段不显示；组件变更会显示 `operational → degraded_performance` 等状态变化，不再出现空破折号。进展按上游更新时间选择，时间缺失时使用创建时间。
+飞书通知使用交互式卡片：标题突出事件名称，颜色区分故障、恢复观察和已恢复；信息区展示通知类型、服务状态变化、事件阶段与影响程度，正文展示最新非空进展，底部显示 UTC 采集时间。缺失字段自动省略，上游正文保留原文。
 
-消息按 JSON 编码后的字节数限制在 20 KiB 内（渠道设置更小时使用更小限制）。超长正文截断；超出限制或服务器返回 HTTP 413 时降级为精简文本。上游文字作为文本节点发送，不解释为 @ 提及或消息结构。仅允许 HTTP/HTTPS 原始事件链接。无需修改已有飞书渠道的 Webhook 和签名密钥。
+卡片提供“在 StatusHub 查看事件”主按钮，携带工作区、服务和事件详情 ID；组件状态等没有事件详情的通知跳转到对应服务的事件列表。另有“查看官方状态页”按钮（上游提供有效链接时）。打开 StatusHub 仍需登录并具备工作区访问权限。
 
-Feishu notifications use rich-text posts with a title, event type, component status transition, incident phase, impact, latest non-empty update, UTC timestamp and an original-event link. Missing fields are omitted. Payloads are bounded to 20 KiB of encoded JSON or the lower channel limit, with compact text fallback for oversized messages or HTTP 413. Upstream text is rendered as text nodes; links must use HTTP or HTTPS. Existing webhook and signing-secret settings remain valid.
+Worker 必须设置 `STATUSHUB_PUBLIC_URL` 为实例公开地址；根目录 Compose 已传入此变量，升级后需重新部署 worker 才能生成控制台按钮。未配置时只显示可用的官方链接。无需修改已有渠道的 Webhook 或签名密钥。
 
-Reference: [Feishu custom bot guide](https://open.feishu.cn/document/client-docs/bot-v3/add-custom-bot?lang=zh-CN).
+消息按 JSON 编码后的字节数限制在 20 KiB 内（渠道设置更小时使用更小限制）。超长正文截断；超出限制或服务器返回 HTTP 413 时降级为带控制台链接的精简文本。上游文字使用纯文本节点，链接仅允许 HTTP/HTTPS。
+
+Feishu notifications use interactive cards with a color-coded title, status transitions, incident phase, impact, latest non-empty update and UTC collection time. Missing fields are omitted and upstream content remains plain text. The primary button opens the incident in its StatusHub workspace; component changes open the service’s incident list. An official status-page button is included when available. Normal login and workspace permissions still apply.
+
+Set `STATUSHUB_PUBLIC_URL` on the worker and redeploy after upgrading (the root Compose file supplies it). Without it, the console button is omitted. Existing bot credentials remain valid. Encoded payloads are capped at 20 KiB or the lower channel limit, with compact text and console-link fallback for oversized payloads or HTTP 413.
 
 ## SMTP 邮件通知 / SMTP email notifications
 

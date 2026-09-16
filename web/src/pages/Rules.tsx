@@ -1,5 +1,4 @@
 import { Panel, ListToolbar } from "../components";
-import { DeleteResource } from "../components/DeleteResource";
 import { formatList, tr } from "../lib/i18n";
 import { FormField, ValidatedForm } from "../components";
 import { useEffect, useRef, useState } from "react";
@@ -9,11 +8,13 @@ import {
   Alert,
   Button,
   Checkbox,
+  Dropdown,
   Input,
   Select,
   Switch,
   Table,
   Tag,
+  Tabs,
 } from "tdesign-react";
 import {
   AddIcon,
@@ -161,9 +162,6 @@ function Editor({ id }: { id: string }) {
             ? tr("\u7F16\u8F91\u901A\u77E5\u89C4\u5219")
             : tr("\u521B\u5EFA\u901A\u77E5\u89C4\u5219")
         }
-        description={tr(
-          "\u9009\u62E9\u8981\u5173\u6CE8\u7684\u53D8\u5316\uFF0C\u4EE5\u53CA\u5B83\u4EEC\u5E94\u8BE5\u5230\u8FBE\u7684\u5730\u65B9\u3002",
-        )}
         actions={
           <Button
             variant="text"
@@ -190,9 +188,7 @@ function Editor({ id }: { id: string }) {
         <Alert
           className="query-error"
           theme="error"
-          message={tr(
-            "无法加载服务或渠道选项，请重试后保存。",
-          )}
+          message={tr("无法加载服务或渠道选项，请重试后保存。")}
           operation={
             <Button
               variant="text"
@@ -290,9 +286,7 @@ function Editor({ id }: { id: string }) {
                 clearable
                 value={vendorIDs}
                 onChange={(v) => setVendorIDs(v as string[])}
-                placeholder={tr(
-                  "选择服务，留空表示全部",
-                )}
+                placeholder={tr("选择服务，留空表示全部")}
                 options={(vendors.data?.data || []).map((v) => ({
                   value: v.id,
                   label: v.name,
@@ -484,7 +478,13 @@ export default function Rules() {
   const navigate = useNavigate();
   const permission = usePermissions();
   const [params] = useSearchParams();
-  const query = useList<Subscription>("/subscriptions");
+  const [tab, setTab] = useState("active");
+  const query = useList<Subscription>(
+    "/subscriptions?state=" + (tab === "archived" ? "archived" : "active"),
+  );
+  const write = useWriter();
+  const [mutationError, setMutationError] = useState("");
+  const [togglingID, setTogglingID] = useState("");
   const [search, setSearch] = useState("");
   const [current, setCurrent] = useState(1);
   const [pageSize, setPageSize] = useState(20);
@@ -504,8 +504,52 @@ export default function Rules() {
         }
       />
     );
+  async function archive(row: Subscription) {
+    setMutationError("");
+    try {
+      await write("/subscriptions/" + row.id, {}, "DELETE");
+      await query.refetch();
+    } catch (err) {
+      setMutationError((err as Error).message);
+    }
+  }
+  async function restore(row: Subscription) {
+    setMutationError("");
+    try {
+      await write("/subscriptions/" + row.id + "/restore", {});
+      await query.refetch();
+    } catch (err) {
+      setMutationError((err as Error).message);
+    }
+  }
+  async function toggle(row: Subscription, enabled: boolean) {
+    setMutationError("");
+    setTogglingID(row.id);
+    try {
+      await write(
+        "/subscriptions/" + row.id,
+        {
+          name: row.name,
+          enabled,
+          expected_rule_version: row.rule_version,
+          rule: row.rule,
+          scopes: row.scopes || [],
+          endpoint_ids: row.endpoint_ids || [],
+        },
+        "PUT",
+      );
+      await query.refetch();
+    } catch (err) {
+      setMutationError((err as Error).message);
+    } finally {
+      setTogglingID("");
+    }
+  }
   return (
     <>
+      {mutationError && (
+        <Alert className="query-error" theme="error" message={mutationError} />
+      )}
       {params.has("saved") && (
         <Alert
           className="query-error"
@@ -516,12 +560,31 @@ export default function Rules() {
       <Panel className="panel starter-list-panel">
         <ListToolbar
           title={tr("通知规则")}
-          description={tr("选择服务与渠道，让重要的状态变化及时到达。")}
-          actions={<>
-            <Button variant="outline" icon={<RefreshIcon />} loading={query.isFetching} onClick={() => void query.refetch()}>{tr("刷新")}</Button>
-            {permission.write && <Button icon={<AddIcon />} onClick={() => navigate("/rules/new")}>{tr("创建规则")}</Button>}
-          </>}
+          actions={
+            <>
+              <Button
+                variant="outline"
+                icon={<RefreshIcon />}
+                loading={query.isFetching}
+                onClick={() => void query.refetch()}
+              >
+                {tr("刷新")}
+              </Button>
+              {permission.write && (
+                <Button
+                  icon={<AddIcon />}
+                  onClick={() => navigate("/rules/new")}
+                >
+                  {tr("创建规则")}
+                </Button>
+              )}
+            </>
+          }
         />
+        <Tabs value={tab} onChange={(value) => setTab(String(value))}>
+          <Tabs.TabPanel value="active" label={tr("使用中")} />
+          <Tabs.TabPanel value="archived" label={tr("已归档")} />
+        </Tabs>
         <div className="filter-row">
           <Input
             className="starter-list-search"
@@ -544,6 +607,7 @@ export default function Rules() {
 
         <QueryState query={query}>
           <Table
+            className="mobile-priority-table"
             tableLayout="fixed"
             rowKey="id"
             data={rows}
@@ -573,9 +637,7 @@ export default function Rules() {
                   title={tr(
                     "\u521B\u5EFA\u4F60\u7684\u7B2C\u4E00\u6761\u901A\u77E5\u89C4\u5219",
                   )}
-                  description={tr(
-                    "选择服务与渠道，让重要的状态变化及时到达。",
-                  )}
+                  description={tr("选择服务与渠道，让重要的状态变化及时到达。")}
                   action={
                     permission.write && (
                       <Button onClick={() => navigate("/rules/new")}>
@@ -603,9 +665,34 @@ export default function Rules() {
               {
                 colKey: "enabled",
                 title: tr("\u72B6\u6001"),
-                width: 90,
+                width: 120,
                 cell: ({ row }) => (
-                  <StatusBadge value={row.enabled ? "enabled" : "disabled"} />
+                  <>
+                    {row.archived_at ? (
+                      <StatusBadge value="archived" />
+                    ) : (
+                      <Switch
+                        value={row.enabled}
+                        disabled={!permission.write || togglingID === row.id}
+                        aria-label={
+                          row.enabled ? tr("停用规则") : tr("启用规则")
+                        }
+                        onChange={(enabled) => void toggle(row, enabled)}
+                      />
+                    )}
+                    {row.pause_reason && (
+                      <small className="cell-subtitle">
+                        {label(row.pause_reason)}
+                      </small>
+                    )}
+                    {!!row.pause_dependencies?.length && (
+                      <small className="cell-subtitle">
+                        {row.pause_dependencies
+                          .map((item) => item.name)
+                          .join("、")}
+                      </small>
+                    )}
+                  </>
                 ),
               },
               {
@@ -639,17 +726,37 @@ export default function Rules() {
                 colKey: "actions",
                 title: tr("操作"),
                 width: 180,
-                fixed: "right",
                 cell: ({ row }) => (
-                  <div className="table-actions">
-                    <Button variant="text" href={`#/rules/${row.id}`}>
-                      {permission.write ? tr("编辑") : tr("查看")}
-                    </Button>
-                    <DeleteResource
-                      path={`/subscriptions/${row.id}`}
-                      name={row.name}
-                      disabled={!permission.write}
-                    />
+                  <div className="table-actions table-actions-nowrap">
+                    {row.archived_at ? (
+                      <Button
+                        variant="text"
+                        disabled={!permission.write}
+                        onClick={() => void restore(row)}
+                      >
+                        {tr("恢复")}
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          variant="text"
+                          onClick={() => navigate("/rules/" + row.id)}
+                        >
+                          {permission.write ? tr("编辑") : tr("查看")}
+                        </Button>
+                        {permission.write && (
+                          <Dropdown
+                            trigger="click"
+                            options={[
+                              { value: "archive", content: tr("归档") },
+                            ]}
+                            onClick={() => void archive(row)}
+                          >
+                            <Button variant="text">{tr("更多")}</Button>
+                          </Dropdown>
+                        )}
+                      </>
+                    )}
                   </div>
                 ),
               },

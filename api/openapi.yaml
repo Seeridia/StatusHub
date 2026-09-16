@@ -293,12 +293,12 @@ paths:
                         id: {type: string, format: uuid}
                         slug: {type: string}
                         name: {type: string}
-                        role: {type: string, enum: [viewer, operator, admin, owner]}
+                        role: {type: string, enum: [viewer, operator, admin]}
         '401': {description: Missing or expired browser session}
   /v1/tenants/{tenant}/members:
     get:
       operationId: listTeamMembers
-      description: Admin/owner only; tenant-scoped metadata, no credentials. Returns a data array with up to 1000 entries.
+      description: Admin only; tenant-scoped metadata, no credentials. Returns a data array with up to 1000 entries.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
       responses:
@@ -307,7 +307,7 @@ paths:
   /v1/tenants/{tenant}/invitations:
     get:
       operationId: listTeamInvitations
-      description: Admin/owner only; tenant-scoped metadata, no credentials. Returns a data array with up to 1000 entries.
+      description: Admin only; tenant-scoped metadata, no credentials. Returns a data array with up to 1000 entries.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
       responses:
@@ -315,7 +315,7 @@ paths:
         '403': {description: "Role cannot manage team accounts"}
     post:
       operationId: createInvitation
-      description: Creates an invitation bound to email and role; 7 days. Queues an encrypted invitation email; returns no invitation token. Reissuing revokes older unaccepted invitations to that email. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Idempotent retries do not send another invitation email.
+      description: Creates an invitation bound to email and role; 7 days. Queues an encrypted invitation email; returns no invitation token. Reissuing revokes older unaccepted invitations to that email. The single workspace Admin manages viewers and operators. Writes are transactional and audited. Idempotent retries do not send another invitation email.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
         - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
@@ -328,17 +328,17 @@ paths:
               properties:
                 email: {type: string, format: email}
                 name: {type: string, maxLength: 128}
-                role: {type: string, enum: [viewer, operator, admin, owner]}
+                role: {type: string, enum: [viewer, operator]}
                 enabled: {type: boolean}
       responses:
         '200': {description: "Completed; invitation email queued"}
         '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
-        '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
+        '409': {description: "Single-admin guard, conflicting idempotency request or existing resource"}
 
   /v1/tenants/{tenant}/service-accounts:
     get:
       operationId: listTeamServiceaccounts
-      description: Admin/owner only; tenant-scoped metadata, no credentials. Returns a data array with up to 1000 entries.
+      description: Admin only; tenant-scoped metadata, no credentials. Returns a data array with up to 1000 entries.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
       responses:
@@ -346,7 +346,7 @@ paths:
         '403': {description: "Role cannot manage team accounts"}
     post:
       operationId: createManagedServiceAccount
-      description: Creates a service account and returns token once. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Idempotent retries do not send another invitation email.
+      description: Creates a service account and returns token once. The single workspace Admin manages viewers and operators. Writes are transactional and audited. Idempotent retries do not send another invitation email.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
         - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
@@ -359,16 +359,16 @@ paths:
               properties:
                 email: {type: string, format: email}
                 name: {type: string, maxLength: 128}
-                role: {type: string, enum: [viewer, operator, admin, owner]}
+                role: {type: string, enum: [viewer, operator]}
                 enabled: {type: boolean}
       responses:
         '200': {description: "Completed; invitation email queued"}
         '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
-        '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
+        '409': {description: "Single-admin guard, conflicting idempotency request or existing resource"}
   /v1/tenants/{tenant}/members/{id}:
     patch:
       operationId: updateTeamMember
-      description: Update role and enabled state. Rejects self changes and removing the final active human owner. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Idempotent retries do not send another invitation email.
+      description: Update role and enabled state. Rejects self changes and self-demotion or self-disable; use administrator transfer instead. The single workspace Admin manages viewers and operators. Writes are transactional and audited. Idempotent retries do not send another invitation email.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
         - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
@@ -382,16 +382,37 @@ paths:
               properties:
                 email: {type: string, format: email}
                 name: {type: string, maxLength: 128}
-                role: {type: string, enum: [viewer, operator, admin, owner]}
+                role: {type: string, enum: [viewer, operator]}
                 enabled: {type: boolean}
       responses:
         '200': {description: "Completed; invitation email queued"}
         '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
-        '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
+        '409': {description: "Single-admin guard, conflicting idempotency request or existing resource"}
+  /v1/tenants/{tenant}/members/admin-transfer:
+    post:
+      operationId: transferWorkspaceAdmin
+      description: Atomically appoints an enabled human member as the only Admin and demotes the current Admin to operator.
+      parameters:
+        - {in: path, name: tenant, required: true, schema: {type: string}}
+        - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
+        - $ref: '#/components/parameters/CSRF'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [id]
+              properties:
+                id: {type: string, format: uuid}
+      responses:
+        '200': {description: Administrator transferred}
+        '403': {description: Only the current Admin can transfer administration}
+        '409': {description: Target is disabled, already Admin, or the transfer conflicts}
   /v1/tenants/{tenant}/service-accounts/{id}:
     patch:
       operationId: updateManagedServiceAccount
-      description: Update role and enabled state. Checks current and target roles. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Idempotent retries do not send another invitation email.
+      description: Update role and enabled state. Checks current and target roles. The single workspace Admin manages viewers and operators. Writes are transactional and audited. Idempotent retries do not send another invitation email.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
         - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
@@ -405,16 +426,16 @@ paths:
               properties:
                 email: {type: string, format: email}
                 name: {type: string, maxLength: 128}
-                role: {type: string, enum: [viewer, operator, admin, owner]}
+                role: {type: string, enum: [viewer, operator]}
                 enabled: {type: boolean}
       responses:
         '200': {description: "Completed; invitation email queued"}
         '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
-        '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
+        '409': {description: "Single-admin guard, conflicting idempotency request or existing resource"}
   /v1/tenants/{tenant}/service-accounts/{id}/rotate:
     post:
       operationId: rotateManagedServiceAccount
-      description: Returns a new token and immediately invalidates the old one. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Idempotent retries do not send another invitation email.
+      description: Returns a new token and immediately invalidates the old one. The single workspace Admin manages viewers and operators. Writes are transactional and audited. Idempotent retries do not send another invitation email.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
         - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
@@ -428,16 +449,16 @@ paths:
               properties:
                 email: {type: string, format: email}
                 name: {type: string, maxLength: 128}
-                role: {type: string, enum: [viewer, operator, admin, owner]}
+                role: {type: string, enum: [viewer, operator]}
                 enabled: {type: boolean}
       responses:
         '200': {description: "Completed; invitation email queued"}
         '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
-        '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
+        '409': {description: "Single-admin guard, conflicting idempotency request or existing resource"}
   /v1/tenants/{tenant}/invitations/{id}/revoke:
     post:
       operationId: revokeInvitation
-      description: Revokes an unaccepted invitation. Admin can manage viewers/operators only. Owners can manage elevated roles. Writes are transactional and audited. Idempotent retries do not send another invitation email.
+      description: Revokes an unaccepted invitation. The single workspace Admin manages viewers and operators. Writes are transactional and audited. Idempotent retries do not send another invitation email.
       parameters:
         - {in: path, name: tenant, required: true, schema: {type: string}}
         - {in: header, name: Idempotency-Key, required: true, schema: {type: string, minLength: 1, maxLength: 128}}
@@ -451,12 +472,12 @@ paths:
               properties:
                 email: {type: string, format: email}
                 name: {type: string, maxLength: 128}
-                role: {type: string, enum: [viewer, operator, admin, owner]}
+                role: {type: string, enum: [viewer, operator]}
                 enabled: {type: boolean}
       responses:
         '200': {description: "Completed; invitation email queued"}
         '403': {description: "Actor cannot manage the current or requested role, or attempted self mutation"}
-        '409': {description: "Last-owner guard, conflicting idempotency request or existing resource"}
+        '409': {description: "Single-admin guard, conflicting idempotency request or existing resource"}
   /healthz:
     get:
       security: []
@@ -500,10 +521,19 @@ paths:
       requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SourceInput'}}}}
       responses:
         '200': {description: Adapter capabilities without persistence, content: {application/json: {schema: {type: object}}}}
+  /v1/tenants/{tenant}/source-catalog:
+    get:
+      operationId: listSourceCatalog
+      description: Searches platform-managed collectors that may be attached to this workspace. Shared collectors are not visible until explicitly attached.
+      parameters:
+        - $ref: '#/components/parameters/Tenant'
+        - {in: query, name: query, schema: {type: string}}
+        - $ref: '#/components/parameters/Limit'
+      responses: {'200': {$ref: '#/components/responses/List'}}
   /v1/tenants/{tenant}/sources:
     get:
       operationId: listSources
-      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/Limit'}]
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/Limit'}, {$ref: '#/components/parameters/ResourceState'}]
       responses: {'200': {$ref: '#/components/responses/List'}}
     post:
       operationId: createSource
@@ -520,12 +550,25 @@ paths:
     patch:
       operationId: updateSource
       parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Source'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
-      requestBody: {required: true, content: {application/json: {schema: {type: object, required: [enabled], properties: {enabled: {type: boolean}}}}}}
+      requestBody: {required: true, content: {application/json: {schema: {type: object, properties: {display_name: {type: string, maxLength: 120}, enabled: {type: boolean}}}}}}
       responses: {'200': {description: "Updated source"}}
     delete:
       operationId: deleteSource
       parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Source'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
-      responses: {'200': {description: "Workspace source soft-deleted; history retained. Returns id and deleted=true"}, '404': {description: "Source not owned by workspace"}}
+      responses: {'200': {description: "Workspace source relation archived; history retained and shared collectors remain available to other workspaces"}, '404': {description: "Source is not attached to this workspace"}}
+  /v1/tenants/{tenant}/sources/{source}/replace:
+    post:
+      operationId: replaceSource
+      description: Probes a new status-page URL, attaches or creates its collector, and archives the prior workspace relation atomically.
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Source'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      requestBody: {required: true, content: {application/json: {schema: {$ref: '#/components/schemas/SourceInput'}}}}
+      responses: {'200': {description: Replacement attached}, '409': {$ref: '#/components/responses/Problem'}}
+  /v1/tenants/{tenant}/sources/{source}/restore:
+    post:
+      operationId: restoreSource
+      description: Restores an archived workspace relation in the disabled state.
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Source'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      responses: {'200': {description: Source relation restored as disabled}}
   /v1/tenants/{tenant}/sources/{source}/adapter-rollouts:
     post:
       operationId: createAdapterRollout
@@ -573,6 +616,7 @@ paths:
         - {in: query, name: vendor, schema: {type: string}}
         - {in: query, name: phase, schema: {type: string}}
         - {in: query, name: since, schema: {type: string, format: date-time}}
+        - {in: query, name: include_archived, schema: {type: boolean, default: false}}
       responses: {'200': {$ref: '#/components/responses/List'}}
   /v1/tenants/{tenant}/incidents/{incident}:
     get:
@@ -580,7 +624,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/Tenant'
         - {in: path, name: incident, required: true, schema: {type: string, format: uuid}}
-      responses: {'200': {description: "Incident and ordered update timeline"}}
+      responses: {'200': {description: "Incident and ordered update timeline, with optional official_url (HTTP/HTTPS original incident link or source status page fallback)"}}
   /v1/tenants/{tenant}/events/stream:
     get:
       operationId: streamCanonicalEvents
@@ -592,7 +636,7 @@ paths:
   /v1/tenants/{tenant}/subscriptions:
     get:
       operationId: listSubscriptions
-      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/Limit'}]
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/Limit'}, {$ref: '#/components/parameters/ResourceState'}]
       responses: {'200': {$ref: '#/components/responses/List'}}
     post:
       operationId: createSubscription
@@ -613,10 +657,16 @@ paths:
       operationId: deleteSubscription
       parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Subscription'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
       responses: {'200': {description: "Subscription soft-deleted; history retained. Returns id and deleted=true"}}
+  /v1/tenants/{tenant}/subscriptions/{subscription}/restore:
+    post:
+      operationId: restoreSubscription
+      description: Restores an archived rule in the disabled state. Dependencies are not enabled automatically.
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Subscription'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      responses: {'200': {description: Subscription restored as disabled}}
   /v1/tenants/{tenant}/endpoints:
     get:
       operationId: listEndpoints
-      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/Limit'}]
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Cursor'}, {$ref: '#/components/parameters/Limit'}, {$ref: '#/components/parameters/ResourceState'}]
       responses: {'200': {$ref: '#/components/responses/List'}}
     post:
       operationId: createEndpoint
@@ -637,6 +687,12 @@ paths:
       operationId: deleteEndpoint
       parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Endpoint'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
       responses: {'200': {description: "Endpoint soft-deleted; rule references removed; empty rules disabled; history retained. Returns id and deleted=true"}}
+  /v1/tenants/{tenant}/endpoints/{endpoint}/restore:
+    post:
+      operationId: restoreEndpoint
+      description: Restores an archived notification channel in the disabled state. Rules remain paused until explicitly enabled.
+      parameters: [{$ref: '#/components/parameters/Tenant'}, {$ref: '#/components/parameters/Endpoint'}, {$ref: '#/components/parameters/IdempotencyKey'}, {$ref: '#/components/parameters/CSRF'}]
+      responses: {'200': {description: Endpoint restored as disabled}}
   /v1/tenants/{tenant}/endpoints/{endpoint}/test:
     post:
       operationId: testEndpoint
@@ -691,6 +747,7 @@ components:
     Endpoint: {in: path, name: endpoint, required: true, schema: {type: string, format: uuid}}
     Cursor: {in: query, name: cursor, schema: {type: string}, description: Signed opaque cursor bound to tenant and resource kind}
     Limit: {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 200, default: 50}}
+    ResourceState: {in: query, name: state, schema: {type: string, enum: [active, archived], default: active}}
     IdempotencyKey: {in: header, name: Idempotency-Key, required: true, schema: {type: string, maxLength: 128}}
     CSRF: {in: header, name: X-CSRF-Token, schema: {type: string}, description: Required for cookie-authenticated unsafe requests; not required with Authorization bearer tokens}
   responses:
@@ -744,7 +801,11 @@ components:
         vendor_id: {type: string, format: uuid}
         canonical_url: {type: string, format: uri}
         source_type: {type: string}
+        ownership: {type: string, enum: [platform, workspace]}
+        workspace_display_name: {type: string}
         enabled: {type: boolean}
+        archived_at: {type: [string, 'null'], format: date-time}
+        allowed_actions: {type: array, items: {type: string}}
         health_state: {type: string}
     CollectionStatus:
       type: object

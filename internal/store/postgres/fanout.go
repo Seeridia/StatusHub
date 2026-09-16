@@ -145,14 +145,18 @@ func (s *Store) LoadFanoutCandidates(ctx context.Context, lease FanoutShardLease
 	rows, err := tx.Query(ctx, `
 WITH event AS (
     SELECT ce.id, ce.source_id, ce.event_kind, ce.entity_id, ce.canonical_payload,
-           src.vendor_id, src.tenant_id AS source_tenant_id
+           src.vendor_id
     FROM canonical_events ce JOIN sources src ON src.id=ce.source_id
     WHERE ce.id=$1
 ), candidate_subscriptions AS (
     SELECT s.id, s.tenant_id, s.rule_version, s.rule
     FROM subscriptions s CROSS JOIN event e
     WHERE s.enabled
-	  AND (e.source_tenant_id IS NULL OR s.tenant_id=e.source_tenant_id)
+	  AND EXISTS (
+	      SELECT 1 FROM workspace_sources ws
+	      WHERE ws.tenant_id=s.tenant_id AND ws.source_id=e.source_id
+	        AND ws.archived_at IS NULL AND ws.enabled
+	  )
 	  AND EXISTS (
 	      SELECT 1 FROM subscription_endpoints active_se
 	      JOIN endpoints active_ep ON active_ep.id=active_se.endpoint_id AND active_ep.enabled

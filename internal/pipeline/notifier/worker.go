@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"net/url"
 	"strings"
 	"sync"
 	"time"
@@ -118,6 +119,7 @@ func validPathToken(value string) bool {
 }
 
 type Config struct {
+	PublicURL          string
 	Owner              string
 	Lane               store.DeliveryLane
 	BatchSize          int
@@ -345,6 +347,8 @@ func (w *Worker) process(parent context.Context, lease store.DeliveryLease) (str
 		Kind: lease.EventKind, Subject: eventSubject(lease.EventPayload, lease.EventKind), EntityID: lease.EventEntityID,
 		Time: lease.EventObservedAt, Revision: lease.EventRevision,
 		SchemaVersion: lease.EventSchemaVersion, Summary: eventSummary(lease.EventPayload), Data: lease.EventPayload}
+	event.ConsoleURL = consoleLink(w.config.PublicURL, lease)
+	event.ConsoleIsIncident = lease.IncidentID != ""
 	ctx, cancel := context.WithTimeout(parent, w.config.AttemptTimeout)
 	defer cancel()
 	payload, err := driver.Render(ctx, event, endpoint)
@@ -441,4 +445,24 @@ func eventSubject(payload json.RawMessage, kind domain.EventKind) string {
 
 func eventSummary(payload json.RawMessage) string {
 	return notify.EventSummary(payload)
+}
+
+func consoleLink(base string, lease store.DeliveryLease) string {
+	u, err := url.Parse(strings.TrimSpace(base))
+	if err != nil || u.Host == "" || u.User != nil || (u.Scheme != "https" && u.Scheme != "http") || lease.TenantID == "" {
+		return ""
+	}
+	u.Path = strings.TrimRight(u.Path, "/") + "/ui/"
+	u.RawPath = ""
+	u.RawQuery = url.Values{"tenant": {lease.TenantID}}.Encode()
+	params := url.Values{}
+	if lease.VendorID != "" {
+		params.Set("vendor", lease.VendorID)
+	}
+	if lease.IncidentID != "" {
+		params.Set("detail", lease.IncidentID)
+	}
+	u.RawFragment = ""
+	u.Fragment = "/incidents?" + params.Encode()
+	return u.String()
 }

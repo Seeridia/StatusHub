@@ -90,7 +90,7 @@ func (s *Store) TeamList(ctx context.Context, actor auth.Identity, kind string) 
 	if e != nil {
 		return nil, e
 	}
-	if actor.Role != auth.RoleAdmin && actor.Role != auth.RoleOwner {
+	if actor.Role != auth.RoleAdmin {
 		return nil, auth.ErrForbidden
 	}
 	switch kind {
@@ -166,7 +166,7 @@ func (s *Store) TeamMutate(ctx context.Context, actor auth.Identity, key string,
 	if e != nil {
 		return nil, e
 	}
-	if actor.Role != auth.RoleAdmin && actor.Role != auth.RoleOwner {
+	if actor.Role != auth.RoleAdmin {
 		return nil, auth.ErrForbidden
 	}
 	b, _ := json.Marshal(struct {
@@ -231,16 +231,23 @@ func (s *Store) TeamMutate(ctx context.Context, actor auth.Identity, key string,
 		if !auth.CanManage(actor.Role, oldRole, c.Role) {
 			return nil, auth.ErrForbidden
 		}
-		if oldRole == auth.RoleOwner && enabled && (c.Role != auth.RoleOwner || !c.Enabled) {
-			var count int
-			if e = tx.QueryRow(ctx, `SELECT count(*) FROM memberships WHERE tenant_id=$1 AND role='owner' AND enabled`, actor.TenantID).Scan(&count); e != nil {
-				return nil, e
-			}
-			if count <= 1 {
-				return nil, ErrConflict
-			}
-		}
 		_, e = tx.Exec(ctx, `UPDATE memberships SET role=$3,enabled=$4,updated_at=now() WHERE tenant_id=$1 AND user_id=$2`, actor.TenantID, c.ID, c.Role, c.Enabled)
+	case "admin.transfer":
+		if actor.ActorType != "user" || actor.ActorID == c.ID {
+			return nil, auth.ErrForbidden
+		}
+		var targetRole auth.Role
+		var targetEnabled bool
+		if e = tx.QueryRow(ctx, `SELECT role,enabled FROM memberships WHERE tenant_id=$1 AND user_id=$2 FOR UPDATE`, actor.TenantID, c.ID).Scan(&targetRole, &targetEnabled); e != nil {
+			return nil, ErrNotFound
+		}
+		if !targetEnabled || (targetRole != auth.RoleViewer && targetRole != auth.RoleOperator) {
+			return nil, auth.ErrForbidden
+		}
+		if _, e = tx.Exec(ctx, `UPDATE memberships SET role='operator',updated_at=now() WHERE tenant_id=$1 AND user_id=$2 AND role='admin' AND enabled`, actor.TenantID, actor.ActorID); e != nil {
+			return nil, e
+		}
+		_, e = tx.Exec(ctx, `UPDATE memberships SET role='admin',updated_at=now() WHERE tenant_id=$1 AND user_id=$2 AND enabled`, actor.TenantID, c.ID)
 	case "invitation.create":
 		if !auth.CanManage(actor.Role, auth.RoleViewer, c.Role) {
 			return nil, auth.ErrForbidden
@@ -248,15 +255,6 @@ func (s *Store) TeamMutate(ctx context.Context, actor auth.Identity, key string,
 		c.Email, e = NormalizeEmail(c.Email)
 		if e != nil {
 			return nil, e
-		}
-		if actor.Role != auth.RoleOwner {
-			var elevated bool
-			if e = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM team_invitations WHERE tenant_id=$1 AND email=$2 AND role IN ('admin','owner') AND revoked_at IS NULL AND accepted_at IS NULL AND expires_at>now())`, actor.TenantID, c.Email).Scan(&elevated); e != nil {
-				return nil, e
-			}
-			if elevated {
-				return nil, auth.ErrForbidden
-			}
 		}
 		_, e = tx.Exec(ctx, `UPDATE team_invitations SET revoked_at=now() WHERE tenant_id=$1 AND email=$2 AND accepted_at IS NULL AND revoked_at IS NULL`, actor.TenantID, c.Email)
 		if e != nil {

@@ -6,6 +6,7 @@ import type {
   Endpoint,
   Incident,
   Source,
+  SourceCatalogItem,
   Subscription,
   Vendor,
 } from "./types";
@@ -43,6 +44,7 @@ const incidents: Incident[] = [
     source_id: uuid(31),
     vendor_id: uuid(1),
     vendor_slug: "openai",
+    official_url: "https://status.openai.com/",
     vendor_name: "OpenAI",
     name: tr(
       "\u90E8\u5206 API \u8BF7\u6C42\u5EF6\u8FDF\u5347\u9AD8\uFF08\u6F14\u793A\u4E8B\u4EF6\uFF09",
@@ -167,6 +169,14 @@ const sources: Source[] = vendors.map((v, i) => ({
   adapter_version: "v1",
   health_state: v.source_health_state,
   enabled: true,
+  ownership: i === 4 ? "workspace" : "platform",
+  allowed_actions: [
+    "edit_name",
+    "set_enabled",
+    "replace",
+    "archive",
+    "view_incidents",
+  ],
   failure_streak: i === 4 ? 3 : 0,
   last_success_at: v.last_successful_at,
   last_attempt_at: ago(1),
@@ -186,6 +196,19 @@ const sources: Source[] = vendors.map((v, i) => ({
     ],
   },
   ...(i === 4 ? { tenant_id: "demo" } : {}),
+}));
+const catalogExtras: SourceCatalogItem[] = [
+  ["Slack", "slack", "https://status.slack.com"],
+  ["Atlassian", "atlassian", "https://status.atlassian.com"],
+  ["Microsoft 365", "microsoft-365", "https://status.cloud.microsoft"],
+].map(([name, slug, url], index) => ({
+  id: uuid(81 + index),
+  vendor_id: uuid(91 + index),
+  vendor_name: name,
+  vendor_slug: slug,
+  canonical_url: url,
+  health_state: "healthy",
+  added: false,
 }));
 const deliveries: Delivery[] = [
   {
@@ -249,26 +272,74 @@ export async function demoRequest(raw: string, init: RequestInit) {
             : undefined;
     if (items) {
       const index = items.findIndex((item) => item.id === id);
-      if (index >= 0) items.splice(index, 1);
+      if (index >= 0) {
+        const item = items[index] as Source | Subscription | Endpoint;
+        item.enabled = false;
+        item.archived_at = ago(0);
+        if (resource === "sources") {
+          (item as Source).archive_reason = "user_archived";
+          (item as Source).allowed_actions = ["restore", "view_incidents"];
+        }
+      }
       if (resource === "endpoints") {
         for (const rule of subscriptions) {
           if (rule.endpoint_ids.includes(id)) {
-            rule.endpoint_ids = rule.endpoint_ids.filter(
-              (endpoint) => endpoint !== id,
-            );
             rule.rule_version += 1;
-            if (!rule.endpoint_ids.length) rule.enabled = false;
+            const hasActiveEndpoint = rule.endpoint_ids.some((endpointID) => {
+              const endpoint = endpoints.find((row) => row.id === endpointID);
+              return endpoint?.enabled && !endpoint.archived_at;
+            });
+            if (!hasActiveEndpoint) {
+              rule.enabled = false;
+              rule.pause_reason = "channel_archived";
+              rule.pause_dependencies = endpoints
+                .filter(
+                  (endpoint) =>
+                    rule.endpoint_ids.includes(endpoint.id) &&
+                    !!endpoint.archived_at,
+                )
+                .map((endpoint) => ({
+                  type: "endpoint" as const,
+                  id: endpoint.id,
+                  name: endpoint.name,
+                }));
+            }
           }
         }
       }
-      return { id, deleted: true };
+      if (resource === "sources" && index >= 0) {
+        const source = sources[index];
+        for (const rule of subscriptions) {
+          const scoped = rule.scopes.some(
+            (scope) => scope.vendor_id === source.vendor_id,
+          );
+          const hasActiveSource = sources.some(
+            (row) =>
+              row.vendor_id === source.vendor_id &&
+              row.enabled &&
+              !row.archived_at,
+          );
+          if (scoped && !hasActiveSource) {
+            rule.enabled = false;
+            rule.pause_reason = "source_archived";
+            rule.pause_dependencies = [
+              {
+                type: "source",
+                id: source.vendor_id,
+                name: source.vendor_name,
+              },
+            ];
+          }
+        }
+      }
+      return { id, archived: true };
     }
   }
 
   if (path === "/auth/session" || path === "/session")
     return {
       tenant: { id: "demo", slug: "demo", name: tr("Acme \u5DE5\u4F5C\u533A") },
-      identity: { role: "owner", display_name: "Demo" },
+      identity: { role: "admin", display_name: "Demo" },
     };
   if (path === "/auth/logout" || path === "/logout") return {};
   if (path === "/vendors") return { data: vendors };
@@ -294,7 +365,24 @@ export async function demoRequest(raw: string, init: RequestInit) {
     subscriptions.unshift(item);
     return item;
   }
-  if (path === "/subscriptions") return { data: subscriptions };
+  if (path === "/subscriptions")
+    return {
+      data: subscriptions.filter((item) =>
+        parsed.searchParams.get("state") === "archived"
+          ? !!item.archived_at
+          : !item.archived_at,
+      ),
+    };
+  if (path.match(/^\/subscriptions\/[^/]+\/restore$/) && method === "POST") {
+    const item = subscriptions.find((row) => row.id === path.split("/")[2]);
+    if (item) {
+      item.archived_at = undefined;
+      item.enabled = false;
+      item.pause_reason = undefined;
+      item.pause_dependencies = undefined;
+    }
+    return item;
+  }
   if (path.startsWith("/subscriptions/")) {
     const index = subscriptions.findIndex((i) => i.id === path.split("/")[2]);
     if (method === "PUT") {
@@ -321,10 +409,35 @@ export async function demoRequest(raw: string, init: RequestInit) {
     endpoints.unshift(item);
     return item;
   }
-  if (path === "/endpoints") return { data: endpoints };
+  if (path === "/endpoints")
+    return {
+      data: endpoints.filter((item) =>
+        parsed.searchParams.get("state") === "archived"
+          ? !!item.archived_at
+          : !item.archived_at,
+      ),
+    };
+  if (path.match(/^\/endpoints\/[^/]+\/restore$/) && method === "POST") {
+    const item = endpoints.find((row) => row.id === path.split("/")[2]);
+    if (item) {
+      item.archived_at = undefined;
+      item.enabled = false;
+    }
+    return item;
+  }
   if (path.endsWith("/test")) {
     testStarted = Date.now();
     return { id: "demo-test", status: "pending" };
+  }
+  if (path.startsWith("/endpoints/")) {
+    const item = endpoints.find((row) => row.id === path.split("/")[2]);
+    if (item && method === "PUT") {
+      Object.assign(item, input, {
+        secret_version: item.secret_version + 1,
+        updated_at: ago(0),
+      });
+    }
+    return item;
   }
   if (path.startsWith("/endpoint-tests/"))
     return {
@@ -354,24 +467,148 @@ export async function demoRequest(raw: string, init: RequestInit) {
     );
     throw error;
   }
+  if (path === "/sources:probe" && method === "POST") {
+    const canonicalURL = String(input.url || "").replace(/\/$/, "");
+    const existing = sources.find(
+      (source) => source.canonical_url.replace(/\/$/, "") === canonicalURL,
+    );
+    const vendor = existing
+      ? vendors.find((row) => row.id === existing.vendor_id)!
+      : {
+          id: crypto.randomUUID(),
+          name: input.display_name || new URL(input.url).hostname,
+          slug: "detected-service",
+        };
+    return {
+      vendor: { id: vendor.id, name: vendor.name, new: !existing },
+      canonical_url: input.url,
+      existing_source: existing,
+      capabilities: {
+        engine: "auto-detect",
+        endpoints: { summary: { authoritative: true } },
+      },
+    };
+  }
+  if (path === "/source-catalog")
+    return {
+      data: [
+        ...sources
+          .filter((source) => source.ownership === "platform")
+          .map((source) => ({
+            id: source.id,
+            vendor_id: source.vendor_id,
+            vendor_name: source.vendor_name,
+            vendor_slug: vendors.find(
+              (vendor) => vendor.id === source.vendor_id,
+            )?.slug,
+            canonical_url: source.canonical_url,
+            health_state: source.health_state,
+            added: true,
+          })),
+        ...catalogExtras,
+      ].filter((source) => {
+        const query = (parsed.searchParams.get("query") || "").toLowerCase();
+        return (
+          !query ||
+          source.vendor_name.toLowerCase().includes(query) ||
+          source.canonical_url.toLowerCase().includes(query)
+        );
+      }),
+    };
   if (path === "/sources" && method === "POST") {
-    const v = vendors.find((v) => v.id === input.vendor_id)!;
+    const existing = sources.find((source) => source.id === input.source_id);
+    if (existing) {
+      existing.archived_at = undefined;
+      existing.archive_reason = undefined;
+      existing.enabled = true;
+      existing.workspace_display_name =
+        input.display_name || existing.workspace_display_name;
+      return existing;
+    }
+    const v = vendors.find((v) => v.id === input.vendor_id) || vendors[0];
     const item = {
       id: crypto.randomUUID(),
       tenant_id: "demo",
       vendor_id: v.id,
       vendor_name: v.name,
-      canonical_url: input.url,
+      canonical_url: input.url || input.status_page_url,
       adapter_name: "statuspage",
       adapter_version: "v1",
       health_state: "unknown",
       enabled: true,
       failure_streak: 0,
+      ownership: "workspace" as const,
+      allowed_actions: [
+        "edit_name",
+        "set_enabled",
+        "replace",
+        "archive",
+        "view_incidents",
+      ],
     };
     sources.unshift(item);
     return item;
   }
-  if (path === "/sources") return { data: sources };
+  if (path === "/sources")
+    return {
+      data: sources.filter((item) =>
+        parsed.searchParams.get("state") === "archived"
+          ? !!item.archived_at
+          : !item.archived_at,
+      ),
+    };
+  if (path.match(/^\/sources\/[^/]+\/restore$/) && method === "POST") {
+    const item = sources.find((row) => row.id === path.split("/")[2]);
+    if (item) {
+      item.archived_at = undefined;
+      item.archive_reason = undefined;
+      item.enabled = false;
+      item.allowed_actions = [
+        "edit_name",
+        "set_enabled",
+        "replace",
+        "archive",
+        "view_incidents",
+      ];
+    }
+    return item;
+  }
+  if (path.match(/^\/sources\/[^/]+\/replace$/) && method === "POST") {
+    const previous = sources.find((row) => row.id === path.split("/")[2]);
+    if (previous) {
+      previous.enabled = false;
+      previous.archived_at = ago(0);
+      previous.archive_reason = "replaced";
+      previous.allowed_actions = ["restore", "view_incidents"];
+    }
+    const vendor =
+      vendors.find((row) => row.id === previous?.vendor_id) || vendors[0];
+    const replacement: Source = {
+      ...(previous || sources[0]),
+      id: crypto.randomUUID(),
+      canonical_url: input.url,
+      workspace_display_name:
+        input.display_name || previous?.workspace_display_name,
+      ownership: "workspace",
+      enabled: true,
+      archived_at: undefined,
+      archive_reason: undefined,
+      vendor_id: vendor.id,
+      vendor_name: vendor.name,
+    };
+    sources.unshift(replacement);
+    return replacement;
+  }
+  if (path.startsWith("/sources/")) {
+    const item = sources.find((row) => row.id === path.split("/")[2]);
+    if (item && method === "PATCH") {
+      if (Object.prototype.hasOwnProperty.call(input, "display_name"))
+        item.workspace_display_name = input.display_name;
+      if (Object.prototype.hasOwnProperty.call(input, "enabled"))
+        item.enabled = input.enabled;
+    }
+    return item;
+  }
   if (path === "/audit-events")
     return {
       data: [
@@ -382,7 +619,7 @@ export async function demoRequest(raw: string, init: RequestInit) {
           resource_type: "subscription",
           resource_id: uuid(41),
           actor_type: "user",
-          actor_id: "demo-owner",
+          actor_id: "demo-admin",
           occurred_at: ago(60),
         },
       ],

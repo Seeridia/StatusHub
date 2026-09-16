@@ -21,12 +21,11 @@ const (
 	RoleViewer   Role = "viewer"
 	RoleOperator Role = "operator"
 	RoleAdmin    Role = "admin"
-	RoleOwner    Role = "owner"
 )
 
 func (role Role) Valid() bool {
 	switch role {
-	case RoleViewer, RoleOperator, RoleAdmin, RoleOwner:
+	case RoleViewer, RoleOperator, RoleAdmin:
 		return true
 	default:
 		return false
@@ -60,13 +59,7 @@ var rolePermissions = map[Role]map[Permission]struct{}{
 	RoleAdmin: {
 		PermissionRead: {}, PermissionDeliveryReplay: {}, PermissionSubscriptionWrite: {},
 		PermissionEndpointWrite: {}, PermissionConnectorWrite: {}, PermissionPrivateAgentWrite: {},
-		PermissionMemberWrite: {}, PermissionAuditExport: {}, PermissionAdapterRollout: {},
-	},
-	RoleOwner: {
-		PermissionRead: {}, PermissionDeliveryReplay: {}, PermissionSubscriptionWrite: {},
-		PermissionEndpointWrite: {}, PermissionConnectorWrite: {}, PermissionPrivateAgentWrite: {},
 		PermissionMemberWrite: {}, PermissionIdentityWrite: {}, PermissionAuditExport: {},
-		PermissionRegionFailover: {}, PermissionAdapterRollout: {},
 	},
 }
 

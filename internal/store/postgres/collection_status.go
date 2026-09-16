@@ -114,12 +114,13 @@ type collectionRow struct {
 
 // One tenant-filtered query per list, never one query per vendor/source.
 func readCollections(ctx context.Context, tx pgx.Tx, tenantID string, ids []string) (map[string]collectionRow, error) {
-	rows, err := tx.Query(ctx, `SELECT id,vendor_id,enabled,health_state,failure_streak,last_success_at,next_poll_at,COALESCE(last_failure_code,''),
+	rows, err := tx.Query(ctx, `SELECT s.id,s.vendor_id,(s.enabled AND ws.enabled),s.health_state,s.failure_streak,s.last_success_at,s.next_poll_at,COALESCE(s.last_failure_code,''),
  CASE WHEN last_checkpoint IS NULL OR NOT pg_input_is_valid(last_checkpoint,'jsonb') THEN NULL ELSE jsonb_build_object(
  'version',last_checkpoint::jsonb->'version', 'cadence',last_checkpoint::jsonb->'cadence',
  'resources',last_checkpoint::jsonb->'resources',
  'capabilities',jsonb_build_object('endpoints',last_checkpoint::jsonb->'capabilities'->'endpoints'))::text END
- FROM sources WHERE (tenant_id IS NULL OR tenant_id=$1) AND ($2::uuid[] IS NULL OR id=ANY($2::uuid[]))`, tenantID, ids)
+ FROM workspace_sources ws JOIN sources s ON s.id=ws.source_id
+ WHERE ws.tenant_id=$1 AND ws.archived_at IS NULL AND ($2::uuid[] IS NULL OR s.id=ANY($2::uuid[]))`, tenantID, ids)
 	if err != nil {
 		return nil, err
 	}

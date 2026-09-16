@@ -35,24 +35,12 @@ func sourceURLKey(raw string) string {
 
 func (s *Server) identifySource(ctx context.Context, result *probeResponse) error {
 	details, _ := ctx.Value(contextKeys{}).(requestContext)
-	var cursor *store.TimeCursor
-	for {
-		sources, err := s.repository.ListSources(ctx, details.Tenant.ID, cursor, 200)
-		if err != nil {
-			return err
-		}
-		for _, source := range sources {
-			if sourceURLKey(source.CanonicalURL) == sourceURLKey(result.CanonicalURL) {
-				result.ExistingSource = &source
-				result.Vendor = &sourceVendor{ID: source.VendorID, Slug: source.VendorSlug, Name: source.VendorName}
-				return nil
-			}
-		}
-		if len(sources) < 200 {
-			break
-		}
-		last := sources[len(sources)-1]
-		cursor = &store.TimeCursor{Time: last.UpdatedAt, ID: last.ID}
+	if source, err := s.repository.FindSourceByCanonicalURL(ctx, details.Tenant.ID, result.CanonicalURL); err == nil {
+		result.ExistingSource = &source
+		result.Vendor = &sourceVendor{ID: source.VendorID, Slug: source.VendorSlug, Name: source.VendorName}
+		return nil
+	} else if err != store.ErrNotFound {
+		return err
 	}
 	parsed, _ := url.Parse(result.CanonicalURL)
 	if profile, found := vendorprofile.Lookup(parsed.Hostname()); found {

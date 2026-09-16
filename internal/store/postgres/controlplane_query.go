@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -59,7 +60,8 @@ func (s *Store) ListVendorStatuses(ctx context.Context, tenantID string) ([]Vend
 	defer func() { _ = tx.Rollback(ctx) }()
 	rows, err := tx.Query(ctx, `
 WITH visible_sources AS (
-  SELECT * FROM sources WHERE tenant_id IS NULL OR tenant_id=$1
+  SELECT s.* FROM workspace_sources ws JOIN sources s ON s.id=ws.source_id
+  WHERE ws.tenant_id=$1 AND ws.archived_at IS NULL AND ws.enabled
 ), incident_stats AS (
   SELECT s.vendor_id,
          count(*) FILTER (WHERE i.canonical_phase <> 'resolved') AS active_incidents,
@@ -89,6 +91,7 @@ FROM vendors v
 LEFT JOIN incident_stats i ON i.vendor_id=v.id
 LEFT JOIN component_stats c ON c.vendor_id=v.id
 LEFT JOIN source_stats ss ON ss.vendor_id=v.id
+WHERE COALESCE(ss.source_count,0)>0
 ORDER BY v.name,v.id`, tenantID)
 	if err != nil {
 		return nil, fmt.Errorf("postgres store: list vendor statuses: %w", err)
@@ -138,9 +141,15 @@ func (s *Store) VendorStatus(ctx context.Context, tenantID, vendorID string) (Ve
 	return VendorStatus{}, ErrNotFound
 }
 
-func (s *Store) ListSources(ctx context.Context, tenantID string, cursor *TimeCursor, limit int) ([]SourceView, error) {
+func (s *Store) ListSources(ctx context.Context, tenantID, state string, cursor *TimeCursor, limit int) ([]SourceView, error) {
 	if err := validateList(tenantID, cursor, limit); err != nil {
 		return nil, err
+	}
+	if state == "" {
+		state = "active"
+	}
+	if state != "active" && state != "archived" {
+		return nil, invalid("source state is invalid")
 	}
 	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{AccessMode: pgx.ReadOnly})
 	if err != nil {
@@ -150,12 +159,14 @@ func (s *Store) ListSources(ctx context.Context, tenantID string, cursor *TimeCu
 	cursorTime, cursorID := cursorValues(cursor)
 	rows, err := tx.Query(ctx, `
 SELECT s.id,s.tenant_id,s.vendor_id,v.slug,v.name,s.requested_url,COALESCE(s.final_url,''),s.canonical_url,
-       s.source_type,COALESCE(s.adapter_name,''),COALESCE(s.adapter_version,''),s.enabled,s.health_state,
-       s.failure_streak,s.last_attempt_at,s.last_success_at,s.next_poll_at,s.updated_at
-FROM sources s JOIN vendors v ON v.id=s.vendor_id
-WHERE s.deleted_at IS NULL AND (s.tenant_id IS NULL OR s.tenant_id=$1)
-  AND ($2::timestamptz IS NULL OR (s.updated_at,s.id)<($2,$3::uuid))
-ORDER BY s.updated_at DESC,s.id DESC LIMIT $4`, tenantID, cursorTime, cursorID, limit)
+       s.source_type,COALESCE(s.adapter_name,''),COALESCE(s.adapter_version,''),(ws.enabled AND s.enabled),s.health_state,
+       s.failure_streak,s.last_attempt_at,s.last_success_at,s.next_poll_at,GREATEST(s.updated_at,ws.updated_at),
+       CASE WHEN s.tenant_id IS NULL THEN 'platform' ELSE 'workspace' END,
+       ws.display_name,ws.archived_at,ws.archive_reason
+FROM workspace_sources ws JOIN sources s ON s.id=ws.source_id JOIN vendors v ON v.id=s.vendor_id
+WHERE ws.tenant_id=$1 AND (($2='active' AND ws.archived_at IS NULL) OR ($2='archived' AND ws.archived_at IS NOT NULL))
+  AND ($3::timestamptz IS NULL OR (GREATEST(s.updated_at,ws.updated_at),s.id)<($3,$4::uuid))
+ORDER BY GREATEST(s.updated_at,ws.updated_at) DESC,s.id DESC LIMIT $5`, tenantID, state, cursorTime, cursorID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("postgres store: list sources: %w", err)
 	}
@@ -203,10 +214,12 @@ func (s *Store) Source(ctx context.Context, tenantID, sourceID string) (SourceVi
 	defer func() { _ = tx.Rollback(ctx) }()
 	item, err := scanSource(tx.QueryRow(ctx, `
 SELECT s.id,s.tenant_id,s.vendor_id,v.slug,v.name,s.requested_url,COALESCE(s.final_url,''),s.canonical_url,
-       s.source_type,COALESCE(s.adapter_name,''),COALESCE(s.adapter_version,''),s.enabled,s.health_state,
-       s.failure_streak,s.last_attempt_at,s.last_success_at,s.next_poll_at,s.updated_at
-FROM sources s JOIN vendors v ON v.id=s.vendor_id
-WHERE s.deleted_at IS NULL AND s.id=$2 AND (s.tenant_id IS NULL OR s.tenant_id=$1)`, tenantID, sourceID))
+       s.source_type,COALESCE(s.adapter_name,''),COALESCE(s.adapter_version,''),(ws.enabled AND s.enabled),s.health_state,
+       s.failure_streak,s.last_attempt_at,s.last_success_at,s.next_poll_at,GREATEST(s.updated_at,ws.updated_at),
+       CASE WHEN s.tenant_id IS NULL THEN 'platform' ELSE 'workspace' END,
+       ws.display_name,ws.archived_at,ws.archive_reason
+FROM workspace_sources ws JOIN sources s ON s.id=ws.source_id JOIN vendors v ON v.id=s.vendor_id
+WHERE ws.tenant_id=$1 AND s.id=$2`, tenantID, sourceID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return SourceView{}, ErrNotFound
 	}
@@ -231,13 +244,19 @@ func scanSource(row controlPlaneRowScanner) (SourceView, error) {
 	if err := row.Scan(&item.ID, &item.TenantID, &item.VendorID, &item.VendorSlug, &item.VendorName,
 		&item.RequestedURL, &item.FinalURL, &item.CanonicalURL, &item.SourceType, &item.AdapterName,
 		&item.AdapterVersion, &item.Enabled, &item.HealthState, &item.FailureStreak,
-		&item.LastAttemptAt, &item.LastSuccessAt, &item.NextPollAt, &item.UpdatedAt); err != nil {
+		&item.LastAttemptAt, &item.LastSuccessAt, &item.NextPollAt, &item.UpdatedAt,
+		&item.Ownership, &item.WorkspaceDisplayName, &item.ArchivedAt, &item.ArchiveReason); err != nil {
 		return SourceView{}, fmt.Errorf("postgres store: scan source: %w", err)
+	}
+	if item.ArchivedAt != nil {
+		item.AllowedActions = []string{"restore", "view_incidents"}
+	} else {
+		item.AllowedActions = []string{"edit_name", "set_enabled", "replace", "archive", "view_incidents"}
 	}
 	return item, nil
 }
 
-func (s *Store) ListIncidents(ctx context.Context, tenantID, vendorID, phase string, since *time.Time, cursor *TimeCursor, limit int) ([]IncidentView, error) {
+func (s *Store) ListIncidents(ctx context.Context, tenantID, vendorID, phase string, includeArchived bool, since *time.Time, cursor *TimeCursor, limit int) ([]IncidentView, error) {
 	if err := validateList(tenantID, cursor, limit); err != nil {
 		return nil, err
 	}
@@ -252,12 +271,13 @@ SELECT i.id,i.source_id,v.id,v.slug,v.name,i.upstream_id,i.name,i.canonical_phas
        i.canonical_impact,COALESCE(i.raw_impact,''),i.started_at,i.resolved_at,i.source_updated_at,
        i.observed_at,i.updated_at
 FROM incidents i JOIN sources s ON s.id=i.source_id JOIN vendors v ON v.id=s.vendor_id
-WHERE (s.tenant_id IS NULL OR s.tenant_id=$1)
+JOIN workspace_sources ws ON ws.source_id=s.id AND ws.tenant_id=$1
+WHERE ($7 OR ws.archived_at IS NULL)
   AND ($2='' OR v.id::text=$2 OR v.slug=$2)
   AND ($3='' OR i.canonical_phase=$3)
   AND ($4::timestamptz IS NULL OR i.updated_at >= $4)
   AND ($5::timestamptz IS NULL OR (i.updated_at,i.id)<($5,$6::uuid))
-ORDER BY i.updated_at DESC,i.id DESC LIMIT $7`, tenantID, vendorID, phase, since, cursorTime, cursorID, limit)
+ORDER BY i.updated_at DESC,i.id DESC LIMIT $8`, tenantID, vendorID, phase, since, cursorTime, cursorID, includeArchived, limit)
 	if err != nil {
 		return nil, fmt.Errorf("postgres store: list incidents: %w", err)
 	}
@@ -296,12 +316,33 @@ SELECT i.id,i.source_id,v.id,v.slug,v.name,i.upstream_id,i.name,i.canonical_phas
        i.canonical_impact,COALESCE(i.raw_impact,''),i.started_at,i.resolved_at,i.source_updated_at,
        i.observed_at,i.updated_at
 FROM incidents i JOIN sources s ON s.id=i.source_id JOIN vendors v ON v.id=s.vendor_id
-WHERE i.id=$2 AND (s.tenant_id IS NULL OR s.tenant_id=$1)`, tenantID, incidentID))
+JOIN workspace_sources ws ON ws.source_id=s.id AND ws.tenant_id=$1
+WHERE i.id=$2`, tenantID, incidentID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return IncidentView{}, ErrNotFound
 	}
 	if err != nil {
 		return IncidentView{}, err
+	}
+	var incidentURL, sourceURL string
+	if err := tx.QueryRow(ctx, `
+SELECT COALESCE((
+ SELECT ce.canonical_payload->'current'->>'url'
+ FROM canonical_events ce
+ WHERE ce.source_id=s.id AND ce.entity_type IN ('incident','maintenance')
+   AND COALESCE(NULLIF(ce.canonical_payload->'current'->>'upstream_id',''),ce.entity_id)=$2
+   AND NULLIF(ce.canonical_payload->'current'->>'url','') IS NOT NULL
+ ORDER BY ce.aggregate_revision DESC,ce.observed_at DESC LIMIT 1
+),''),s.canonical_url
+FROM sources s WHERE s.id=$1`, item.SourceID, item.UpstreamID).Scan(&incidentURL, &sourceURL); err != nil {
+		return IncidentView{}, fmt.Errorf("postgres store: read incident official link: %w", err)
+	}
+	for _, candidate := range []string{incidentURL, sourceURL} {
+		u, err := url.Parse(strings.TrimSpace(candidate))
+		if err == nil && u.Hostname() != "" && u.User == nil && (u.Scheme == "https" || u.Scheme == "http") {
+			item.OfficialURL = u.String()
+			break
+		}
 	}
 	rows, err := tx.Query(ctx, `
 SELECT id,canonical_phase,raw_phase,body,source_updated_at,observed_at
@@ -338,9 +379,15 @@ func scanIncident(row controlPlaneRowScanner) (IncidentView, error) {
 	return item, nil
 }
 
-func (s *Store) ListSubscriptions(ctx context.Context, tenantID string, cursor *TimeCursor, limit int) ([]SubscriptionView, error) {
+func (s *Store) ListSubscriptions(ctx context.Context, tenantID, state string, cursor *TimeCursor, limit int) ([]SubscriptionView, error) {
 	if err := validateList(tenantID, cursor, limit); err != nil {
 		return nil, err
+	}
+	if state == "" {
+		state = "active"
+	}
+	if state != "active" && state != "archived" {
+		return nil, invalid("subscription state is invalid")
 	}
 	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{AccessMode: pgx.ReadOnly})
 	if err != nil {
@@ -349,10 +396,10 @@ func (s *Store) ListSubscriptions(ctx context.Context, tenantID string, cursor *
 	defer func() { _ = tx.Rollback(ctx) }()
 	cursorTime, cursorID := cursorValues(cursor)
 	rows, err := tx.Query(ctx, `
-SELECT id,tenant_id,name,enabled,rule_version,rule,created_at,updated_at
-FROM subscriptions WHERE deleted_at IS NULL AND tenant_id=$1
-  AND ($2::timestamptz IS NULL OR (updated_at,id)<($2,$3::uuid))
-ORDER BY updated_at DESC,id DESC LIMIT $4`, tenantID, cursorTime, cursorID, limit)
+SELECT id,tenant_id,name,enabled,pause_reason,deleted_at,rule_version,rule,created_at,updated_at
+FROM subscriptions WHERE tenant_id=$1 AND (($2='active' AND deleted_at IS NULL) OR ($2='archived' AND deleted_at IS NOT NULL))
+  AND ($3::timestamptz IS NULL OR (updated_at,id)<($3,$4::uuid))
+ORDER BY updated_at DESC,id DESC LIMIT $5`, tenantID, state, cursorTime, cursorID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("postgres store: list subscriptions: %w", err)
 	}
@@ -360,7 +407,7 @@ ORDER BY updated_at DESC,id DESC LIMIT $4`, tenantID, cursorTime, cursorID, limi
 	result := make([]SubscriptionView, 0, limit)
 	for rows.Next() {
 		var item SubscriptionView
-		if err := rows.Scan(&item.ID, &item.TenantID, &item.Name, &item.Enabled, &item.RuleVersion,
+		if err := rows.Scan(&item.ID, &item.TenantID, &item.Name, &item.Enabled, &item.PauseReason, &item.ArchivedAt, &item.RuleVersion,
 			&item.Rule, &item.CreatedAt, &item.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("postgres store: scan subscription: %w", err)
 		}
@@ -391,9 +438,9 @@ func (s *Store) Subscription(ctx context.Context, tenantID, subscriptionID strin
 	defer func() { _ = tx.Rollback(ctx) }()
 	var item SubscriptionView
 	err = tx.QueryRow(ctx, `
-SELECT id,tenant_id,name,enabled,rule_version,rule,created_at,updated_at
+SELECT id,tenant_id,name,enabled,pause_reason,deleted_at,rule_version,rule,created_at,updated_at
 FROM subscriptions WHERE deleted_at IS NULL AND tenant_id=$1 AND id=$2`, tenantID, subscriptionID).Scan(
-		&item.ID, &item.TenantID, &item.Name, &item.Enabled, &item.RuleVersion,
+		&item.ID, &item.TenantID, &item.Name, &item.Enabled, &item.PauseReason, &item.ArchivedAt, &item.RuleVersion,
 		&item.Rule, &item.CreatedAt, &item.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return SubscriptionView{}, ErrNotFound
@@ -444,12 +491,71 @@ FROM subscription_scopes WHERE subscription_id=$1 ORDER BY id`, item.ID)
 		}
 		item.EndpointIDs = append(item.EndpointIDs, endpointID)
 	}
-	return endpointRows.Err()
+	if err := endpointRows.Err(); err != nil {
+		return err
+	}
+	endpointRows.Close()
+	if item.PauseReason == "source_archived" {
+		dependencyRows, err := tx.Query(ctx, `
+SELECT DISTINCT v.id,v.name
+FROM subscription_scopes ss JOIN vendors v ON v.id=ss.vendor_id
+WHERE ss.subscription_id=$1 AND NOT EXISTS (
+  SELECT 1 FROM workspace_sources ws JOIN sources s ON s.id=ws.source_id
+  WHERE ws.tenant_id=$2 AND s.vendor_id=v.id AND ws.archived_at IS NULL AND ws.enabled
+)
+ORDER BY v.name,v.id`, item.ID, item.TenantID)
+		if err != nil {
+			return fmt.Errorf("postgres store: list paused source dependencies: %w", err)
+		}
+		for dependencyRows.Next() {
+			dependency := ResourceDependency{Type: "source"}
+			if err := dependencyRows.Scan(&dependency.ID, &dependency.Name); err != nil {
+				dependencyRows.Close()
+				return err
+			}
+			item.Dependencies = append(item.Dependencies, dependency)
+		}
+		if err := dependencyRows.Err(); err != nil {
+			dependencyRows.Close()
+			return err
+		}
+		dependencyRows.Close()
+	}
+	if item.PauseReason == "channel_archived" {
+		dependencyRows, err := tx.Query(ctx, `
+SELECT DISTINCT ep.id,ep.name
+FROM subscription_endpoints se JOIN endpoints ep ON ep.id=se.endpoint_id
+WHERE se.subscription_id=$1 AND (ep.deleted_at IS NOT NULL OR NOT ep.enabled)
+ORDER BY ep.name,ep.id`, item.ID)
+		if err != nil {
+			return fmt.Errorf("postgres store: list paused channel dependencies: %w", err)
+		}
+		for dependencyRows.Next() {
+			dependency := ResourceDependency{Type: "endpoint"}
+			if err := dependencyRows.Scan(&dependency.ID, &dependency.Name); err != nil {
+				dependencyRows.Close()
+				return err
+			}
+			item.Dependencies = append(item.Dependencies, dependency)
+		}
+		if err := dependencyRows.Err(); err != nil {
+			dependencyRows.Close()
+			return err
+		}
+		dependencyRows.Close()
+	}
+	return nil
 }
 
-func (s *Store) ListEndpoints(ctx context.Context, tenantID string, cursor *TimeCursor, limit int) ([]EndpointView, error) {
+func (s *Store) ListEndpoints(ctx context.Context, tenantID, state string, cursor *TimeCursor, limit int) ([]EndpointView, error) {
 	if err := validateList(tenantID, cursor, limit); err != nil {
 		return nil, err
+	}
+	if state == "" {
+		state = "active"
+	}
+	if state != "active" && state != "archived" {
+		return nil, invalid("endpoint state is invalid")
 	}
 	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{AccessMode: pgx.ReadOnly})
 	if err != nil {
@@ -458,10 +564,10 @@ func (s *Store) ListEndpoints(ctx context.Context, tenantID string, cursor *Time
 	defer func() { _ = tx.Rollback(ctx) }()
 	cursorTime, cursorID := cursorValues(cursor)
 	rows, err := tx.Query(ctx, `
-SELECT id,tenant_id,channel,name,enabled,key_id,secret_version,health_state,rate_limit_config,created_at,updated_at
-FROM endpoints WHERE deleted_at IS NULL AND tenant_id=$1
-  AND ($2::timestamptz IS NULL OR (updated_at,id)<($2,$3::uuid))
-ORDER BY updated_at DESC,id DESC LIMIT $4`, tenantID, cursorTime, cursorID, limit)
+SELECT id,tenant_id,channel,name,enabled,deleted_at,key_id,secret_version,health_state,rate_limit_config,created_at,updated_at
+FROM endpoints WHERE tenant_id=$1 AND (($2='active' AND deleted_at IS NULL) OR ($2='archived' AND deleted_at IS NOT NULL))
+  AND ($3::timestamptz IS NULL OR (updated_at,id)<($3,$4::uuid))
+ORDER BY updated_at DESC,id DESC LIMIT $5`, tenantID, state, cursorTime, cursorID, limit)
 	if err != nil {
 		return nil, fmt.Errorf("postgres store: list endpoints: %w", err)
 	}
@@ -492,19 +598,19 @@ func (s *Store) Endpoint(ctx context.Context, tenantID, endpointID string, inclu
 		return EndpointSecret{}, fmt.Errorf("postgres store: read endpoint: begin: %w", err)
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
-	columns := `id,tenant_id,channel,name,enabled,key_id,secret_version,health_state,rate_limit_config,created_at,updated_at`
+	columns := `id,tenant_id,channel,name,enabled,deleted_at,key_id,secret_version,health_state,rate_limit_config,created_at,updated_at`
 	if includeSecret {
 		columns += `,encrypted_config`
 	}
 	row := tx.QueryRow(ctx, `SELECT `+columns+` FROM endpoints WHERE deleted_at IS NULL AND tenant_id=$1 AND id=$2`, tenantID, endpointID)
 	var item EndpointSecret
 	if includeSecret {
-		err = row.Scan(&item.ID, &item.TenantID, &item.Channel, &item.Name, &item.Enabled, &item.KeyID,
-			&item.SecretVersion, &item.HealthState, &item.RateLimits, &item.CreatedAt, &item.UpdatedAt, &item.EncryptedConfig)
+		err = row.Scan(&item.ID, &item.TenantID, &item.Channel, &item.Name, &item.Enabled, &item.ArchivedAt,
+			&item.KeyID, &item.SecretVersion, &item.HealthState, &item.RateLimits, &item.CreatedAt, &item.UpdatedAt, &item.EncryptedConfig)
 	} else {
 		var scanned EndpointSecret
 		err = row.Scan(&scanned.ID, &scanned.TenantID, &scanned.Channel, &scanned.Name, &scanned.Enabled,
-			&scanned.KeyID, &scanned.SecretVersion, &scanned.HealthState, &scanned.RateLimits,
+			&scanned.ArchivedAt, &scanned.KeyID, &scanned.SecretVersion, &scanned.HealthState, &scanned.RateLimits,
 			&scanned.CreatedAt, &scanned.UpdatedAt)
 		item = scanned
 	}
@@ -522,8 +628,8 @@ func (s *Store) Endpoint(ctx context.Context, tenantID, endpointID string, inclu
 
 func scanEndpoint(row controlPlaneRowScanner) (EndpointSecret, error) {
 	var item EndpointSecret
-	if err := row.Scan(&item.ID, &item.TenantID, &item.Channel, &item.Name, &item.Enabled, &item.KeyID,
-		&item.SecretVersion, &item.HealthState, &item.RateLimits, &item.CreatedAt, &item.UpdatedAt); err != nil {
+	if err := row.Scan(&item.ID, &item.TenantID, &item.Channel, &item.Name, &item.Enabled, &item.ArchivedAt,
+		&item.KeyID, &item.SecretVersion, &item.HealthState, &item.RateLimits, &item.CreatedAt, &item.UpdatedAt); err != nil {
 		return EndpointSecret{}, fmt.Errorf("postgres store: scan endpoint: %w", err)
 	}
 	return item, nil
@@ -647,7 +753,8 @@ SELECT ce.id,ce.source_id,v.id,v.slug,ce.event_kind,ce.entity_type,COALESCE(ce.e
        ce.aggregate_revision,ce.canonical_schema_version,ce.canonical_payload,ce.source_updated_at,
        ce.observed_at,ce.ingested_at
 FROM canonical_events ce JOIN sources s ON s.id=ce.source_id JOIN vendors v ON v.id=s.vendor_id
-WHERE (s.tenant_id IS NULL OR s.tenant_id=$1)
+JOIN workspace_sources ws ON ws.source_id=s.id AND ws.tenant_id=$1
+WHERE ws.archived_at IS NULL AND ws.enabled
   AND ($2::timestamptz IS NULL OR (ce.ingested_at,ce.id)>($2,$3::uuid))
 ORDER BY ce.ingested_at,ce.id LIMIT $4`, tenantID, cursorTime, cursorID, limit)
 	if err != nil {
@@ -685,7 +792,8 @@ SELECT ce.id,ce.source_id,v.id,v.slug,ce.event_kind,ce.entity_type,COALESCE(ce.e
        ce.aggregate_revision,ce.canonical_schema_version,ce.canonical_payload,ce.source_updated_at,
        ce.observed_at,ce.ingested_at
 FROM canonical_events ce JOIN sources s ON s.id=ce.source_id JOIN vendors v ON v.id=s.vendor_id
-WHERE ce.id=$2 AND (s.tenant_id IS NULL OR s.tenant_id=$1)`, tenantID, eventID))
+JOIN workspace_sources ws ON ws.source_id=s.id AND ws.tenant_id=$1
+WHERE ce.id=$2`, tenantID, eventID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return EventView{}, ErrNotFound
 	}

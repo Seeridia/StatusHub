@@ -79,16 +79,18 @@ type Endpoint struct {
 // CanonicalEvent is the delivery-facing projection of a persisted canonical
 // event. Data must contain the canonical JSON payload, not a raw observation.
 type CanonicalEvent struct {
-	ID            domain.CanonicalEventID `json:"id"`
-	Source        string                  `json:"source"`
-	Kind          domain.EventKind        `json:"kind"`
-	Subject       string                  `json:"subject,omitempty"`
-	EntityID      string                  `json:"entity_id,omitempty"`
-	Time          time.Time               `json:"time"`
-	Revision      uint64                  `json:"revision"`
-	SchemaVersion string                  `json:"schema_version"`
-	Summary       string                  `json:"summary,omitempty"`
-	Data          json.RawMessage         `json:"data"`
+	ConsoleURL        string                  `json:"console_url,omitempty"`
+	ConsoleIsIncident bool                    `json:"-"`
+	ID                domain.CanonicalEventID `json:"id"`
+	Source            string                  `json:"source"`
+	Kind              domain.EventKind        `json:"kind"`
+	Subject           string                  `json:"subject,omitempty"`
+	EntityID          string                  `json:"entity_id,omitempty"`
+	Time              time.Time               `json:"time"`
+	Revision          uint64                  `json:"revision"`
+	SchemaVersion     string                  `json:"schema_version"`
+	Summary           string                  `json:"summary,omitempty"`
+	Data              json.RawMessage         `json:"data"`
 }
 
 type Delivery struct {

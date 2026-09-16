@@ -13,7 +13,10 @@ func (s *Store) DeleteResource(ctx context.Context, tenantID, id, kind string, a
 	if err := s.ready(); err != nil {
 		return err
 	}
-	table := map[string]string{"source": "sources", "subscription": "subscriptions", "endpoint": "endpoints"}[kind]
+	if kind == "source" {
+		return s.ArchiveSource(ctx, tenantID, id, actor)
+	}
+	table := map[string]string{"subscription": "subscriptions", "endpoint": "endpoints"}[kind]
 	if table == "" {
 		return invalid("unsupported resource kind")
 	}
@@ -30,7 +33,8 @@ func (s *Store) DeleteResource(ctx context.Context, tenantID, id, kind string, a
 		return ErrNotFound
 	}
 	if kind == "endpoint" {
-		// Serialize against rule edits, then remove references atomically.
+		// Preserve relationships for restoration. Pause only rules that no longer
+		// have an active channel.
 		rows, err := tx.Query(ctx, `SELECT s.id FROM subscriptions s JOIN subscription_endpoints se ON se.subscription_id=s.id WHERE s.tenant_id=$1 AND se.endpoint_id=$2 ORDER BY s.id FOR UPDATE OF s`, tenantID, id)
 		if err != nil {
 			return err
@@ -48,20 +52,25 @@ func (s *Store) DeleteResource(ctx context.Context, tenantID, id, kind string, a
 		if err := rows.Err(); err != nil {
 			return err
 		}
-		if _, err = tx.Exec(ctx, `DELETE FROM subscription_endpoints WHERE endpoint_id=$1`, id); err != nil {
-			return err
-		}
 		for _, rule := range ids {
-			if _, err = tx.Exec(ctx, `UPDATE subscriptions SET enabled=enabled AND EXISTS(SELECT 1 FROM subscription_endpoints WHERE subscription_id=$1),rule_version=rule_version+1,updated_at=statement_timestamp() WHERE id=$1`, rule); err != nil {
+			if _, err = tx.Exec(ctx, `UPDATE subscriptions SET
+enabled=enabled AND EXISTS(
+ SELECT 1 FROM subscription_endpoints se JOIN endpoints ep ON ep.id=se.endpoint_id
+ WHERE se.subscription_id=$1 AND ep.enabled AND ep.deleted_at IS NULL
+),pause_reason=CASE WHEN EXISTS(
+ SELECT 1 FROM subscription_endpoints se JOIN endpoints ep ON ep.id=se.endpoint_id
+ WHERE se.subscription_id=$1 AND ep.enabled AND ep.deleted_at IS NULL
+) THEN pause_reason ELSE 'channel_archived' END,
+rule_version=rule_version+1,updated_at=statement_timestamp() WHERE id=$1`, rule); err != nil {
 				return err
 			}
-			metadata, _ := json.Marshal(map[string]string{"removed_endpoint_id": id})
-			if _, err = appendAuditTx(ctx, tx, tenantID, auditInput(actor, "subscription.endpoint_removed", "subscription", rule, metadata)); err != nil {
+			metadata, _ := json.Marshal(map[string]string{"archived_endpoint_id": id})
+			if _, err = appendAuditTx(ctx, tx, tenantID, auditInput(actor, "subscription.endpoint_archived", "subscription", rule, metadata)); err != nil {
 				return err
 			}
 		}
 	}
-	if _, err = appendAuditTx(ctx, tx, tenantID, auditInput(actor, kind+".delete", kind, id, json.RawMessage(`{"soft_deleted":true}`))); err != nil {
+	if _, err = appendAuditTx(ctx, tx, tenantID, auditInput(actor, kind+".archive", kind, id, json.RawMessage(`{"archived":true}`))); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)

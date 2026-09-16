@@ -74,7 +74,7 @@ func (s *Server) handleSources(response http.ResponseWriter, request *http.Reque
 		writeProblem(response, request, err)
 		return
 	}
-	items, err := s.repository.ListSources(request.Context(), details.Tenant.ID, cursor, limit)
+	items, err := s.repository.ListSources(request.Context(), details.Tenant.ID, request.URL.Query().Get("state"), cursor, limit)
 	if err != nil {
 		writeProblem(response, request, err)
 		return
@@ -83,6 +83,16 @@ func (s *Server) handleSources(response http.ResponseWriter, request *http.Reque
 		return store.TimeCursor{Time: item.UpdatedAt, ID: item.ID}
 	}, s.cursors, "sources", details.Tenant.ID)
 	writeJSON(response, http.StatusOK, page[store.SourceView]{Data: items, NextCursor: next})
+}
+
+func (s *Server) handleSourceCatalog(response http.ResponseWriter, request *http.Request) {
+	details := requestDetails(request)
+	items, err := s.repository.ListSourceCatalog(request.Context(), details.Tenant.ID, request.URL.Query().Get("query"), 100)
+	if err != nil {
+		writeProblem(response, request, err)
+		return
+	}
+	writeJSON(response, http.StatusOK, page[store.SourceCatalogItem]{Data: items})
 }
 
 func (s *Server) handleSource(response http.ResponseWriter, request *http.Request) {
@@ -145,7 +155,8 @@ func (s *Server) handleCreateSource(response http.ResponseWriter, request *http.
 			return 0, nil, err
 		}
 		if result.ExistingSource != nil {
-			return http.StatusOK, result.ExistingSource, nil
+			item, err := s.repository.AttachSource(request.Context(), details.Tenant.ID, result.ExistingSource.ID, input.DisplayName, "", actor(request))
+			return http.StatusOK, item, err
 		}
 		vendorID := input.VendorID
 		var vendorSlug, vendorName string
@@ -170,6 +181,7 @@ func (s *Server) handleCreateSource(response http.ResponseWriter, request *http.
 			SourceType: string(sourceType), AdapterName: result.Capabilities.Engine,
 			AdapterVersion: nonEmpty(result.Capabilities.Version, "1"), ActiveRegion: s.config.ServiceRegion,
 			Capabilities: result.Capabilities, Actor: actor(request),
+			DisplayName: input.DisplayName,
 		})
 		return http.StatusCreated, item, err
 	})
@@ -209,20 +221,62 @@ func (s *Server) probe(parent context.Context, input sourceRequest, sourceID str
 
 func (s *Server) handleUpdateSource(response http.ResponseWriter, request *http.Request) {
 	var input struct {
-		Enabled *bool `json:"enabled"`
+		Enabled     *bool   `json:"enabled"`
+		DisplayName *string `json:"display_name"`
 	}
 	body, err := decodeBody(request, &input)
-	if err != nil || input.Enabled == nil {
+	if err != nil || (input.Enabled == nil && input.DisplayName == nil) {
 		if err == nil {
-			err = fmt.Errorf("%w: enabled is required", store.ErrInvalidArgument)
+			err = fmt.Errorf("%w: enabled or display_name is required", store.ErrInvalidArgument)
 		}
 		writeProblem(response, request, err)
 		return
 	}
 	details := requestDetails(request)
 	s.executeIdempotent(response, request, body, request.PathValue("source"), func(_ string) (int, any, error) {
-		item, err := s.repository.SetSourceEnabled(request.Context(), details.Tenant.ID, request.PathValue("source"), *input.Enabled, actor(request))
+		item, err := s.repository.UpdateWorkspaceSource(request.Context(), store.UpdateWorkspaceSourceParams{
+			TenantID: details.Tenant.ID, SourceID: request.PathValue("source"), Enabled: input.Enabled,
+			DisplayName: input.DisplayName, Actor: actor(request),
+		})
 		return http.StatusOK, item, err
+	})
+}
+
+func (s *Server) handleReplaceSource(response http.ResponseWriter, request *http.Request) {
+	var input sourceRequest
+	body, err := decodeBody(request, &input)
+	if err != nil {
+		writeProblem(response, request, err)
+		return
+	}
+	details := requestDetails(request)
+	s.executeIdempotent(response, request, body, "", func(resourceID string) (int, any, error) {
+		result, err := s.probe(request.Context(), input, resourceID)
+		if err != nil {
+			return 0, nil, err
+		}
+		oldID := request.PathValue("source")
+		if result.ExistingSource != nil {
+			item, err := s.repository.AttachSource(request.Context(), details.Tenant.ID, result.ExistingSource.ID, input.DisplayName, oldID, actor(request))
+			return http.StatusOK, item, err
+		}
+		vendorID := input.VendorID
+		var vendorSlug, vendorName string
+		if vendorID == "" {
+			vendorID = result.Vendor.ID
+			if result.Vendor.New {
+				vendorSlug = result.Vendor.Slug
+				vendorName = result.Vendor.Name
+			}
+		}
+		item, err := s.repository.CreateSource(request.Context(), store.CreateSourceParams{
+			ID: resourceID, TenantID: details.Tenant.ID, VendorID: vendorID, AutoVendorSlug: vendorSlug, AutoVendorName: vendorName,
+			RequestedURL: result.RequestedURL, FinalURL: result.CanonicalURL, CanonicalURL: result.CanonicalURL,
+			SourceType: string(domain.SourceKindStatusPage), AdapterName: result.Capabilities.Engine,
+			AdapterVersion: nonEmpty(result.Capabilities.Version, "1"), ActiveRegion: s.config.ServiceRegion,
+			Capabilities: result.Capabilities, DisplayName: input.DisplayName, ReplacesSourceID: oldID, Actor: actor(request),
+		})
+		return http.StatusCreated, item, err
 	})
 }
 
@@ -342,7 +396,8 @@ func (s *Server) handleIncidents(response http.ResponseWriter, request *http.Req
 		since = &parsed
 	}
 	items, err := s.repository.ListIncidents(request.Context(), details.Tenant.ID,
-		request.URL.Query().Get("vendor"), request.URL.Query().Get("phase"), since, cursor, limit)
+		request.URL.Query().Get("vendor"), request.URL.Query().Get("phase"),
+		request.URL.Query().Get("include_archived") == "true", since, cursor, limit)
 	if err != nil {
 		writeProblem(response, request, err)
 		return
@@ -379,7 +434,7 @@ func (s *Server) handleSubscriptions(response http.ResponseWriter, request *http
 		writeProblem(response, request, err)
 		return
 	}
-	items, err := s.repository.ListSubscriptions(request.Context(), details.Tenant.ID, cursor, limit)
+	items, err := s.repository.ListSubscriptions(request.Context(), details.Tenant.ID, request.URL.Query().Get("state"), cursor, limit)
 	if err != nil {
 		writeProblem(response, request, err)
 		return
@@ -501,7 +556,7 @@ func (s *Server) handleEndpoints(response http.ResponseWriter, request *http.Req
 		writeProblem(response, request, err)
 		return
 	}
-	items, err := s.repository.ListEndpoints(request.Context(), details.Tenant.ID, cursor, limit)
+	items, err := s.repository.ListEndpoints(request.Context(), details.Tenant.ID, request.URL.Query().Get("state"), cursor, limit)
 	if err != nil {
 		writeProblem(response, request, err)
 		return
@@ -514,12 +569,25 @@ func (s *Server) handleEndpoints(response http.ResponseWriter, request *http.Req
 
 func (s *Server) handleEndpoint(response http.ResponseWriter, request *http.Request) {
 	details := requestDetails(request)
-	item, err := s.repository.Endpoint(request.Context(), details.Tenant.ID, request.PathValue("endpoint"), false)
+	item, err := s.repository.Endpoint(request.Context(), details.Tenant.ID, request.PathValue("endpoint"), true)
 	if err != nil {
 		writeProblem(response, request, err)
 		return
 	}
-	writeJSON(response, http.StatusOK, item.EndpointView)
+	config, err := s.openEndpointConfig(request.Context(), item)
+	if err != nil {
+		writeProblem(response, request, err)
+		return
+	}
+	config.Secret = ""
+	// Webhook URLs are bearer credentials for Slack, Feishu and many generic
+	// receivers. Treat them like other secrets: an empty update preserves the
+	// encrypted value and a non-empty value rotates it.
+	config.URL = ""
+	writeJSON(response, http.StatusOK, struct {
+		store.EndpointView
+		Config endpointConfigInput `json:"config"`
+	}{item.EndpointView, config})
 }
 
 func (s *Server) handleCreateEndpoint(response http.ResponseWriter, request *http.Request) {
@@ -550,6 +618,18 @@ func (s *Server) handleUpdateEndpoint(response http.ResponseWriter, request *htt
 	}
 	details := requestDetails(request)
 	s.executeIdempotent(response, request, body, request.PathValue("endpoint"), func(resourceID string) (int, any, error) {
+		existing, err := s.repository.Endpoint(request.Context(), details.Tenant.ID, resourceID, true)
+		if err != nil {
+			return 0, nil, err
+		}
+		if string(input.Channel) != existing.Channel {
+			return 0, nil, fmt.Errorf("%w: endpoint channel cannot be changed", store.ErrInvalidArgument)
+		}
+		previous, err := s.openEndpointConfig(request.Context(), existing)
+		if err != nil {
+			return 0, nil, err
+		}
+		input.Config = mergeEndpointConfig(previous, input.Config)
 		params, err := s.endpointParams(request.Context(), details.Tenant.ID, resourceID, input.ExpectedSecretVersion+1, input)
 		if err != nil {
 			return 0, nil, err
@@ -558,6 +638,63 @@ func (s *Server) handleUpdateEndpoint(response http.ResponseWriter, request *htt
 		item, err := s.repository.UpdateEndpoint(request.Context(), params, input.ExpectedSecretVersion)
 		return http.StatusOK, item, err
 	})
+}
+
+func (s *Server) openEndpointConfig(ctx context.Context, item store.EndpointSecret) (endpointConfigInput, error) {
+	opener, ok := s.sealer.(secret.Opener)
+	if !ok {
+		return endpointConfigInput{}, errors.New("endpoint secrets cannot be opened")
+	}
+	plaintext, err := opener.Open(ctx, item.EncryptedConfig, secret.EndpointAssociatedData(item.ID, item.SecretVersion), item.KeyID)
+	if err != nil {
+		return endpointConfigInput{}, err
+	}
+	defer clear(plaintext)
+	var config endpointConfigInput
+	if err = json.Unmarshal(plaintext, &config); err != nil {
+		return endpointConfigInput{}, err
+	}
+	return config, nil
+}
+
+func mergeEndpointConfig(previous, next endpointConfigInput) endpointConfigInput {
+	if next.URL == "" {
+		next.URL = previous.URL
+	}
+	if next.Secret == "" {
+		next.Secret = previous.Secret
+	}
+	if next.SigningKeyID == "" {
+		next.SigningKeyID = previous.SigningKeyID
+	}
+	if next.SMTPAddress == "" {
+		next.SMTPAddress = previous.SMTPAddress
+	}
+	if next.SMTPUsername == "" {
+		next.SMTPUsername = previous.SMTPUsername
+	}
+	if next.SMTPSecurity == "" {
+		next.SMTPSecurity = previous.SMTPSecurity
+	}
+	if next.AccountSID == "" {
+		next.AccountSID = previous.AccountSID
+	}
+	if next.From == "" {
+		next.From = previous.From
+	}
+	if next.To == "" {
+		next.To = previous.To
+	}
+	if next.ConfigurationSet == "" {
+		next.ConfigurationSet = previous.ConfigurationSet
+	}
+	if next.CallbackURL == "" {
+		next.CallbackURL = previous.CallbackURL
+	}
+	if next.MaxPayloadBytes == 0 {
+		next.MaxPayloadBytes = previous.MaxPayloadBytes
+	}
+	return next
 }
 
 func (s *Server) handleDeleteEndpoint(response http.ResponseWriter, request *http.Request) {
@@ -732,5 +869,15 @@ func (s *Server) handleDeleteResource(w http.ResponseWriter, r *http.Request, ki
 			return 0, nil, err
 		}
 		return http.StatusOK, map[string]any{"id": id, "deleted": true}, nil
+	})
+}
+
+func (s *Server) handleRestoreResource(w http.ResponseWriter, r *http.Request, kind string) {
+	details := requestDetails(r)
+	s.executeIdempotent(w, r, []byte(`{"restore":true}`), r.PathValue(kind), func(id string) (int, any, error) {
+		if err := s.repository.RestoreResource(r.Context(), details.Tenant.ID, id, kind, actor(r)); err != nil {
+			return 0, nil, err
+		}
+		return http.StatusOK, map[string]any{"id": id, "restored": true, "enabled": false}, nil
 	})
 }

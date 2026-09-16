@@ -96,11 +96,13 @@ SELECT c.id, c.event_id, c.subscription_id, c.endpoint_id,
        c.attempt_count, c.lease_token, c.lease_until, c.eligible_at,
        src.canonical_url, ce.event_kind, ce.entity_id, ce.aggregate_revision,
        ce.canonical_schema_version, ce.canonical_payload, ce.observed_at,
-       $5::text
+       $5::text, ep.tenant_id, src.vendor_id, COALESCE(i.id::text,'')
 FROM claimed c
 JOIN endpoints ep ON ep.id=c.endpoint_id
 JOIN canonical_events ce ON ce.id=c.event_id
 JOIN sources src ON src.id=ce.source_id
+LEFT JOIN incidents i ON i.source_id=ce.source_id AND ce.entity_type IN ('incident','maintenance')
+ AND i.upstream_id=COALESCE(NULLIF(ce.canonical_payload->'current'->>'upstream_id',''),ce.entity_id)
 ORDER BY c.priority DESC, c.next_attempt_at, c.id`, owner, limit, perTenant, leaseDuration.String(), string(lane))
 	if err != nil {
 		return nil, fmt.Errorf("postgres store: claim deliveries: %w", err)
@@ -115,7 +117,7 @@ ORDER BY c.priority DESC, c.next_attempt_at, c.id`, owner, limit, perTenant, lea
 			&lease.Channel, &lease.EncryptedConfig, &lease.KeyID, &lease.SecretVersion,
 			&lease.AttemptNumber, &lease.LeaseToken, &lease.LeaseUntil, &lease.EligibleAt,
 			&lease.EventSource, &kind, &lease.EventEntityID, &revision,
-			&lease.EventSchemaVersion, &lease.EventPayload, &lease.EventObservedAt, &lease.Lane); err != nil {
+			&lease.EventSchemaVersion, &lease.EventPayload, &lease.EventObservedAt, &lease.Lane, &lease.TenantID, &lease.VendorID, &lease.IncidentID); err != nil {
 			return nil, fmt.Errorf("postgres store: scan delivery lease: %w", err)
 		}
 		lease.EventKind = domain.EventKind(kind)

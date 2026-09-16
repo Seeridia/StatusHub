@@ -237,7 +237,7 @@ func (s *Store) CompleteSetup(ctx context.Context, token, email, password, name,
 	if _, e = tx.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1,$2,$3)`, tenant, slug, name); e != nil {
 		return User{}, e
 	}
-	if _, e = tx.Exec(ctx, `INSERT INTO memberships(tenant_id,user_id,role) VALUES($1,$2,'owner')`, tenant, u.ID); e != nil {
+	if _, e = tx.Exec(ctx, `INSERT INTO memberships(tenant_id,user_id,role) VALUES($1,$2,'admin')`, tenant, u.ID); e != nil {
 		return User{}, e
 	}
 	if _, e = tx.Exec(ctx, `DELETE FROM setup_tokens`); e != nil {
@@ -259,7 +259,7 @@ func validWorkspaceSlug(v string) bool {
 	}
 	return v[0] != '-' && v[len(v)-1] != '-'
 }
-func (s *Store) CreateOwnedWorkspace(ctx context.Context, email, name, slug string) (Workspace, error) {
+func (s *Store) CreateAdminWorkspace(ctx context.Context, email, name, slug string) (Workspace, error) {
 	email, e := NormalizeEmail(email)
 	if e != nil {
 		return Workspace{}, e
@@ -279,11 +279,11 @@ func (s *Store) CreateOwnedWorkspace(ctx context.Context, email, name, slug stri
 	if e = tx.QueryRow(ctx, `SELECT id FROM users WHERE email=$1`, email).Scan(&user); e != nil {
 		return Workspace{}, ErrNotFound
 	}
-	w := Workspace{ID: uuid.NewString(), Slug: slug, Name: name, Role: auth.RoleOwner}
+	w := Workspace{ID: uuid.NewString(), Slug: slug, Name: name, Role: auth.RoleAdmin}
 	if _, e = tx.Exec(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1,$2,$3)`, w.ID, slug, name); e != nil {
 		return w, e
 	}
-	if _, e = tx.Exec(ctx, `INSERT INTO memberships(tenant_id,user_id,role) VALUES($1,$2,'owner')`, w.ID, user); e != nil {
+	if _, e = tx.Exec(ctx, `INSERT INTO memberships(tenant_id,user_id,role) VALUES($1,$2,'admin')`, w.ID, user); e != nil {
 		return w, e
 	}
 	if _, e = appendAuditTx(ctx, tx, w.ID, auditInput(AuditActor{Type: "system", ID: "statushub-admin"}, "workspace.create", "tenant", w.ID, json.RawMessage("{}"))); e != nil {

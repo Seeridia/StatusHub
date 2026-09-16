@@ -12,7 +12,7 @@ Dokploy uses the same root `compose.yaml` as a normal Docker server. There is no
 4. 在域名配置中选择 **api** 服务、容器端口 **8080**，启用 HTTPS，并设置 DNS。`STATUSHUB_PUBLIC_URL` 使用同一 HTTPS 域名，不带 `/ui`。
 5. 确认 Dokploy 的反向代理可以通过其代理网络连接 **api**。部分版本会自动接入；未自动接入时，检查平台生成的最终 Compose 和本页的排查步骤。不要把数据库和 NATS 加入代理网络。
 6. 部署，检查 PostgreSQL/NATS 健康、迁移任务退出码为 0、API/worker 持续运行。迁移容器成功退出是正常行为。
-7. 在 API 容器终端创建工作区并邀请首位 Owner，详见[初始化步骤](deployment.md#initialize-the-workspace)。通过真实邮件验证后登录，添加状态页、渠道和通知规则。
+7. 在 API 容器终端创建工作区并创建首位 Admin，详见[初始化步骤](deployment.md#initialize-the-workspace)。通过真实邮件验证后登录，添加状态页、渠道和通知规则。
 
 ## Git Compose 与 Dokploy 域名配置
 

@@ -119,20 +119,7 @@ export default function Overview({
     <>
       {!vendorsOnly && (
         <PageHeading
-          title={
-            vendorsOnly
-              ? tr("服务状态")
-              : tr("\u76D1\u63A7\u603B\u89C8")
-          }
-          description={
-            vendorsOnly
-              ? tr(
-                  "\u96C6\u4E2D\u67E5\u770B\u5916\u90E8\u4F9D\u8D56\uFF0C\u533A\u5206\u670D\u52A1\u72B6\u6001\u4E0E\u91C7\u96C6\u5065\u5EB7\u3002",
-                )
-              : tr(
-                  "\u638C\u63E1\u5916\u90E8\u4F9D\u8D56\u7684\u6700\u65B0\u72B6\u6001\uFF0C\u8BA9\u91CD\u8981\u53D8\u5316\u4E00\u76EE\u4E86\u7136\u3002",
-                )
-          }
+          title={vendorsOnly ? tr("服务状态") : tr("\u76D1\u63A7\u603B\u89C8")}
           actions={
             <>
               <Button
@@ -237,19 +224,39 @@ export default function Overview({
           </div>
         )}
         <div className={vendorsOnly ? "" : "overview-grid"}>
-          <Panel className={`panel vendors-panel ${vendorsOnly ? "starter-list-panel" : ""}`}>
+          <Panel
+            className={`panel vendors-panel ${vendorsOnly ? "starter-list-panel" : ""}`}
+          >
             {vendorsOnly ? (
               <ListToolbar
                 title={tr("服务状态")}
-                description={tr("集中查看外部依赖，区分服务状态与采集健康。")}
-                actions={<>
-                  <Button variant="outline" icon={<RefreshIcon />} loading={query.isFetching} onClick={() => void query.refetch()}>{tr("刷新")}</Button>
-                  {permission.write && <Button onClick={() => navigate("/rules/new")}>{tr("创建通知规则")}</Button>}
-                </>}
+                actions={
+                  <>
+                    <Button
+                      variant="outline"
+                      icon={<RefreshIcon />}
+                      loading={query.isFetching}
+                      onClick={() => void query.refetch()}
+                    >
+                      {tr("刷新")}
+                    </Button>
+                    {permission.write && (
+                      <Button onClick={() => navigate("/rules/new")}>
+                        {tr("创建通知规则")}
+                      </Button>
+                    )}
+                  </>
+                }
               />
             ) : (
               <div className="section-head">
-                <div><h2>{tr("服务状态")}<span className="count">{vendors.length}</span></h2><p>{tr("异常优先展示 · 最近成功采集时间")}</p></div>
+                <div>
+                  <h2>
+                    {tr("服务状态")}
+                    <span className="count">{vendors.length}</span>
+                  </h2>
+                  <p>{tr("异常优先展示 · 最近成功采集时间")}</p>
+                </div>
               </div>
             )}
             <div className="filter-row">
@@ -293,18 +300,14 @@ export default function Overview({
             {!filtered.length ? (
               <EmptyState
                 title={
-                  vendors.length
-                    ? tr("没有匹配的服务")
-                    : tr("暂无监控服务")
+                  vendors.length ? tr("没有匹配的服务") : tr("暂无监控服务")
                 }
                 description={
                   vendors.length
                     ? tr(
                         "\u8BD5\u8BD5\u5176\u4ED6\u540D\u79F0\u6216\u72B6\u6001\u7B5B\u9009\u3002",
                       )
-                    : tr(
-                        "请由管理员接入服务数据源。",
-                      )
+                    : tr("请由管理员接入服务数据源。")
                 }
               />
             ) : mode === "cards" ? (
@@ -416,9 +419,7 @@ export default function Overview({
                   ) : (
                     <EmptyState
                       title={tr("\u6682\u65E0\u4E8B\u4EF6")}
-                      description={tr(
-                        "服务事件更新会出现在这里。",
-                      )}
+                      description={tr("服务事件更新会出现在这里。")}
                     />
                   )}
                 </QueryState>
@@ -483,15 +484,25 @@ export default function Overview({
                 <span>{tr("\u6D3B\u8DC3\u4E8B\u4EF6")}</span>
                 <span>{selected.active_incidents}</span>
               </div>
-              <Button
-                block
-                onClick={() => {
-                  navigate(`/incidents?vendor=${selected.id}`);
-                  setSelected(null);
-                }}
-              >
-                {tr("\u67E5\u770B\u5173\u8054\u4E8B\u4EF6")}
-              </Button>
+              <div className="form-actions">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    navigate("/sources");
+                    setSelected(null);
+                  }}
+                >
+                  {tr("管理数据源")}
+                </Button>
+                <Button
+                  onClick={() => {
+                    navigate(`/incidents?vendor=${selected.id}`);
+                    setSelected(null);
+                  }}
+                >
+                  {tr("\u67E5\u770B\u5173\u8054\u4E8B\u4EF6")}
+                </Button>
+              </div>
             </>
           )}
         </div>

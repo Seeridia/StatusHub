@@ -41,6 +41,7 @@ func (s *Server) teamRoutes() {
 	}
 	for route, action := range map[string]string{
 		"PATCH /v1/tenants/{tenant}/members/{id}":                "member.update",
+		"POST /v1/tenants/{tenant}/members/admin-transfer":       "admin.transfer",
 		"POST /v1/tenants/{tenant}/invitations":                  "invitation.create",
 		"POST /v1/tenants/{tenant}/invitations/{id}/revoke":      "invitation.revoke",
 		"POST /v1/tenants/{tenant}/service-accounts":             "service.create",
@@ -73,7 +74,9 @@ func (s *Server) teamRoutes() {
 			}
 			c.PublicURL = s.config.PublicURL
 			c.Action = action
-			c.ID = r.PathValue("id")
+			if pathID := r.PathValue("id"); pathID != "" {
+				c.ID = pathID
+			}
 			out, e := s.repository.(TeamRepository).TeamMutate(r.Context(), requestDetails(r).Identity, r.Header.Get("Idempotency-Key"), c, teamCipher{s.sessions.codec})
 			if e != nil {
 				writeProblem(w, r, e)

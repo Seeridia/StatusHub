@@ -23,7 +23,7 @@ type Entry = {
   role: string;
   enabled?: boolean;
   method?: string;
-  mail_status?:string;
+  mail_status?: string;
   last_used_at?: string;
   expires_at?: string;
   accepted_at?: string;
@@ -34,8 +34,13 @@ export function Team({
 }: {
   kind: "members" | "invitations" | "service-accounts";
 }) {
-  const [mailReady,setMailReady]=useState(demo);
- useEffect(()=>{if(!demo)accountSession().then(s=>setMailReady(s.mail_configured)).catch(()=>{});},[]);
+  const [mailReady, setMailReady] = useState(demo);
+  useEffect(() => {
+    if (!demo)
+      accountSession()
+        .then((s) => setMailReady(s.mail_configured))
+        .catch(() => {});
+  }, []);
   const query = useList<Entry>("/" + kind);
   const { identity } = useSession();
   const write = useWriter();
@@ -54,19 +59,13 @@ export function Team({
     setConfirm(() => run);
   }
   const roles = [
-    { value: "viewer", label: tr("查看者") },
+    { value: "viewer", label: tr("只读用户") },
     { value: "operator", label: tr("操作员") },
-    ...(identity.role === "owner"
-      ? [
-          { value: "admin", label: tr("管理员") },
-          { value: "owner", label: tr("所有者") },
-        ]
-      : []),
   ];
   function allowed(row: Entry) {
     return (
       !(identity.actor_id === row.id) &&
-      (identity.role === "owner" || ["viewer", "operator"].includes(row.role))
+      ["viewer", "operator"].includes(row.role)
     );
   }
   async function mutate(path: string, body: unknown, method = "POST") {
@@ -80,9 +79,7 @@ export function Team({
       }>(path, body, method);
       if (out.token) setResult(out.token);
       if (out.secret_unavailable)
-        setError(
-          tr("操作已完成，但令牌无法再次显示，请重新轮换。"),
-        );
+        setError(tr("操作已完成，但令牌无法再次显示，请重新轮换。"));
       setEditing(null);
       setConfirm(null);
       await query.refetch();
@@ -118,14 +115,29 @@ export function Team({
   }
   return (
     <div className="team-panel">
-{kind==="invitations"&&!mailReady&&<Alert theme="warning" message={tr("邮件服务未配置或不可用，请联系管理员。")}/>}
+      {kind === "invitations" && !mailReady && (
+        <Alert
+          theme="warning"
+          message={tr("邮件服务未配置或不可用，请联系管理员。")}
+        />
+      )}
       {error && <Alert theme="error" message={error} />}
       <div className="team-actions heading-actions">
-        <Button variant="outline" icon={<RefreshIcon />} onClick={() => void query.refetch()} loading={query.isFetching}>
+        <Button
+          variant="outline"
+          icon={<RefreshIcon />}
+          onClick={() => void query.refetch()}
+          loading={query.isFetching}
+        >
           {tr("刷新")}
         </Button>
         {kind !== "members" && (
-          <Button theme="primary" icon={<AddIcon />} disabled={kind==="invitations"&&!mailReady} onClick={() => edit()}>
+          <Button
+            theme="primary"
+            icon={<AddIcon />}
+            disabled={kind === "invitations" && !mailReady}
+            onClick={() => edit()}
+          >
             {kind === "invitations" ? tr("创建邀请") : tr("创建服务账号")}
           </Button>
         )}
@@ -133,7 +145,7 @@ export function Team({
       {kind === "members" && (
         <Alert
           message={tr(
-            "管理员只能管理查看者和操作员；高权限成员由所有者管理。不能修改自己的角色或停用自己。",
+            "工作区始终只有一名管理员。管理员可以管理操作员和只读用户；如需更换管理员，请使用转移管理员。",
           )}
         />
       )}
@@ -160,10 +172,9 @@ export function Team({
             width: 120,
             cell: ({ row }) =>
               ({
-                viewer: tr("查看者"),
+                viewer: tr("只读用户"),
                 operator: tr("操作员"),
                 admin: tr("管理员"),
-                owner: tr("所有者"),
               })[row.role as string] || row.role,
           },
           {
@@ -179,7 +190,11 @@ export function Team({
                       ? tr("已撤销")
                       : Date.parse(row.expires_at || "") < Date.now()
                         ? tr("已过期")
-                        : ({pending:tr("等待发送"),submitted:tr("已提交邮件服务器"),failed:tr("发送失败")}[row.mail_status as string]||tr("等待接受"))
+                        : {
+                            pending: tr("等待发送"),
+                            submitted: tr("已提交邮件服务器"),
+                            failed: tr("发送失败"),
+                          }[row.mail_status as string] || tr("等待接受")
                   : row.enabled
                     ? tr("已启用")
                     : tr("已停用")}
@@ -225,7 +240,42 @@ export function Team({
                 >
                   {kind === "invitations" ? tr("撤销邀请") : tr("编辑")}
                 </Button>
-                {kind === "invitations" && !row.accepted_at && <Button variant="text" disabled={!allowed(row)} onClick={()=>confirmAction(()=>mutate("/invitations",{email:row.email,role:row.role}),row.email||row.id)}>{tr("重新发送")}</Button>}
+                {kind === "members" &&
+                  identity.role === "admin" &&
+                  identity.actor_id !== row.id &&
+                  row.enabled &&
+                  ["viewer", "operator"].includes(row.role) && (
+                    <Button
+                      variant="text"
+                      onClick={() =>
+                        confirmAction(
+                          () =>
+                            mutate("/members/admin-transfer", { id: row.id }),
+                          `${row.email || row.name} · ${tr("新管理员")}`,
+                        )
+                      }
+                    >
+                      {tr("转移管理员")}
+                    </Button>
+                  )}
+                {kind === "invitations" && !row.accepted_at && (
+                  <Button
+                    variant="text"
+                    disabled={!allowed(row)}
+                    onClick={() =>
+                      confirmAction(
+                        () =>
+                          mutate("/invitations", {
+                            email: row.email,
+                            role: row.role,
+                          }),
+                        row.email || row.id,
+                      )
+                    }
+                  >
+                    {tr("重新发送")}
+                  </Button>
+                )}
                 {kind === "service-accounts" && (
                   <Button
                     variant="text"
@@ -308,11 +358,7 @@ export function Team({
         footer={<Button onClick={() => setResult("")}>{tr("关闭")}</Button>}
         onClose={() => setResult("")}
       >
-        <Alert
-          message={tr(
-            "令牌仅在本次结果中显示，请安全保存。",
-          )}
-        />
+        <Alert message={tr("令牌仅在本次结果中显示，请安全保存。")} />
         <Input aria-label={tr("服务账号令牌")} value={result} readonly />
       </Dialog>
     </div>
@@ -329,7 +375,10 @@ export function PersonalAccount() {
   async function run() {
     setBusy(true);
     try {
-      await accountRequest(action === "password" ? "password/change" : "logout-all", action==="password"?{ old_password: old, password }:{});
+      await accountRequest(
+        action === "password" ? "password/change" : "logout-all",
+        action === "password" ? { old_password: old, password } : {},
+      );
       clearSession();
       location.reload();
     } catch (e) {
