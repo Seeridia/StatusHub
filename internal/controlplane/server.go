@@ -337,6 +337,8 @@ func writeProblem(response http.ResponseWriter, request *http.Request, err error
 		status, code, detail = http.StatusConflict, "last_platform_admin", "The last active platform administrator cannot be removed or disabled"
 	case errors.Is(err, store.ErrPlatformSelfDisable):
 		status, code, detail = http.StatusConflict, "platform_self_disable", "Platform administrators cannot disable their own account"
+	case errors.Is(err, store.ErrPlatformSelfRevoke):
+		status, code, detail = http.StatusConflict, "platform_self_revoke", "Platform administrators cannot revoke their own platform access"
 	case errors.Is(err, store.ErrWorkspaceAdminDisable):
 		status, code, detail = http.StatusConflict, "workspace_admin_disable", "Transfer workspace administration before disabling this user"
 	case errors.Is(err, store.ErrNotFound):

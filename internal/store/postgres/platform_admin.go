@@ -9,11 +9,13 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 )
 
 var (
 	ErrLastPlatformAdmin     = errors.New("the last active platform administrator cannot be removed or disabled")
 	ErrPlatformSelfDisable   = errors.New("a platform administrator cannot disable their own account")
+	ErrPlatformSelfRevoke    = errors.New("a platform administrator cannot revoke their own platform access")
 	ErrWorkspaceAdminDisable = errors.New("transfer workspace administration before disabling this user")
 )
 
@@ -44,6 +46,17 @@ type PlatformWorkspace struct {
 	Members    int       `json:"members"`
 	Sources    int       `json:"sources"`
 	CreatedAt  time.Time `json:"created_at"`
+}
+
+type PlatformAuditEvent struct {
+	ID           int64           `json:"id"`
+	OccurredAt   time.Time       `json:"occurred_at"`
+	ActorUserID  *string         `json:"actor_user_id,omitempty"`
+	ActorEmail   string          `json:"actor_email"`
+	Action       string          `json:"action"`
+	ResourceType string          `json:"resource_type"`
+	ResourceID   string          `json:"resource_id"`
+	Metadata     json.RawMessage `json:"metadata"`
 }
 
 func (s *Store) IsPlatformAdmin(ctx context.Context, user string) (bool, error) {
@@ -203,6 +216,141 @@ func (s *Store) ListPlatformWorkspaces(ctx context.Context, query string, limit 
 		out = append(out, x)
 	}
 	return out, rows.Err()
+}
+
+func (s *Store) ListPlatformAuditEvents(ctx context.Context, query string, limit int) ([]PlatformAuditEvent, error) {
+	query = strings.TrimSpace(query)
+	if limit < 1 || limit > 500 {
+		limit = 100
+	}
+	rows, err := s.db.Query(ctx, `SELECT e.id,e.occurred_at,e.actor_user_id,COALESCE(u.email,''),e.action,e.resource_type,e.resource_id,e.metadata
+ FROM platform_audit_events e LEFT JOIN users u ON u.id=e.actor_user_id
+ WHERE ($1='' OR e.action ILIKE '%'||$1||'%' OR e.resource_type ILIKE '%'||$1||'%' OR e.resource_id ILIKE '%'||$1||'%' OR u.email ILIKE '%'||$1||'%')
+ ORDER BY e.occurred_at DESC,e.id DESC LIMIT $2`, query, limit)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []PlatformAuditEvent{}
+	for rows.Next() {
+		var event PlatformAuditEvent
+		if err = rows.Scan(&event.ID, &event.OccurredAt, &event.ActorUserID, &event.ActorEmail, &event.Action, &event.ResourceType, &event.ResourceID, &event.Metadata); err != nil {
+			return nil, err
+		}
+		out = append(out, event)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) SetPlatformAdmin(ctx context.Context, actor, user string, enabled bool) error {
+	if _, err := uuid.Parse(actor); err != nil {
+		return invalid("invalid actor ID")
+	}
+	if _, err := uuid.Parse(user); err != nil {
+		return invalid("invalid user ID")
+	}
+	if !enabled && actor == user {
+		return ErrPlatformSelfRevoke
+	}
+	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(734901258)`); err != nil {
+		return err
+	}
+	var userEnabled bool
+	if err = tx.QueryRow(ctx, `SELECT enabled FROM users WHERE id=$1 FOR UPDATE`, user).Scan(&userEnabled); errors.Is(err, pgx.ErrNoRows) {
+		return ErrNotFound
+	} else if err != nil {
+		return err
+	}
+	if enabled && !userEnabled {
+		return ErrConflict
+	}
+	var currentlyEnabled bool
+	if err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM platform_admins WHERE user_id=$1 AND enabled)`, user).Scan(&currentlyEnabled); err != nil {
+		return err
+	}
+	if currentlyEnabled == enabled {
+		return tx.Commit(ctx)
+	}
+	if !enabled {
+		var count int
+		if err = tx.QueryRow(ctx, `SELECT count(*) FROM platform_admins p JOIN users u ON u.id=p.user_id WHERE p.enabled AND u.enabled`).Scan(&count); err != nil {
+			return err
+		}
+		if count <= 1 {
+			return ErrLastPlatformAdmin
+		}
+		if _, err = tx.Exec(ctx, `UPDATE platform_admins SET enabled=false,updated_at=now() WHERE user_id=$1`, user); err != nil {
+			return err
+		}
+	} else if _, err = tx.Exec(ctx, `INSERT INTO platform_admins(user_id,enabled,granted_by)
+ VALUES($1,true,$2) ON CONFLICT(user_id) DO UPDATE SET enabled=true,granted_by=excluded.granted_by,updated_at=now()`, user, actor); err != nil {
+		return err
+	}
+	action := "platform_admin.revoke"
+	if enabled {
+		action = "platform_admin.grant"
+	}
+	metadata, _ := json.Marshal(map[string]any{"enabled": enabled, "source": "web"})
+	if _, err = tx.Exec(ctx, `INSERT INTO platform_audit_events(actor_user_id,action,resource_type,resource_id,metadata) VALUES($1,$2,'user',$3,$4)`, actor, action, user, metadata); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func (s *Store) CreatePlatformWorkspace(ctx context.Context, actor, adminEmail, name, slug string) (PlatformWorkspace, error) {
+	if _, err := uuid.Parse(actor); err != nil {
+		return PlatformWorkspace{}, invalid("invalid actor ID")
+	}
+	adminEmail, err := NormalizeEmail(adminEmail)
+	if err != nil {
+		return PlatformWorkspace{}, err
+	}
+	name = strings.TrimSpace(name)
+	slug = strings.ToLower(strings.TrimSpace(slug))
+	if name == "" || len(name) > 128 || !validWorkspaceSlug(slug) {
+		return PlatformWorkspace{}, invalid("invalid workspace name or slug")
+	}
+	tx, err := s.db.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return PlatformWorkspace{}, err
+	}
+	defer tx.Rollback(ctx)
+	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(734901257)`); err != nil {
+		return PlatformWorkspace{}, err
+	}
+	var adminID string
+	if err = tx.QueryRow(ctx, `SELECT id FROM users WHERE email=$1 AND enabled FOR SHARE`, adminEmail).Scan(&adminID); errors.Is(err, pgx.ErrNoRows) {
+		return PlatformWorkspace{}, ErrNotFound
+	} else if err != nil {
+		return PlatformWorkspace{}, err
+	}
+	workspace := PlatformWorkspace{ID: uuid.NewString(), Slug: slug, Name: name, AdminEmail: adminEmail, Members: 1}
+	if err = tx.QueryRow(ctx, `INSERT INTO tenants(id,slug,name) VALUES($1,$2,$3) RETURNING created_at`, workspace.ID, slug, name).Scan(&workspace.CreatedAt); err != nil {
+		var postgresError *pgconn.PgError
+		if errors.As(err, &postgresError) && postgresError.Code == "23505" {
+			return PlatformWorkspace{}, ErrConflict
+		}
+		return PlatformWorkspace{}, err
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO memberships(tenant_id,user_id,role) VALUES($1,$2,'admin')`, workspace.ID, adminID); err != nil {
+		return PlatformWorkspace{}, err
+	}
+	metadata, _ := json.Marshal(map[string]string{"slug": slug, "name": name, "admin_email": adminEmail})
+	if _, err = appendAuditTx(ctx, tx, workspace.ID, auditInput(AuditActor{Type: "user", ID: actor}, "workspace.create", "tenant", workspace.ID, metadata)); err != nil {
+		return PlatformWorkspace{}, err
+	}
+	if _, err = tx.Exec(ctx, `INSERT INTO platform_audit_events(actor_user_id,action,resource_type,resource_id,metadata) VALUES($1,'workspace.create','tenant',$2,$3)`, actor, workspace.ID, metadata); err != nil {
+		return PlatformWorkspace{}, err
+	}
+	if err = tx.Commit(ctx); err != nil {
+		return PlatformWorkspace{}, err
+	}
+	return workspace, nil
 }
 
 func (s *Store) SetPlatformUserEnabled(ctx context.Context, actor, user string, enabled bool) error {

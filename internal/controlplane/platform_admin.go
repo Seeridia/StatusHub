@@ -15,6 +15,9 @@ type PlatformRepository interface {
 	PlatformOverview(context.Context) (store.PlatformSummary, error)
 	ListPlatformUsers(context.Context, string, int) ([]store.PlatformUser, error)
 	ListPlatformWorkspaces(context.Context, string, int) ([]store.PlatformWorkspace, error)
+	ListPlatformAuditEvents(context.Context, string, int) ([]store.PlatformAuditEvent, error)
+	SetPlatformAdmin(context.Context, string, string, bool) error
+	CreatePlatformWorkspace(context.Context, string, string, string, string) (store.PlatformWorkspace, error)
 	SetPlatformUserEnabled(context.Context, string, string, bool) error
 	RevokePlatformUserSessions(context.Context, string, string) error
 }
@@ -35,6 +38,10 @@ func (s *Server) platformRoutes() {
 	s.mux.Handle("PATCH /admin/v1/users/{id}", s.authorizePlatform(http.HandlerFunc(s.handlePlatformUserUpdate)))
 	s.mux.Handle("POST /admin/v1/users/{id}/revoke-sessions", s.authorizePlatform(http.HandlerFunc(s.handlePlatformUserSessions)))
 	s.mux.Handle("GET /admin/v1/workspaces", s.authorizePlatform(http.HandlerFunc(s.handlePlatformWorkspaces)))
+	s.mux.Handle("POST /admin/v1/workspaces", s.authorizePlatform(http.HandlerFunc(s.handlePlatformWorkspaceCreate)))
+	s.mux.Handle("POST /admin/v1/platform-admins", s.authorizePlatform(http.HandlerFunc(s.handlePlatformAdminGrant)))
+	s.mux.Handle("DELETE /admin/v1/platform-admins/{id}", s.authorizePlatform(http.HandlerFunc(s.handlePlatformAdminRevoke)))
+	s.mux.Handle("GET /admin/v1/audit-events", s.authorizePlatform(http.HandlerFunc(s.handlePlatformAuditEvents)))
 }
 
 func (s *Server) authorizePlatform(next http.Handler) http.Handler {
@@ -95,6 +102,60 @@ func (s *Server) handlePlatformUsers(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handlePlatformWorkspaces(w http.ResponseWriter, r *http.Request) {
 	out, err := s.repository.(PlatformRepository).ListPlatformWorkspaces(r.Context(), r.URL.Query().Get("query"), platformLimit(r))
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"data": out})
+}
+
+func (s *Server) handlePlatformWorkspaceCreate(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		Name       string `json:"name"`
+		Slug       string `json:"slug"`
+		AdminEmail string `json:"admin_email"`
+	}
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 8192))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&input); err != nil {
+		writeProblemStatus(w, r, http.StatusBadRequest, "invalid_request", "Workspace name, slug, and administrator email are required")
+		return
+	}
+	out, err := s.repository.(PlatformRepository).CreatePlatformWorkspace(r.Context(), platformDetails(r).User.ID, input.AdminEmail, input.Name, input.Slug)
+	if err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusCreated, out)
+}
+
+func (s *Server) handlePlatformAdminGrant(w http.ResponseWriter, r *http.Request) {
+	var input struct {
+		UserID string `json:"user_id"`
+	}
+	decoder := json.NewDecoder(http.MaxBytesReader(w, r.Body, 4096))
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&input); err != nil || strings.TrimSpace(input.UserID) == "" {
+		writeProblemStatus(w, r, http.StatusBadRequest, "invalid_request", "User ID is required")
+		return
+	}
+	if err := s.repository.(PlatformRepository).SetPlatformAdmin(r.Context(), platformDetails(r).User.ID, strings.TrimSpace(input.UserID), true); err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"completed": true})
+}
+
+func (s *Server) handlePlatformAdminRevoke(w http.ResponseWriter, r *http.Request) {
+	if err := s.repository.(PlatformRepository).SetPlatformAdmin(r.Context(), platformDetails(r).User.ID, strings.TrimSpace(r.PathValue("id")), false); err != nil {
+		writeProblem(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]bool{"completed": true})
+}
+
+func (s *Server) handlePlatformAuditEvents(w http.ResponseWriter, r *http.Request) {
+	out, err := s.repository.(PlatformRepository).ListPlatformAuditEvents(r.Context(), r.URL.Query().Get("query"), platformLimit(r))
 	if err != nil {
 		writeProblem(w, r, err)
 		return

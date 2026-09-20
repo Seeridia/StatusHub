@@ -8,6 +8,7 @@ All notable user-visible changes to StatusHub are recorded here. The project fol
 
 - Added a separate `/admin/` console for instance-level user and workspace oversight.
 - Added CLI-managed platform administrator grants, global account enable/disable, browser session revocation, and append-only platform audit events.
+- Added web-based platform administrator grants, platform audit browsing, and workspace creation with an existing user as administrator.
 
 ### Security
 

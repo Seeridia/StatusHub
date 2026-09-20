@@ -89,6 +89,7 @@ export async function request<T>(
       platform_forbidden: tr("当前账号没有平台管理权限。"),
       last_platform_admin: tr("必须保留至少一名有效的平台管理员。"),
       platform_self_disable: tr("平台管理员不能停用自己的账号。"),
+      platform_self_revoke: tr("平台管理员不能撤销自己的平台权限。"),
       workspace_admin_disable: tr("请先转移该用户负责的工作区管理员，再停用账号。"),
       invitation_invalid: tr("邀请已过期、撤销或接受，请联系管理员重新邀请。"),
       setup_unavailable: tr("初始化链接已失效，或实例已经初始化。"),

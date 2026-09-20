@@ -359,6 +359,70 @@ paths:
       responses:
         '200': {description: Workspace metadata list}
         '403': {description: Platform administrator access required}
+    post:
+      operationId: createPlatformWorkspace
+      security: [{browserSession: []}]
+      description: Creates a workspace and assigns an existing enabled user as its sole administrator.
+      parameters:
+        - {$ref: '#/components/parameters/CSRF'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [name, slug, admin_email]
+              properties:
+                name: {type: string, maxLength: 128}
+                slug: {type: string, pattern: '^[a-z0-9][a-z0-9-]{0,62}$'}
+                admin_email: {type: string, format: email}
+      responses:
+        '201': {description: Workspace created}
+        '404': {description: Enabled administrator account not found}
+        '409': {description: Workspace slug already exists}
+  /admin/v1/platform-admins:
+    post:
+      operationId: grantPlatformAdministrator
+      security: [{browserSession: []}]
+      description: Grants platform administration to an existing enabled user.
+      parameters:
+        - {$ref: '#/components/parameters/CSRF'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [user_id]
+              properties: {user_id: {type: string, format: uuid}}
+      responses:
+        '200': {description: Platform access granted}
+        '404': {description: User not found}
+        '409': {description: User is disabled}
+  /admin/v1/platform-admins/{id}:
+    delete:
+      operationId: revokePlatformAdministrator
+      security: [{browserSession: []}]
+      description: Revokes platform administration without changing workspace roles. Self-revocation and removing the last active platform administrator are rejected.
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+        - {$ref: '#/components/parameters/CSRF'}
+      responses:
+        '200': {description: Platform access revoked}
+        '409': {description: Self-revocation or last platform administrator protection}
+  /admin/v1/audit-events:
+    get:
+      operationId: listPlatformAuditEvents
+      security: [{browserSession: []}]
+      description: Lists append-only platform administration events in reverse chronological order.
+      parameters:
+        - {in: query, name: query, schema: {type: string}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 500, default: 100}}
+      responses:
+        '200': {description: Platform audit event list}
+        '403': {description: Platform administrator access required}
   /v1/tenants/{tenant}/members:
     get:
       operationId: listTeamMembers

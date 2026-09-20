@@ -23,6 +23,7 @@ const english: Record<string, string> = {
   平台总览: "Platform overview",
   用户管理: "Users",
   工作区管理: "Workspaces",
+  平台审计: "Platform audit",
   用户总数: "Total users",
   启用用户: "Enabled users",
   工作区: "Workspaces",
@@ -34,6 +35,8 @@ const english: Record<string, string> = {
     "Platform administrators manage the instance. Workspace administrators manage only their own members and business configuration. These permissions are independent.",
   "管理实例账号状态并撤销浏览器会话。工作区角色仍由各工作区管理员维护。":
     "Manage instance account status and revoke browser sessions. Workspace roles remain managed by each workspace administrator.",
+  "管理实例账号、平台权限和浏览器会话。工作区角色仍由各工作区管理员维护。":
+    "Manage instance accounts, platform access, and browser sessions. Workspace roles remain managed by each workspace administrator.",
   搜索邮箱或名称: "Search email or name",
   搜索: "Search",
   暂无用户: "No users",
@@ -48,6 +51,8 @@ const english: Record<string, string> = {
   最近活动: "Last activity",
   停用: "Disable",
   撤销会话: "Revoke sessions",
+  授予平台管理员: "Grant platform administrator",
+  撤销平台权限: "Revoke platform access",
   撤销全部会话: "Revoke all sessions",
   停用用户: "Disable user",
   恢复用户: "Restore user",
@@ -56,8 +61,28 @@ const english: Record<string, string> = {
     "The user will be unable to sign in and all current sessions will be revoked immediately.",
   "该用户将可以重新登录并访问仍然有效的工作区。":
     "The user can sign in again and access their enabled workspaces.",
+  "该用户将失去整个实例的管理权限，工作区角色不受影响。":
+    "The user will lose instance-wide administration access. Workspace roles are unchanged.",
+  "该用户将可以管理整个实例的用户、工作区和平台审计记录。":
+    "The user will be able to manage instance users, workspaces, and platform audit records.",
   "查看每个工作区的管理员、成员数量和已关联数据源。":
     "Review each workspace administrator, member count, and attached sources.",
+  "查看工作区规模，或将已有用户指定为新工作区管理员。":
+    "Review workspace scale or assign an existing user to administer a new workspace.",
+  创建工作区: "Create workspace",
+  创建: "Create",
+  管理员邮箱: "Administrator email",
+  "例如：基础设施团队": "For example: Infrastructure team",
+  "管理员必须是当前实例中已启用的用户；此操作不会创建账号或密码。":
+    "The administrator must be an enabled user in this instance. This action does not create an account or password.",
+  "查看平台管理员对用户、权限和工作区执行的写操作。":
+    "Review changes platform administrators made to users, access, and workspaces.",
+  "搜索操作者、动作或资源": "Search actor, action, or resource",
+  暂无平台审计记录: "No platform audit events",
+  时间: "Time",
+  动作: "Action",
+  资源: "Resource",
+  系统或命令行: "System or CLI",
   "搜索工作区、标识或管理员": "Search workspace, slug, or administrator",
   暂无工作区: "No workspaces",
   创建时间: "Created",
@@ -70,6 +95,7 @@ const english: Record<string, string> = {
   "当前账号没有平台管理权限。": "This account does not have platform administration access.",
   "必须保留至少一名有效的平台管理员。": "At least one active platform administrator is required.",
   "平台管理员不能停用自己的账号。": "Platform administrators cannot disable their own account.",
+  "平台管理员不能撤销自己的平台权限。": "Platform administrators cannot revoke their own platform access.",
   "请先转移该用户负责的工作区管理员，再停用账号。":
     "Transfer the workspaces administered by this user before disabling the account.",
   "正在加载平台管理后台…": "Loading platform administration…",
