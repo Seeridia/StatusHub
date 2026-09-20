@@ -10,15 +10,15 @@ The image name is `ghcr.io/seeridia/statushub` (registry paths use lowercase). O
 
 The frontend is built once on the native build platform. Go cross-compiles the same source for each target architecture; only runtime image setup may use emulation. BuildKit caches dependency and build layers between workflow runs. Initial cache population and registry uploads still add time.
 
-The `Publish container` GitHub Actions workflow runs the shared test suite before publishing `linux/amd64` and `linux/arm64` images to GHCR. It uses `GITHUB_TOKEN` with `packages: write`; do not create or commit a registry password.
+The `Publish container` GitHub Actions workflow runs the repository's frontend and Go build/static validation before publishing `linux/amd64` and `linux/arm64` images to GHCR. It uses `GITHUB_TOKEN` with `packages: write`; do not create or commit a registry password.
 
 - Push a version tag such as `v0.1.0` to publish that tag and `sha-<full-commit-sha>`.
 - Run the workflow manually from Actions to publish a commit image without declaring a release.
-- Read the job summary for the immutable `ghcr.io/seeridia/statushub@sha256:...` reference. Use that digest for reproducible deployment. No `latest` tag is published.
+- Read the job summary for the immutable `ghcr.io/seeridia/statushub@sha256:...` reference. Use that digest for reproducible deployment. A manual run on `main` also updates `latest`; version tags publish their tag and immutable SHA tag.
 
 The workflow definition alone does not mean an image exists. Wait for a successful publish job before deploying it. On first publication, check the GHCR package visibility: a public Git repository does not automatically guarantee a public package. Set package visibility to public if anonymous pulls are intended; otherwise configure registry credentials in Dokploy or `docker login ghcr.io` using a credential with `read:packages`.
 
-Version tags should not be moved or reused. This workflow publishes containers, not a GitHub Release announcement or a deployment to your server.
+Version tags should not be moved or reused. Publishing does not create a GitHub Release announcement. When the Dokploy variables and secret are configured and `DOKPLOY_DEPLOY_ENABLED=true`, a manual run on `main` or a version tag also triggers the verified Dokploy deployment job.
 
 ## Configure and start
 

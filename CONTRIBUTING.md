@@ -2,7 +2,7 @@
 
 Start with the [installation guide](docs/getting-started.md). Use an isolated development workspace and database; never run fixtures, reset migrations, or load tests against a live installation.
 
-The project license is pending. Discuss substantial contributions with the maintainer before submitting code; no contributor license agreement or automatic relicensing policy is implied.
+StatusHub is licensed under `AGPL-3.0-only`. By contributing, you agree that your contribution is provided under the same license. No separate contributor license agreement or automatic relicensing policy is implied.
 
 ## Development layout
 
@@ -18,12 +18,12 @@ The project license is pending. Discuss substantial contributions with the maint
 ## Before a pull request
 
 1. Describe the user-visible problem and a reproducible example. Discuss broad API or behavior changes in an issue first.
-2. Keep changes focused. Add regression coverage for behavior changes, especially tenant isolation, authorization, replay, and failure recovery.
+2. Keep changes focused. Describe how behavior changes were checked, especially tenant isolation, authorization, replay, and failure recovery. This repository currently relies on build/static gates and explicit manual acceptance rather than committed automated test files.
 3. Run `make ui-install` when dependencies change, then `make verify` in an isolated environment. Run `python3 scripts/check-public-docs.py` for documentation changes.
 4. Update OpenAPI and operational documentation when interfaces or configuration change. Frontend text must support English and Simplified Chinese; use the existing TDesign tokens.
 5. Include expected behavior, build and manual verification results, and migration impact in the pull request. Keep generated console assets in sync with the frontend build.
 
-Adapter changes should include sanitized fixtures and cover unknown fields, partial snapshots, upstream failures, and duplicate observations. Live canaries contact external status pages; use them sparingly and honor their request limits.
+Adapter changes should use sanitized reproduction data during development and manually cover unknown fields, partial snapshots, upstream failures, and duplicate observations. Do not commit local captures containing customer data. Live canaries contact external status pages; use them sparingly and honor their request limits.
 
 ## Repository content
 

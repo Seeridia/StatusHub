@@ -2,7 +2,7 @@
 
 **在一个工作区，了解团队所依赖服务的状态。**
 
-[English](README.md) · [安装与启动](docs/operations/getting-started.md) · [操作文档](docs/operations/README.md) · [API](api/openapi.yaml) · [参与贡献](CONTRIBUTING.md)
+[English](README.md) · [安装与启动](docs/operations/getting-started.md) · [操作文档](docs/operations/README.md) · [API](api/openapi.yaml) · [变更记录](CHANGELOG.md) · [参与贡献](CONTRIBUTING.md)
 
 StatusHub 是可自托管的服务状态监控与通知平台。输入公开状态页 URL，查看自动检测到的适配器，再为团队配置通知规则。React + TDesign 控制台集中展示服务状态、事件时间线、采集健康与通知投递记录，默认英文，支持简体中文及明暗主题。
 
@@ -11,8 +11,8 @@ StatusHub 是可自托管的服务状态监控与通知平台。输入公开状�
 - **通过 URL 接入**：复用通用状态页适配器，减少逐服务开发。
 - **查看事件**：统一事件与组件影响，区分服务更新时间和系统采集时间。
 - **解释采集状态**：展示最近成功、下次采集、失败原因和退避；采集失败不等于服务故障。
-- **配置通知**：网页创建 Slack 和签名 Webhook 渠道，按订阅规则投递，查看重试与死信记录。
-- **管理团队**：邀请注册、邮箱密码、四级角色，以及服务账号创建、停用和令牌轮换。
+- **配置通知**：网页创建 Slack、飞书、SMTP 邮件和签名 Webhook 渠道，按订阅规则投递，查看重试与死信记录。
+- **管理团队**：通过邮箱密码登录，使用管理员、操作员和只读用户三种角色，并管理服务账号。
 
 ## 适配范围
 
@@ -31,7 +31,7 @@ git clone https://github.com/Seeridia/StatusHub.git
 cd StatusHub
 ```
 
-按[安装与启动](docs/operations/getting-started.md)生成密钥，启动 PostgreSQL、NATS、Mailpit，初始化空数据库，然后运行 API 与 worker。该指南包含首位 Owner 的邀请、邮件验证和登录流程。
+按[安装与启动](docs/operations/getting-started.md)生成密钥，启动 PostgreSQL、NATS、Mailpit，初始化空数据库，然后运行 API 与 worker。该指南包含一次性初始化链接、首位管理员和登录流程。
 
 控制台地址：`http://127.0.0.1:8080/ui/?tenant=local`。没有默认密码，也不开放自主注册。已有实例请遵循[升级说明](docs/operations/maintenance.md#版本升级)，不要重复执行初始化。
 
@@ -49,7 +49,7 @@ cd StatusHub
 
 ## 开发与部署
 
-生产部署使用根目录 `compose.yaml` 拉取 GHCR 镜像，由 GitHub Actions 测试、构建并发布。详见[通用容器部署](docs/deployment.md)和 [Dokploy 部署指南](docs/dokploy.md#中文部署步骤)。
+生产部署使用根目录 `compose.yaml` 拉取 GHCR 镜像，由 GitHub Actions 完成构建检查、镜像发布，并可选触发 Dokploy。详见[通用容器部署](docs/deployment.md)和 [Dokploy 部署指南](docs/dokploy.md#中文部署步骤)。
 
 ```bash
 make ui-install
@@ -58,10 +58,10 @@ make ui-check
 make verify
 ```
 
-`make verify` 包含数据库和 NATS 集成测试，请使用可丢弃的开发数据库。网页资源嵌入 Go API；生产网页变更需要重新构建并重启 API。
+`make verify` 执行前端国际化、类型和生产构建检查，以及 Go 格式、静态分析和编译。数据库迁移、邮件与通知链路需在隔离环境人工验收。网页资源嵌入 Go API；生产网页变更需要重新构建并重启 API。
 
-生产部署需要公开 HTTPS 地址、独立 SMTP、持久存储和密钥保管。Compose 用于本地开发；当前静态 AES 密钥后端不提供 KMS/Vault 或在线多密钥轮换。贡献约定见 [CONTRIBUTING.md](CONTRIBUTING.md)，漏洞报告见 [SECURITY.md](SECURITY.md)。
+生产部署需要公开 HTTPS 地址、独立 SMTP、持久存储和密钥保管。根目录 Compose 用于生产镜像部署，本地基础设施使用 `deploy/compose.dev.yaml`；当前静态 AES 密钥后端不提供 KMS/Vault 或在线多密钥轮换。贡献约定见 [CONTRIBUTING.md](CONTRIBUTING.md)，漏洞报告见 [SECURITY.md](SECURITY.md)。
 
 ## 许可证与品牌
 
-项目源码许可证尚未确定，本 README 不授予开源许可；添加许可证前，分发和再利用需取得著作权人许可。第三方素材保留各自条款，详见[品牌素材来源](docs/brand-assets.md)。服务名称和 Logo 归各自权利人所有。
+StatusHub 采用 [GNU Affero General Public License v3.0](LICENSE)（`AGPL-3.0-only`）。通过网络提供修改版服务时，应按许可证要求向用户提供相应源码。第三方素材保留各自条款，详见[品牌素材来源](docs/brand-assets.md)。服务名称和 Logo 归各自权利人所有。

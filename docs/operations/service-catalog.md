@@ -24,7 +24,7 @@ and communications services, including AWS, OpenAI, Anthropic, Cloudflare,
 GitHub, Atlassian, Bitbucket, Clerk, Elastic, HashiCorp, LaunchDarkly, npm,
 Postman, Shopify, Snowflake, Tailscale, Twilio, Vercel, WorkOS, and Zoom. The
 canonical, alphabetized list and URLs live in
-`web/src/lib/service-catalog.ts` so the UI and tests share one source of truth.
+`web/src/lib/service-catalog.ts` so the UI has one source of truth.
 
 ## Maintaining the directory
 
@@ -32,7 +32,7 @@ canonical, alphabetized list and URLs live in
 2. Run the StatusHub probe against that URL and require a recognized adapter.
 3. Add the name, canonical URL, and useful aliases to
    `web/src/lib/service-catalog.ts`.
-4. Run `npm --prefix web test` and `npm --prefix web run build`.
+4. Run `npm --prefix web run build`, then manually verify search, selection, URL autofill, and an unlisted service using the live probe in an isolated environment.
 
 Do not derive this list from a logo catalog. Logos identify brands; they do not
 prove adapter compatibility.

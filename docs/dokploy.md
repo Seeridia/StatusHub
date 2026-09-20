@@ -6,13 +6,13 @@ Dokploy uses the same root `compose.yaml` as a normal Docker server. There is no
 
 ## 中文部署步骤
 
-1. 在 GitHub Actions 运行 **Publish container**，或推送版本标签触发发布。等待测试和镜像构建成功，在任务摘要中复制镜像 digest。首次发布检查 GHCR 包可见性；私有镜像需配置拉取凭据。
+1. 在 GitHub Actions 运行 **Publish container**，或推送版本标签触发发布。等待构建与静态检查、镜像构建成功，在任务摘要中复制镜像 digest。首次发布检查 GHCR 包可见性；私有镜像需配置拉取凭据。
 2. 在 Dokploy 新建 **Compose 服务**，关联本仓库，文件路径填写根目录 `compose.yaml`。
 3. 在环境变量编辑器中按根目录 `.env.example` 填写 `STATUSHUB_IMAGE`、数据库密码、两把独立密钥、公开 HTTPS 域名和 SMTP。镜像优先填写上一步的 digest，不要填写一个尚未发布的版本。
 4. 在域名配置中选择 **api** 服务、容器端口 **8080**，启用 HTTPS，并设置 DNS。`STATUSHUB_PUBLIC_URL` 使用同一 HTTPS 域名，不带 `/ui`。
 5. 确认 Dokploy 的反向代理可以通过其代理网络连接 **api**。部分版本会自动接入；未自动接入时，检查平台生成的最终 Compose 和本页的排查步骤。不要把数据库和 NATS 加入代理网络。
 6. 部署，检查 PostgreSQL/NATS 健康、迁移任务退出码为 0、API/worker 持续运行。迁移容器成功退出是正常行为。
-7. 在 API 容器终端创建工作区并创建首位 Admin，详见[初始化步骤](deployment.md#initialize-the-workspace)。通过真实邮件验证后登录，添加状态页、渠道和通知规则。
+7. 在 API 容器终端生成一次性初始化链接，详见[初始化步骤](deployment.md#initialize-the-workspace)。打开链接创建首位 Admin 和工作区，完成后自动登录；后续邀请与密码恢复需要真实邮件服务。
 
 ## Git Compose 与 Dokploy 域名配置
 

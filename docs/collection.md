@@ -14,7 +14,7 @@ source lease (PostgreSQL, SKIP LOCKED)
   → delivery UNIQUE 约束吸收重复消费
 ```
 
-通知协议层包含 Generic Webhook（CloudEvents 1.0 + HMAC-SHA256）和 Slack Incoming Webhook；已接入 subscription matcher、fanout 与 delivery worker，详见 [通知](notifications.md)。
+通知协议层包含 Generic Webhook（CloudEvents 1.0 + HMAC-SHA256）、Slack Incoming Webhook、飞书交互式卡片和 SMTP 邮件；已接入 subscription matcher、fanout 与 delivery worker，详见 [通知](notifications.md)。
 
 ## 启动
 
@@ -47,14 +47,7 @@ Canary 只验证真实端点、schema 与规范化，不生成用户通知。
 make verify
 ```
 
-该命令执行：
-
-1. `gofmt` 检查与 `go vet`；
-2. 全仓 `go test -race`；
-3. 所有 migration 按正序 up、逆序 down；
-4. PostgreSQL source/outbox lease fencing 与并发 `SKIP LOCKED`；
-5. JetStream publish dedupe、显式 ACK 与 redelivery；
-6. publish 后标记前崩溃、delivery commit 后 ACK 前崩溃的跨组件测试。
+该命令执行前端国际化、TypeScript 与生产构建，并检查 Go 格式、`go vet` 和全仓编译。仓库当前不提交自动化测试文件。迁移、PostgreSQL lease fencing、JetStream 重投递和通知投递语义需要在隔离环境按发布清单人工验收，不能把构建成功当成运行链路已经验证。
 
 ## 故障语义
 
@@ -64,5 +57,5 @@ make verify
 - checkpoint、canonical event、outbox 受同一 source lease token 保护并原子提交。
 - publish 成功但 outbox 标记失败时不主动释放 lease；租约过期后使用同一 Msg-Id 重发。
 - JetStream 是 at-least-once；最终幂等来自 canonical event 与 delivery 的数据库唯一约束。
-- Webhook/Slack 的 2xx 只记为 `provider_accepted`，不宣称最终送达。
+- Webhook/Slack/飞书的 2xx 和 SMTP 接受只记为提供方接受，不宣称最终送达或已读。
 - 通知默认使用 DNS pinning/SSRF 防护并拒绝重定向；429 优先遵守 `Retry-After`。
