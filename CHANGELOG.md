@@ -19,6 +19,11 @@ All notable user-visible changes to StatusHub are recorded here. The project fol
 - Renamed the project, repository, container image, CLI commands, configuration prefix, and product UI to StatusHub.
 - Simplified browser authentication to user-level server sessions and workspace selection after login.
 - Replaced Owner/Admin role overlap with one active human Admin per workspace, plus Operator and Viewer roles.
+- Updated GitHub checkout and toolchain setup actions to Node.js 24 runtime versions.
+
+### Fixed
+
+- Treat an empty JetStream consumer wait deadline as an idle poll instead of repeatedly logging it as a worker failure.
 
 ### Security
 
