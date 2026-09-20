@@ -4,6 +4,8 @@ All notable user-visible changes to StatusHub are recorded here. The project fol
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-21
+
 ### Added
 
 - URL-based status-page discovery with reusable adapters and a curated service address catalog.
@@ -29,4 +31,5 @@ All notable user-visible changes to StatusHub are recorded here. The project fol
 
 - Added CSRF-protected server sessions, Argon2id password storage, encrypted channel secrets, SSRF-aware outbound delivery, and tenant-scoped authorization checks.
 
-This section describes the initial release candidate. No stable release tag has been created yet.
+[Unreleased]: https://github.com/Seeridia/StatusHub/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Seeridia/StatusHub/releases/tag/v0.1.0
