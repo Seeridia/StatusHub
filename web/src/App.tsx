@@ -69,6 +69,7 @@ const Incidents = lazy(() => import("./pages/Incidents"));
 const Rules = lazy(() => import("./pages/Rules"));
 const Channels = lazy(() => import("./pages/Channels"));
 const Operations = lazy(() => import("./pages/Operations"));
+const PlatformAdmin = lazy(() => import("./pages/PlatformAdmin"));
 
 export function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
@@ -425,6 +426,7 @@ export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const platformEntry = window.location.pathname.startsWith("/admin");
   async function reload() {
     try {
       if (demo) {
@@ -508,6 +510,29 @@ export default function App() {
       </div>
     );
   if (!snapshot && !demo) return <LoginPage onComplete={completed} />;
+  if (platformEntry && snapshot && !snapshot.platform_admin)
+    return (
+      <div className="account-flow">
+        <Alert
+          theme="warning"
+          title={tr("无法访问平台管理后台")}
+          message={tr("当前账号不是平台管理员。请由可信运维使用 CLI 授予平台权限。")}
+        />
+        <Button onClick={() => window.location.assign("/ui/")}>{tr("返回工作台")}</Button>
+      </div>
+    );
+  if (platformEntry && snapshot)
+    return (
+      <Suspense fallback={<div className="boot">{tr("正在加载平台管理后台…")}</div>}>
+        <PlatformAdmin
+          snapshot={snapshot}
+          onLogout={() => {
+            setSnapshot(null);
+            setSession(null);
+          }}
+        />
+      </Suspense>
+    );
   if (snapshot && loc.pathname === "/account")
     return <AccountPage snapshot={snapshot} onComplete={completed} />;
   if (snapshot && (!session || loc.pathname === "/workspaces")) {

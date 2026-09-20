@@ -62,6 +62,7 @@ Shared sources are collected independently of tenant subscriptions. PostgreSQL h
 | [Getting started](docs/getting-started.md) / [安装与启动](docs/operations/getting-started.md) | First-time operators |
 | [Console guide](docs/operations/console-guide.md) | Workspace members; Chinese |
 | [Team accounts](docs/operations/team-accounts.md) | Workspace administrators; Chinese |
+| [Platform administration](docs/operations/platform-administration.md) | Instance administrators; Chinese |
 | [Configuration](docs/operations/configuration.md), [maintenance](docs/operations/maintenance.md), [troubleshooting](docs/operations/troubleshooting.md) | Self-hosting operators; Chinese |
 | [API reference](docs/api-guide.md), [OpenAPI schema](api/openapi.yaml) | Integrators |
 | [Collection](docs/collection.md), [notifications](docs/notifications.md), [advanced operations](docs/advanced-operations.md) | Backend contributors and operators; Chinese |

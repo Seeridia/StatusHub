@@ -271,7 +271,7 @@ paths:
       security: [{browserSession: []}]
       responses:
         '200':
-          description: Current user, accessible workspaces, CSRF token and mail configuration status
+          description: Current user, accessible workspaces, CSRF token, mail configuration status, and platform administration capability
           content:
             application/json:
               schema:
@@ -285,6 +285,7 @@ paths:
                       email_verified_at: {type: [string, 'null'], format: date-time}
                   csrf_token: {type: string}
                   mail_configured: {type: boolean}
+                  platform_admin: {type: boolean}
                   workspaces:
                     type: array
                     items:
@@ -295,6 +296,69 @@ paths:
                         name: {type: string}
                         role: {type: string, enum: [viewer, operator, admin]}
         '401': {description: Missing or expired browser session}
+  /admin/v1/summary:
+    get:
+      operationId: getPlatformSummary
+      security: [{browserSession: []}]
+      description: Platform administrator only. Returns instance-level counts without tenant secrets.
+      responses:
+        '200': {description: Instance summary}
+        '401': {description: Missing or expired browser session}
+        '403': {description: Platform administrator access required}
+  /admin/v1/users:
+    get:
+      operationId: listPlatformUsers
+      security: [{browserSession: []}]
+      description: Platform administrator only. Lists users, workspace counts and active browser session counts.
+      parameters:
+        - {in: query, name: query, schema: {type: string}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 500, default: 100}}
+      responses:
+        '200': {description: User metadata list}
+        '403': {description: Platform administrator access required}
+  /admin/v1/users/{id}:
+    patch:
+      operationId: setPlatformUserEnabled
+      security: [{browserSession: []}]
+      description: Enables or globally disables a user. Disabling revokes browser sessions. The acting administrator and the last active platform administrator cannot be disabled.
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+        - {$ref: '#/components/parameters/CSRF'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required: [enabled]
+              properties: {enabled: {type: boolean}}
+      responses:
+        '200': {description: Updated}
+        '403': {description: Platform administrator access required}
+        '409': {description: Self-disable, last platform administrator, or workspace administrator protection}
+  /admin/v1/users/{id}/revoke-sessions:
+    post:
+      operationId: revokePlatformUserSessions
+      security: [{browserSession: []}]
+      description: Revokes every browser session for a user. Does not change workspace memberships or service accounts.
+      parameters:
+        - {in: path, name: id, required: true, schema: {type: string, format: uuid}}
+        - {$ref: '#/components/parameters/CSRF'}
+      responses:
+        '200': {description: Sessions revoked}
+        '403': {description: Platform administrator access required}
+  /admin/v1/workspaces:
+    get:
+      operationId: listPlatformWorkspaces
+      security: [{browserSession: []}]
+      description: Platform administrator only. Lists workspaces with administrator, active member and attached source counts.
+      parameters:
+        - {in: query, name: query, schema: {type: string}}
+        - {in: query, name: limit, schema: {type: integer, minimum: 1, maximum: 500, default: 100}}
+      responses:
+        '200': {description: Workspace metadata list}
+        '403': {description: Platform administrator access required}
   /v1/tenants/{tenant}/members:
     get:
       operationId: listTeamMembers

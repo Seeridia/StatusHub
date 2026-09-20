@@ -43,6 +43,8 @@ type adminStore interface {
 	AdapterRolloutStatistics(context.Context, string) (store.AdapterRolloutStats, error)
 	PromoteAdapterRollout(context.Context, store.DecideAdapterRolloutParams) (store.AdapterRolloutStats, error)
 	RollbackAdapterRollout(context.Context, store.DecideAdapterRolloutParams) (store.AdapterRolloutStats, error)
+	GrantPlatformAdmin(context.Context, string, string) (store.PlatformUser, error)
+	RevokePlatformAdmin(context.Context, string, string) error
 	Close()
 }
 
@@ -52,13 +54,17 @@ var openStore = func(ctx context.Context, databaseURL string) (adminStore, error
 
 func run(ctx context.Context, args []string, output io.Writer) error {
 	if len(args) == 0 {
-		return errors.New("operation is required: tenant-create, dlq-list, dlq-replay, aws-connector-create, private-agent-create, private-agent-bind, setup-link, service-account-create, audit-export, audit-verify, source-region-change, adapter-rollout-create, adapter-rollout-status, adapter-rollout-promote, or adapter-rollout-rollback")
+		return errors.New("operation is required: tenant-create, platform-admin-grant, platform-admin-revoke, dlq-list, dlq-replay, aws-connector-create, private-agent-create, private-agent-bind, setup-link, service-account-create, audit-export, audit-verify, source-region-change, adapter-rollout-create, adapter-rollout-status, adapter-rollout-promote, or adapter-rollout-rollback")
 	}
 	switch args[0] {
 	case "tenant-create":
 		return runTenantCreate(ctx, args[1:], output)
 	case "setup-link":
 		return runSetupLink(ctx, args[1:], output)
+	case "platform-admin-grant":
+		return runPlatformAdminGrant(ctx, args[1:], output)
+	case "platform-admin-revoke":
+		return runPlatformAdminRevoke(ctx, args[1:], output)
 	case "dlq-list":
 		return runDLQList(ctx, args[1:], output)
 	case "dlq-replay":
@@ -88,6 +94,53 @@ func run(ctx context.Context, args []string, output io.Writer) error {
 	default:
 		return fmt.Errorf("unsupported operation %q", args[0])
 	}
+}
+
+func runPlatformAdminGrant(ctx context.Context, args []string, output io.Writer) error {
+	flags := flag.NewFlagSet("platform-admin-grant", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	databaseURL := flags.String("database-url", os.Getenv("DATABASE_URL"), "PostgreSQL connection URL")
+	email := flags.String("email", "", "existing user email")
+	actor := flags.String("actor-id", "statushub-admin", "operator identifier")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 || strings.TrimSpace(*email) == "" || strings.TrimSpace(*actor) == "" {
+		return errors.New("-email and -actor-id are required")
+	}
+	repository, err := connect(ctx, *databaseURL)
+	if err != nil {
+		return err
+	}
+	defer repository.Close()
+	user, err := repository.GrantPlatformAdmin(ctx, *email, *actor)
+	if err != nil {
+		return err
+	}
+	return writeJSON(output, map[string]any{"platform_admin": user, "admin_url": strings.TrimRight(os.Getenv("STATUSHUB_PUBLIC_URL"), "/") + "/admin/"})
+}
+
+func runPlatformAdminRevoke(ctx context.Context, args []string, output io.Writer) error {
+	flags := flag.NewFlagSet("platform-admin-revoke", flag.ContinueOnError)
+	flags.SetOutput(io.Discard)
+	databaseURL := flags.String("database-url", os.Getenv("DATABASE_URL"), "PostgreSQL connection URL")
+	email := flags.String("email", "", "platform administrator email")
+	actor := flags.String("actor-id", "statushub-admin", "operator identifier")
+	if err := flags.Parse(args); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 || strings.TrimSpace(*email) == "" || strings.TrimSpace(*actor) == "" {
+		return errors.New("-email and -actor-id are required")
+	}
+	repository, err := connect(ctx, *databaseURL)
+	if err != nil {
+		return err
+	}
+	defer repository.Close()
+	if err = repository.RevokePlatformAdmin(ctx, *email, *actor); err != nil {
+		return err
+	}
+	return writeJSON(output, map[string]any{"completed": true, "email": strings.ToLower(strings.TrimSpace(*email))})
 }
 
 func runTenantCreate(ctx context.Context, args []string, out io.Writer) error {

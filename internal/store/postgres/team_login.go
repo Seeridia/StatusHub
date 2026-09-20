@@ -66,7 +66,7 @@ func (s *Store) PasswordUser(ctx context.Context, email, password string) (User,
 	if e != nil {
 		return User{}, auth.ErrUnauthenticated
 	}
-	u, h, e := scanUser(s.db.QueryRow(ctx, "SELECT "+userColumns+" FROM users WHERE email=$1", email))
+	u, h, e := scanUser(s.db.QueryRow(ctx, "SELECT "+userColumns+" FROM users WHERE email=$1 AND enabled", email))
 	if e != nil {
 		auth.VerifyPassword(dummyPasswordHash, password)
 		return User{}, auth.ErrUnauthenticated
@@ -80,7 +80,7 @@ func (s *Store) PasswordUser(ctx context.Context, email, password string) (User,
 const dummyPasswordHash = "$argon2id$v=19$m=65536,t=3,p=2$AAAAAAAAAAAAAAAAAAAAAA$AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
 
 func (s *Store) UserWorkspaces(ctx context.Context, user string) ([]Workspace, error) {
-	rows, e := s.db.Query(ctx, `SELECT t.id,t.slug,t.name,m.role FROM memberships m JOIN tenants t ON t.id=m.tenant_id WHERE m.user_id=$1 AND m.enabled ORDER BY t.name,t.id`, user)
+	rows, e := s.db.Query(ctx, `SELECT t.id,t.slug,t.name,m.role FROM memberships m JOIN tenants t ON t.id=m.tenant_id JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.enabled AND u.enabled ORDER BY t.name,t.id`, user)
 	if e != nil {
 		return nil, e
 	}
@@ -97,7 +97,7 @@ func (s *Store) UserWorkspaces(ctx context.Context, user string) ([]Workspace, e
 }
 func (s *Store) MemberIdentity(ctx context.Context, user, tenant string) (auth.Identity, error) {
 	a := auth.Identity{ActorType: "user", ActorID: user, TenantID: tenant}
-	e := s.db.QueryRow(ctx, `SELECT m.role,u.email FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.tenant_id=$2 AND m.enabled`, user, tenant).Scan(&a.Role, &a.Email)
+	e := s.db.QueryRow(ctx, `SELECT m.role,u.email FROM memberships m JOIN users u ON u.id=m.user_id WHERE m.user_id=$1 AND m.tenant_id=$2 AND m.enabled AND u.enabled`, user, tenant).Scan(&a.Role, &a.Email)
 	if errors.Is(e, pgx.ErrNoRows) {
 		return a, auth.ErrForbidden
 	}
@@ -125,7 +125,7 @@ func (s *Store) CreateUserSession(ctx context.Context, token, csrf string, u Use
 func (s *Store) UserSession(ctx context.Context, token string) (BrowserSession, error) {
 	var b BrowserSession
 	e := s.db.QueryRow(ctx, `SELECT u.id,u.email,u.display_name,u.email_verified_at,u.password_version::text,s.csrf,s.expires_at
- FROM browser_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND s.revoked_at IS NULL AND s.expires_at>now() AND s.last_active_at>now()-interval '24 hours'`, tokenDigest(token)).Scan(
+ FROM browser_sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=$1 AND u.enabled AND s.revoked_at IS NULL AND s.expires_at>now() AND s.last_active_at>now()-interval '24 hours'`, tokenDigest(token)).Scan(
 		&b.User.ID, &b.User.Email, &b.User.Name, &b.User.VerifiedAt, &b.User.PasswordVersion, &b.CSRF, &b.ExpiresAt)
 	if errors.Is(e, pgx.ErrNoRows) {
 		return b, auth.ErrUnauthenticated

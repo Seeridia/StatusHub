@@ -63,6 +63,16 @@ func (s *Server) handleUI(response http.ResponseWriter, request *http.Request) {
 	_, _ = response.Write(data)
 }
 
+func (s *Server) handleAdminUI(response http.ResponseWriter, request *http.Request) {
+	if request.URL.Path != "/admin/" {
+		http.NotFound(response, request)
+		return
+	}
+	clone := request.Clone(request.Context())
+	clone.URL.Path = "/ui/"
+	s.handleUI(response, clone)
+}
+
 func acceptsGzip(value string) bool {
 	for _, coding := range strings.Split(value, ",") {
 		parts := strings.Split(strings.TrimSpace(coding), ";")

@@ -11,6 +11,7 @@
 | 查看状态、添加状态页、设置渠道和通知规则 | [网页操作手册](console-guide.md) |
 | 配置项、角色权限、API 使用约定 | [配置与账号](configuration.md) |
 | 邀请成员、邮箱密码、服务账号轮换与撤销 | [团队账号管理](team-accounts.md) |
+| 管理整个实例的用户、工作区和平台权限 | [平台管理后台](platform-administration.md) |
 | 日常检查、升级、备份恢复、停机 | [运行与维护](maintenance.md) |
 | 登录失败、没有数据、探测失败、通知未到达 | [故障排查](troubleshooting.md) |
 

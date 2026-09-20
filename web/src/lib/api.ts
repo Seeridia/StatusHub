@@ -10,6 +10,7 @@ export interface AccountSession {
   workspaces: { id: string; slug: string; name: string; role: string }[];
   csrf_token: string;
   mail_configured: boolean;
+  platform_admin: boolean;
 }
 export class APIError extends Error {
   constructor(
@@ -46,6 +47,12 @@ export function accountRequest<T = unknown>(
     body: JSON.stringify(body),
   });
 }
+export function platformRequest<T = unknown>(
+  path: string,
+  init: RequestInit = {},
+) {
+  return request<T>(`/admin/v1${path}`, init);
+}
 export function enterWorkspace(w: AccountSession["workspaces"][number]) {
   const url = new URL(location.href);
   url.searchParams.set("tenant", w.slug);
@@ -79,6 +86,10 @@ export async function request<T>(
       session_expired: tr("会话已过期，请重新登录。"),
       unauthenticated: tr("会话已过期，请重新登录。"),
       workspace_forbidden: tr("你没有此工作区的访问权限。"),
+      platform_forbidden: tr("当前账号没有平台管理权限。"),
+      last_platform_admin: tr("必须保留至少一名有效的平台管理员。"),
+      platform_self_disable: tr("平台管理员不能停用自己的账号。"),
+      workspace_admin_disable: tr("请先转移该用户负责的工作区管理员，再停用账号。"),
       invitation_invalid: tr("邀请已过期、撤销或接受，请联系管理员重新邀请。"),
       setup_unavailable: tr("初始化链接已失效，或实例已经初始化。"),
       invalid_password: tr("密码必须包含 12–128 个字符。"),

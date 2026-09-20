@@ -19,6 +19,60 @@ export function resolveLanguage(
 }
 
 const english: Record<string, string> = {
+  实例管理: "Platform administration",
+  平台总览: "Platform overview",
+  用户管理: "Users",
+  工作区管理: "Workspaces",
+  用户总数: "Total users",
+  启用用户: "Enabled users",
+  工作区: "Workspaces",
+  平台数据源: "Platform sources",
+  管理边界: "Administration boundary",
+  "查看 StatusHub 实例的账号、工作区与共享资源规模。":
+    "Review accounts, workspaces, and shared resources across this StatusHub instance.",
+  "平台管理员管理整个实例；工作区管理员只管理自己的成员与业务配置。两种权限相互独立。":
+    "Platform administrators manage the instance. Workspace administrators manage only their own members and business configuration. These permissions are independent.",
+  "管理实例账号状态并撤销浏览器会话。工作区角色仍由各工作区管理员维护。":
+    "Manage instance account status and revoke browser sessions. Workspace roles remain managed by each workspace administrator.",
+  搜索邮箱或名称: "Search email or name",
+  搜索: "Search",
+  暂无用户: "No users",
+  用户: "User",
+  权限与范围: "Access and scope",
+  平台管理员: "Platform administrator",
+  "{{count}} 个工作区": "{{count}} workspaces",
+  "{{count}} 个活跃会话": "{{count}} active sessions",
+  "{{count}} 名成员": "{{count}} members",
+  "{{count}} 个数据源": "{{count}} sources",
+  活跃会话: "Active sessions",
+  最近活动: "Last activity",
+  停用: "Disable",
+  撤销会话: "Revoke sessions",
+  撤销全部会话: "Revoke all sessions",
+  停用用户: "Disable user",
+  恢复用户: "Restore user",
+  "该用户需要重新登录所有浏览器。": "The user must sign in again on every browser.",
+  "该用户将无法登录，现有会话也会立即失效。":
+    "The user will be unable to sign in and all current sessions will be revoked immediately.",
+  "该用户将可以重新登录并访问仍然有效的工作区。":
+    "The user can sign in again and access their enabled workspaces.",
+  "查看每个工作区的管理员、成员数量和已关联数据源。":
+    "Review each workspace administrator, member count, and attached sources.",
+  "搜索工作区、标识或管理员": "Search workspace, slug, or administrator",
+  暂无工作区: "No workspaces",
+  创建时间: "Created",
+  进入工作区: "Open workspace",
+  返回工作台: "Back to console",
+  暂无: "None",
+  无法访问平台管理后台: "Platform administration unavailable",
+  "当前账号不是平台管理员。请由可信运维使用 CLI 授予平台权限。":
+    "This account is not a platform administrator. Ask a trusted operator to grant platform access with the CLI.",
+  "当前账号没有平台管理权限。": "This account does not have platform administration access.",
+  "必须保留至少一名有效的平台管理员。": "At least one active platform administrator is required.",
+  "平台管理员不能停用自己的账号。": "Platform administrators cannot disable their own account.",
+  "请先转移该用户负责的工作区管理员，再停用账号。":
+    "Transfer the workspaces administered by this user before disabling the account.",
+  "正在加载平台管理后台…": "Loading platform administration…",
   编辑通知渠道: "Edit notification channel",
   留空以保留现有凭据: "Leave blank to keep the current credential",
   "通知渠道已归档，历史投递记录仍然保留。":

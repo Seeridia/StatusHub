@@ -26,6 +26,7 @@ type AccountRepository interface {
 	RequestUserMail(context.Context, string, string, string, store.TeamCipher) error
 	CompleteUserToken(context.Context, string, string, string) error
 	ChangeUserPassword(context.Context, string, string, string) error
+	IsPlatformAdmin(context.Context, string) (bool, error)
 }
 
 func publicOrigin(v string) (string, error) {
@@ -59,7 +60,12 @@ func (s *Server) handleAuthSession(w http.ResponseWriter, r *http.Request) {
 		s.authError(w, r, "session", e)
 		return
 	}
-	writeJSON(w, 200, map[string]any{"user": b.User, "workspaces": workspaces, "csrf_token": b.CSRF, "mail_configured": smtpConfigured()})
+	platformAdmin, e := s.repository.(AccountRepository).IsPlatformAdmin(r.Context(), b.User.ID)
+	if e != nil {
+		s.authError(w, r, "session", e)
+		return
+	}
+	writeJSON(w, 200, map[string]any{"user": b.User, "workspaces": workspaces, "csrf_token": b.CSRF, "mail_configured": smtpConfigured(), "platform_admin": platformAdmin})
 }
 func (s *Server) authIP(r *http.Request) string {
 	host, _, _ := net.SplitHostPort(r.RemoteAddr)

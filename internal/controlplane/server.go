@@ -138,6 +138,7 @@ func (s *Server) Handler() http.Handler {
 
 func (s *Server) routes() {
 	s.teamRoutes()
+	s.platformRoutes()
 	s.mux.HandleFunc("GET /{$}", func(response http.ResponseWriter, request *http.Request) {
 		target := "/ui/"
 		if request.URL.RawQuery != "" {
@@ -151,6 +152,10 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("GET /readyz", s.handleReady)
 	s.mux.HandleFunc("GET /openapi.yaml", s.handleOpenAPI)
 	s.mux.HandleFunc("GET /ui/", s.handleUI)
+	s.mux.HandleFunc("GET /admin", func(response http.ResponseWriter, request *http.Request) {
+		http.Redirect(response, request, "/admin/", http.StatusPermanentRedirect)
+	})
+	s.mux.HandleFunc("GET /admin/", s.handleAdminUI)
 	s.mux.Handle("DELETE /v1/tenants/{tenant}/sources/{source}", s.authorize(auth.PermissionSubscriptionWrite, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { s.handleDeleteResource(w, r, "source") })))
 
 	s.mux.Handle("GET /v1/tenants/{tenant}/session", s.authorize(auth.PermissionRead, http.HandlerFunc(s.handleSession)))
@@ -328,6 +333,12 @@ func writeProblem(response http.ResponseWriter, request *http.Request, err error
 		return
 	}
 	switch {
+	case errors.Is(err, store.ErrLastPlatformAdmin):
+		status, code, detail = http.StatusConflict, "last_platform_admin", "The last active platform administrator cannot be removed or disabled"
+	case errors.Is(err, store.ErrPlatformSelfDisable):
+		status, code, detail = http.StatusConflict, "platform_self_disable", "Platform administrators cannot disable their own account"
+	case errors.Is(err, store.ErrWorkspaceAdminDisable):
+		status, code, detail = http.StatusConflict, "workspace_admin_disable", "Transfer workspace administration before disabling this user"
 	case errors.Is(err, store.ErrNotFound):
 		status, code, detail = http.StatusNotFound, "not_found", "The requested resource was not found"
 	case errors.Is(err, store.ErrConflict), errors.Is(err, store.ErrIdempotencyConflict):
