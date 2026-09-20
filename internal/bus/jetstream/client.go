@@ -288,7 +288,7 @@ func (c *Consumer) ProcessBatch(ctx context.Context, batchSize int, maxWait time
 		}
 		processed++
 	}
-	if err := batch.Error(); err != nil {
+	if err := batch.Error(); err != nil && !errors.Is(err, context.DeadlineExceeded) && !errors.Is(err, nats.ErrTimeout) {
 		processErrors = append(processErrors, fmt.Errorf("JetStream batch: %w", err))
 	}
 	return processed, errors.Join(processErrors...)
